@@ -14,5 +14,11 @@ export interface WorldStateMessage {
   players: PlayerState[]
 }
 
+// S->C: Server tells the client what their assigned ID is upon connecting
+export interface WelcomeMessage {
+  type: 'welcome'
+  id: string
+}
+
 export type ClientMessage = InputMessage
-export type ServerMessage = WorldStateMessage
+export type ServerMessage = WelcomeMessage | WorldStateMessage

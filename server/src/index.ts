@@ -4,7 +4,7 @@ import { ClientMessage, WorldStateMessage } from '../../protocol/messages'
 
 const PORT = 3000
 const TICK_MS = 50 // 20 tick/sec
-const SPEED = 3    // pixels per tick
+const SPEED = 8    // pixels per tick
 
 const wss = new WebSocketServer({ port: PORT })
 console.log(`Server running on ws://localhost:${PORT}`)
@@ -19,7 +19,8 @@ wss.on('connection', (socket) => {
     state: { id, x: 400, y: 300, rotation: 0 },
     input: { dx: 0, dy: 0, rotation: 0 },
   })
-
+  // S->C: Tell this client their assigned ID
+  socket.send(JSON.stringify({ type: 'welcome', id }))
   console.log(`Player ${id} connected`)
 
   socket.on('close', () => {

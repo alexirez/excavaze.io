@@ -30,6 +30,10 @@ export class GameScene extends Phaser.Scene {
     socket.onmessage = (event) => {
       const msg = JSON.parse(event.data) as ServerMessage
 
+      if (msg.type === 'welcome') {
+        this.localId = msg.id
+      }
+
       if (msg.type === 'world_state') {
         // Store the latest state for rendering in update()
         for (const player of msg.players) {
