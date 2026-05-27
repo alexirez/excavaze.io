@@ -4,7 +4,7 @@ import { ClientMessage, WorldStateMessage } from '../../protocol/messages'
 
 const PORT = 3000
 const TICK_MS = 50 // 20 tick/sec
-const SPEED = 8    // pixels per tick
+const SPEED = 10    // pixels per tick
 
 const wss = new WebSocketServer({ port: PORT })
 console.log(`Server running on ws://localhost:${PORT}`)
