@@ -8,6 +8,5 @@ export interface ServerPlayer {
 }
 
 export interface ServerSquare {
-  id: string
   state: SquareState
 }

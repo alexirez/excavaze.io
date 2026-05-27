@@ -6,7 +6,9 @@ export class GameScene extends Phaser.Scene {
   private container!: Phaser.GameObjects.Container
   private keys!: Record<string, Phaser.Input.Keyboard.Key>
   private localId: string | null = null
-  private latestState: Record<string, { x: number; y: number; rotation: number }> = {}
+  private latestPlayersState: Record<string, { x: number; y: number; rotation: number }> = {}
+  private latestSquaresState: Record<string, { x: number, y: number, rotation: number }> = {}
+  private squareSprites: Map<string, Phaser.GameObjects.Rectangle> = new Map()
 
   constructor() {
     super({ key: 'GameScene' })
@@ -34,13 +36,24 @@ export class GameScene extends Phaser.Scene {
         this.localId = msg.id
       }
 
+      // Store the latest state for rendering in update()
       if (msg.type === 'world_state') {
-        // Store the latest state for rendering in update()
+
+        // For rendering players
         for (const player of msg.players) {
-          this.latestState[player.id] = {
+          this.latestPlayersState[player.id] = {
             x: player.x,
             y: player.y,
             rotation: player.rotation,
+          }
+        }
+
+        // For rendering squares
+        for (const square of msg.squares) {
+          this.latestSquaresState[square.id] = {
+            x: square.x,
+            y: square.y,
+            rotation: square.angle
           }
         }
       }
@@ -60,15 +73,36 @@ export class GameScene extends Phaser.Scene {
     }, 50)
   }
 
+  // Only rendering, — game logic is on server side
   update() {
-    // Only render — no movement logic here
-    if (!this.localId) return
+    if (!this.localId) return // no id assigned yet -> do nothing
 
-    const state = this.latestState[this.localId]
-    if (!state) return
+    const playerState = this.latestPlayersState[this.localId]
+    if (playerState) {
+      this.container.x = playerState.x
+      this.container.y = playerState.y
+      this.container.rotation = playerState.rotation
+    }
 
-    this.container.x = state.x
-    this.container.y = state.y
-    this.container.rotation = state.rotation
+    const liveIds = new Set(Object.keys(this.latestSquaresState))
+
+    for (const [id, sq] of Object.entries(this.latestSquaresState)) {
+    let sprite = this.squareSprites.get(id)
+    if (!sprite) {
+      sprite = this.add.rectangle(sq.x, sq.y, 30, 30, 0xf5a623)
+      this.squareSprites.set(id, sprite)
+    }
+    sprite.x = sq.x
+    sprite.y = sq.y
+    sprite.rotation = sq.rotation
+    }
+
+    // Destroy sprites for squares no longer in state
+    for (const [id, sprite] of this.squareSprites) {
+      if (!liveIds.has(id)) {
+        sprite.destroy()
+        this.squareSprites.delete(id)
+      }
+    }
   }
 }

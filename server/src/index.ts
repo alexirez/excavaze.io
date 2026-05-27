@@ -88,24 +88,22 @@ setInterval(() => {
 function spawnSquares() {
   const chunkW = WORLD_WIDTH / CHUNK_COLS
   const chunkH = WORLD_HEIGHT / CHUNK_ROWS
-  for (let i = 0; i < CHUNK_ROWS; i++) {
+
+  for (let row = 0; row < CHUNK_ROWS; row++) {
     for (let col = 0; col < CHUNK_COLS; col++) {
       const existing = 0 // TODO: use collision/distance functions (will add later) to count squares in this chunk
       const toSpawn = Math.max(0, SQUARES_DENSITY - existing)
-
-      for (let row = 0; row < CHUNK_ROWS; row++) {
-        for (let i = 0; i < toSpawn; i++) {
-          // TODO: check overlap with existing squares before placing (collision branch)
-          const id = Math.random().toString(36).slice(2, 9)
-          squares.set(id, {
-            id,
-            state: {
-              x: col * chunkW + Math.random() * chunkW,
-              y: row * chunkH + Math.random() * chunkH,
-              angle: Math.random() * Math.PI * 2,
-            }
-          })
-        }
+      for (let i = 0; i < toSpawn; i++) {
+        // TODO: check overlap with existing squares before placing (collision branch)
+        const id = Math.random().toString(36).slice(2, 9)
+        squares.set(id, {
+          state: {
+            id: id,
+            x: col * chunkW + Math.random() * chunkW,
+            y: row * chunkH + Math.random() * chunkH,
+            angle: Math.random() * Math.PI * 2,
+          }
+        })
       }
     }
   }
