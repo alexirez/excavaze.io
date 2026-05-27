@@ -8,7 +8,7 @@ export interface PlayerState {
 }
 
 export interface SquareState {
-  id: string
   x: number
   y: number
+  angle: number
 }

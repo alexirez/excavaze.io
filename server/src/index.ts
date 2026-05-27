@@ -1,6 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws'
-import { ServerPlayer } from './entities'
+import { ServerPlayer, ServerSquare } from './entities'
 import { ClientMessage, WorldStateMessage } from '../../protocol/messages'
+import { SquareState } from '../../protocol/types'
 
 const PORT = 3000
 const TICK_MS = 50 // 20 tick/sec
@@ -10,6 +11,7 @@ const wss = new WebSocketServer({ port: PORT })
 console.log(`Server running on ws://localhost:${PORT}`)
 
 const players = new Map<string, ServerPlayer>()
+const squares = new Map<string, ServerSquare>()
 
 wss.on('connection', (socket) => {
   const id = Math.random().toString(36).slice(2, 9)
@@ -56,6 +58,7 @@ setInterval(() => {
   const message: WorldStateMessage = {
     type: 'world_state',
     players: Array.from(players.values()).map(p => p.state),
+    squares: Array.from(squares.values()).map(p => p.state)
   }
 
   const json = JSON.stringify(message)

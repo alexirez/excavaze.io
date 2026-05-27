@@ -1,4 +1,4 @@
-import { PlayerState } from './types'
+import { PlayerState, SquareState } from './types'
 
 // C->S: Client tells server what inputs are being held this tick
 export interface InputMessage {
@@ -8,10 +8,11 @@ export interface InputMessage {
   rotation: number // aim angle in radians
 }
 
-// S->C: Server tells all clients where every player is this tick
+// S->C: Server tells all clients where every object is this tick
 export interface WorldStateMessage {
   type: 'world_state'
-  players: PlayerState[]
+  players: PlayerState[],
+  squares: SquareState[]
 }
 
 // S->C: Server tells the client what their assigned ID is upon connecting
