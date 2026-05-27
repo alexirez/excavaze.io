@@ -19,7 +19,7 @@ console.log(`Server running on ws://localhost:${PORT}`)
 const players = new Map<string, ServerPlayer>()
 const squares = new Map<string, ServerSquare>()
 
-spawnSquares() // for now, just spawn on game start. later, constantly re-evaluate chunk densities
+spawnSquaresOnStartup()
 
 wss.on('connection', (socket) => {
   const id = Math.random().toString(36).slice(2, 9)
@@ -85,7 +85,7 @@ setInterval(() => {
   }
 }, TICK_MS)
 
-function spawnSquares() {
+function spawnSquaresOnStartup() {
   const chunkW = WORLD_WIDTH / CHUNK_COLS
   const chunkH = WORLD_HEIGHT / CHUNK_ROWS
 
@@ -107,4 +107,21 @@ function spawnSquares() {
       }
     }
   }
+}
+
+// Helper method to count squares per chunk, used in spawnSquares
+function countSquaresPerChunk(): number[] {
+  const chunkW = WORLD_WIDTH / CHUNK_COLS
+  const chunkH = WORLD_HEIGHT / CHUNK_ROWS
+  const counts = new Array(CHUNK_ROWS * CHUNK_COLS).fill(0)
+
+  for (const square of squares.values()) {
+    const col = Math.floor(square.state.x / chunkW)
+    const row = Math.floor(square.state.y / chunkH)
+    if (col >= 0 && col < CHUNK_COLS && row >= 0 && row < CHUNK_ROWS) {
+      counts[row * CHUNK_COLS + col]++
+    }
+  }
+
+  return counts
 }
