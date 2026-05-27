@@ -42,3 +42,26 @@ wss.on('connection', (socket) => {
     }
   })
 })
+
+setInterval(() => {
+  // Apply each player's latest input to their position
+  for (const player of players.values()) {
+    player.state.x += player.input.dx * SPEED
+    player.state.y += player.input.dy * SPEED
+    player.state.rotation = player.input.rotation
+  }
+
+  // Serialize world state once, send to every connected client
+  const message: WorldStateMessage = {
+    type: 'world_state',
+    players: Array.from(players.values()).map(p => p.state),
+  }
+
+  const json = JSON.stringify(message)
+
+  for (const player of players.values()) {
+    if (player.socket.readyState === WebSocket.OPEN) {
+      player.socket.send(json)
+    }
+  }
+}, TICK_MS)
