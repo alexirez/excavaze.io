@@ -1,9 +1,8 @@
+import { WebSocket as NodeWebSocket } from 'ws'
 import { PlayerState } from '../../protocol/types'
 
-interface ServerPlayer {
-  socket: WebSocket
+export interface ServerPlayer {
+  socket: NodeWebSocket
   state: PlayerState
   input: { dx: number; dy: number; rotation: number }
 }
-
-const players = new Map<string, ServerPlayer>()
