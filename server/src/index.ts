@@ -1,7 +1,5 @@
-import { WebSocketServer } from 'ws'
-import { WebSocket } from 'ws'
+import { WebSocketServer, WebSocket } from 'ws'
 import { ServerPlayer } from './entities'
-import { PlayerState } from '../../protocol/types'
 import { ClientMessage, WorldStateMessage } from '../../protocol/messages'
 
 const PORT = 3000
