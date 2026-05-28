@@ -1,5 +1,5 @@
-export const WORLD_WIDTH = 2000
-export const WORLD_HEIGHT = 2000
+export const WORLD_WIDTH = 4000
+export const WORLD_HEIGHT = 4000
 export const WORLD_PADDING = 200
 
 export const COLOR_BACKGROUND = 0x444444

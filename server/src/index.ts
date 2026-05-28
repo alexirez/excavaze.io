@@ -9,7 +9,7 @@ const CHUNK_COLS = 16
 const CHUNK_ROWS = 16
 const SQUARES_DENSITY = 2
 const UNIT_SPEED = 10  // pixels per tick
-const SQUARE_SPEED = 2  // multiplies speed of drifting
+const SQUARE_SPEED = 0.5  // multiplies speed of drifting
 
 const wss = new WebSocketServer({ port: PORT })
 console.log(`Server running on ws://localhost:${PORT}`)
