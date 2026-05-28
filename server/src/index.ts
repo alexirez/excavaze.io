@@ -53,32 +53,35 @@ wss.on('connection', (socket) => {
 })
 
 setInterval(() => {
-  // Apply each player's latest input to their position
+  // 1) Process each player
   for (const player of players.values()) {
     player.state.x = Math.max(WORLD_PADDING, Math.min(WORLD_WIDTH - WORLD_PADDING, player.state.x + player.input.dx * UNIT_SPEED))
     player.state.y = Math.max(WORLD_PADDING, Math.min(WORLD_HEIGHT - WORLD_PADDING, player.state.y + player.input.dy * UNIT_SPEED))
     player.state.rotation = player.input.rotation
   }
 
-  // Process each active square
+  // 2) Process each active square
   const toDelete: string[] = []
   
   for (const square of squares.values()) {
     if (
-    square.state.x < -WORLD_PADDING || square.state.x > WORLD_WIDTH + WORLD_PADDING ||
-    square.state.y < -WORLD_PADDING || square.state.y > WORLD_HEIGHT + WORLD_PADDING
+      square.state.x < -WORLD_PADDING || square.state.x > WORLD_WIDTH + WORLD_PADDING ||
+      square.state.y < -WORLD_PADDING || square.state.y > WORLD_HEIGHT + WORLD_PADDING
     ) {
       toDelete.push(square.state.id)
     } else {
-    square.state.angle += (Math.random() - 0.5) * 0.2
-    square.state.x += Math.cos(square.state.angle) * SQUARE_SPEED
-    square.state.y += Math.sin(square.state.angle) * SQUARE_SPEED
+      square.state.angle += (Math.random() - 0.5) * 0.2
+      square.state.x += Math.cos(square.state.angle) * SQUARE_SPEED
+      square.state.y += Math.sin(square.state.angle) * SQUARE_SPEED
     }
   }
 
   for (const id of toDelete) squares.delete(id)
 
-  // Serialize world state once, send to every connected client
+  // 3) Spawn obstacles to replace old
+  fillMapSquares()
+
+  // 4) Serialize world state and send to every connected client
   const message: WorldStateMessage = {
     type: 'world_state',
     players: Array.from(players.values()).map(p => p.state),
@@ -94,6 +97,7 @@ setInterval(() => {
   }
 }, TICK_MS)
 
+// Only called on server startup, afterwards use fillMapSquares()
 function spawnSquaresOnStartup() {
   const chunkW = WORLD_WIDTH / CHUNK_COLS
   const chunkH = WORLD_HEIGHT / CHUNK_ROWS
@@ -118,7 +122,35 @@ function spawnSquaresOnStartup() {
   }
 }
 
-// Helper method to count squares per chunk, used in spawnSquares
+// Fill the map with squares up to the desired density
+function fillMapSquares() {
+  const chunkW = WORLD_WIDTH / CHUNK_COLS
+  const chunkH = WORLD_HEIGHT / CHUNK_ROWS
+  let squaresPerChunk = countSquaresPerChunk()
+
+  for (let row = 0; row < CHUNK_ROWS; row++) {
+    for (let col = 0; col < CHUNK_COLS; col++) {
+      const existing = squaresPerChunk[row * CHUNK_COLS + col]
+      const toSpawn = Math.max(0, SQUARES_DENSITY - existing)
+      for (let i = 0; i < toSpawn; i++) {
+        const id = Math.random().toString(36).slice(2, 9)
+        squares.set(id, {
+          state: {
+            id: id,
+            x: col * chunkW + Math.random() * chunkW,
+            y: row * chunkH + Math.random() * chunkH,
+            angle: Math.random() * Math.PI * 2,
+          }
+        })
+
+        // if spawning on a player, cancel spawn
+        // TODO
+      }
+    }
+  }
+}
+
+// Helper method to count squares per chunk, used in fillMapSquares
 function countSquaresPerChunk(): number[] {
   const chunkW = WORLD_WIDTH / CHUNK_COLS
   const chunkH = WORLD_HEIGHT / CHUNK_ROWS
