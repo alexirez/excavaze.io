@@ -22,7 +22,7 @@ export class GameScene extends Phaser.Scene {
     this.container = this.add.container(400, 300, [barrel, circle])
 
     this.cameras.main.startFollow(this.container)
-    this.cameras.main.setBounds(0, 0, 1200, 1200)
+    this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT)
 
     // Register keys — Phaser cleans these up when the scene stops
     this.keys = {

@@ -1,7 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws'
 import { ServerPlayer, ServerSquare } from './entities'
 import { ClientMessage, WorldStateMessage } from '../../protocol/messages'
-import { WORLD_WIDTH, WORLD_HEIGHT } from '../../protocol/constants'
+import { WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING } from '../../protocol/constants'
 
 const PORT = 3000
 const TICK_MS = 50 // 20 tick/sec
@@ -55,8 +55,8 @@ wss.on('connection', (socket) => {
 setInterval(() => {
   // Apply each player's latest input to their position
   for (const player of players.values()) {
-    player.state.x += player.input.dx * UNIT_SPEED
-    player.state.y += player.input.dy * UNIT_SPEED
+    player.state.x = Math.max(WORLD_PADDING, Math.min(WORLD_WIDTH - WORLD_PADDING, player.state.x + player.input.dx * UNIT_SPEED))
+    player.state.y = Math.max(WORLD_PADDING, Math.min(WORLD_HEIGHT - WORLD_PADDING, player.state.y + player.input.dy * UNIT_SPEED))
     player.state.rotation = player.input.rotation
   }
 
