@@ -60,12 +60,23 @@ setInterval(() => {
     player.state.rotation = player.input.rotation
   }
 
-  // Move each active square
+  // Process each active square
+  const toDelete: string[] = []
+  
   for (const square of squares.values()) {
+    if (
+    square.state.x < -WORLD_PADDING || square.state.x > WORLD_WIDTH + WORLD_PADDING ||
+    square.state.y < -WORLD_PADDING || square.state.y > WORLD_HEIGHT + WORLD_PADDING
+    ) {
+      toDelete.push(square.state.id)
+    } else {
     square.state.angle += (Math.random() - 0.5) * 0.2
     square.state.x += Math.cos(square.state.angle) * SQUARE_SPEED
     square.state.y += Math.sin(square.state.angle) * SQUARE_SPEED
+    }
   }
+
+  for (const id of toDelete) squares.delete(id)
 
   // Serialize world state once, send to every connected client
   const message: WorldStateMessage = {
