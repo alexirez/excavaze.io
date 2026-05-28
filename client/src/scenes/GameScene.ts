@@ -1,6 +1,7 @@
 import Phaser from 'phaser'
 import socket from '../network/socket'
 import { ServerMessage } from '../../../protocol/messages'
+import { WORLD_WIDTH, WORLD_HEIGHT } from '../../../protocol/constants'
 
 export class GameScene extends Phaser.Scene {
   private container!: Phaser.GameObjects.Container
@@ -19,6 +20,9 @@ export class GameScene extends Phaser.Scene {
     const circle = this.add.circle(0, 0, 25, 0x00ff99)
     const barrel = this.add.rectangle(35, 0, 40, 14, 0x00cc77)
     this.container = this.add.container(400, 300, [barrel, circle])
+
+    this.cameras.main.startFollow(this.container)
+    this.cameras.main.setBounds(0, 0, 1200, 1200)
 
     // Register keys — Phaser cleans these up when the scene stops
     this.keys = {
@@ -66,7 +70,8 @@ export class GameScene extends Phaser.Scene {
       const pointer = this.input.activePointer
       const rotation = Phaser.Math.Angle.Between(
         this.container.x, this.container.y,
-        pointer.x, pointer.y
+        this.cameras.main.scrollX + pointer.x,
+        this.cameras.main.scrollY + pointer.y
       )
 
       socket.send(JSON.stringify({ type: 'input', dx, dy, rotation }))

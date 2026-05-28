@@ -1,12 +1,10 @@
 import { WebSocketServer, WebSocket } from 'ws'
 import { ServerPlayer, ServerSquare } from './entities'
 import { ClientMessage, WorldStateMessage } from '../../protocol/messages'
-import { SquareState } from '../../protocol/types'
+import { WORLD_WIDTH, WORLD_HEIGHT } from '../../protocol/constants'
 
 const PORT = 3000
 const TICK_MS = 50 // 20 tick/sec
-const WORLD_WIDTH = 800
-const WORLD_HEIGHT = 600
 const CHUNK_COLS = 16
 const CHUNK_ROWS = 16
 const SQUARES_DENSITY = 2
