@@ -1,7 +1,7 @@
 import Phaser from 'phaser'
 import socket from '../network/socket'
 import { ServerMessage } from '../../../protocol/messages'
-import { WORLD_WIDTH, WORLD_HEIGHT } from '../../../protocol/constants'
+import { WORLD_WIDTH, WORLD_HEIGHT, COLOR_BACKGROUND, COLOR_OUTER_BOUNDS, WORLD_PADDING } from '../../../protocol/constants'
 
 export class GameScene extends Phaser.Scene {
   private container!: Phaser.GameObjects.Container
@@ -16,11 +16,15 @@ export class GameScene extends Phaser.Scene {
   }
 
   create() {
+    // this rectangle acts as the background of in-bounds area
+    this.add.rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH - WORLD_PADDING * 2.5, WORLD_HEIGHT - WORLD_PADDING * 2.5, COLOR_BACKGROUND).setDepth(-1)
+    
     // Build the player visuals — container keeps circle and barrel together
     const circle = this.add.circle(0, 0, 25, 0x00ff99)
     const barrel = this.add.rectangle(35, 0, 40, 14, 0x00cc77)
     this.container = this.add.container(400, 300, [barrel, circle])
 
+    this.cameras.main.setBackgroundColor(COLOR_OUTER_BOUNDS)
     this.cameras.main.startFollow(this.container)
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT)
 
