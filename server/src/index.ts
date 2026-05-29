@@ -70,9 +70,9 @@ setInterval(() => {
     ) {
       toDelete.push(square.state.id)
     } else {
-      square.state.angle += (Math.random() - 0.5) * 0.2
-      square.state.x += Math.cos(square.state.angle) * SQUARE_SPEED
-      square.state.y += Math.sin(square.state.angle) * SQUARE_SPEED
+      square.angle += (Math.random() - 0.5) * 0.2
+      square.state.x += Math.cos(square.angle) * SQUARE_SPEED
+      square.state.y += Math.sin(square.angle) * SQUARE_SPEED
     }
   }
 
@@ -114,8 +114,8 @@ function spawnSquaresOnStartup() {
             id: id,
             x: col * chunkW + Math.random() * chunkW,
             y: row * chunkH + Math.random() * chunkH,
-            angle: Math.random() * Math.PI * 2,
-          }
+          },
+          angle: Math.random() * Math.PI * 2,
         })
       }
     }
@@ -139,8 +139,8 @@ function fillMapSquares() {
             id: id,
             x: col * chunkW + Math.random() * chunkW,
             y: row * chunkH + Math.random() * chunkH,
-            angle: Math.random() * Math.PI * 2,
-          }
+          },
+          angle: Math.random() * Math.PI * 2,
         })
 
         // if spawning on a player, cancel spawn

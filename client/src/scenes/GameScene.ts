@@ -9,6 +9,7 @@ export class GameScene extends Phaser.Scene {
   private localId: string | null = null
   private latestPlayersState: Record<string, { x: number; y: number; rotation: number }> = {}
   private latestSquaresState: Record<string, { x: number, y: number, rotation: number }> = {}
+  private squareRotations: Map<string, number> = new Map()
   private squareSprites: Map<string, Phaser.GameObjects.Rectangle> = new Map()
 
   constructor() {
@@ -61,7 +62,7 @@ export class GameScene extends Phaser.Scene {
           this.latestSquaresState[square.id] = {
             x: square.x,
             y: square.y,
-            rotation: square.angle
+            rotation: 0
           }
         }
       }
@@ -96,21 +97,23 @@ export class GameScene extends Phaser.Scene {
     const liveIds = new Set(Object.keys(this.latestSquaresState))
 
     for (const [id, sq] of Object.entries(this.latestSquaresState)) {
-    let sprite = this.squareSprites.get(id)
-    if (!sprite) {
-      sprite = this.add.rectangle(sq.x, sq.y, 30, 30, 0xf5a623)
-      this.squareSprites.set(id, sprite)
-    }
-    sprite.x = sq.x
-    sprite.y = sq.y
-    sprite.rotation = sq.rotation
+      let sprite = this.squareSprites.get(id)
+      if (!sprite) {
+        sprite = this.add.rectangle(sq.x, sq.y, 30, 30, 0xf5a623)
+        this.squareSprites.set(id, sprite)
+        this.squareRotations.set(id, (Math.random() - 0.5) * 0.02)
+      }
+      sprite.x = sq.x
+      sprite.y = sq.y
+      sprite.rotation += this.squareRotations.get(id)!
     }
 
-    // Destroy sprites for squares no longer in state
+    // Cleanup for destroyed sprites
     for (const [id, sprite] of this.squareSprites) {
       if (!liveIds.has(id)) {
         sprite.destroy()
         this.squareSprites.delete(id)
+        delete this.latestSquaresState[id]
       }
     }
   }
