@@ -1,7 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws'
 import { ServerPlayer, ServerSquare } from './entities'
 import { ClientMessage, WorldStateMessage } from '../../protocol/messages'
-import { WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING } from '../../protocol/constants'
+import { WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP } from '../../protocol/constants'
 
 const PORT = 3000
 const TICK_MS = 50 // 20 tick/sec
@@ -24,7 +24,14 @@ wss.on('connection', (socket) => {
 
   players.set(id, {
     socket,
-    state: { id, x: 400, y: 300, rotation: 0 },
+    state: {
+      id, 
+      x: 400, 
+      y: 300, 
+      rotation: 0 ,
+      hp: PLAYER_BASE_HP,
+      maxHp: PLAYER_BASE_HP,
+    },
     input: { dx: 0, dy: 0, rotation: 0 },
   })
   // S->C: Tell this client their assigned ID
@@ -114,6 +121,8 @@ function spawnSquaresOnStartup() {
             id: id,
             x: col * chunkW + Math.random() * chunkW,
             y: row * chunkH + Math.random() * chunkH,
+            hp: SQUARE_BASE_HP,
+            maxHp: SQUARE_BASE_HP, // TODO: multiply based on danger zone. should fetch from an array representing the map with danger level per chunk
           },
           angle: Math.random() * Math.PI * 2,
         })
@@ -139,6 +148,8 @@ function fillMapSquares() {
             id: id,
             x: col * chunkW + Math.random() * chunkW,
             y: row * chunkH + Math.random() * chunkH,
+            hp: SQUARE_BASE_HP,
+            maxHp: SQUARE_BASE_HP, // TODO: multiply based on danger zone. should fetch from an array representing the map with danger level per chunk
           },
           angle: Math.random() * Math.PI * 2,
         })
