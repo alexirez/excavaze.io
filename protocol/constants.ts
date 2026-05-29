@@ -1,3 +1,5 @@
+export const TICK_MS = 50
+
 export const WORLD_WIDTH = 4000
 export const WORLD_HEIGHT = 4000
 export const WORLD_PADDING = 200

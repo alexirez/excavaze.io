@@ -2,7 +2,7 @@ import Phaser from 'phaser'
 import socket from '../network/socket'
 import { PlayerState, SquareState } from '../../../protocol/types'
 import { ServerMessage } from '../../../protocol/messages'
-import { WORLD_WIDTH, WORLD_HEIGHT, COLOR_BACKGROUND, COLOR_OUTER_BOUNDS, WORLD_PADDING } from '../../../protocol/constants'
+import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, COLOR_BACKGROUND, COLOR_OUTER_BOUNDS, WORLD_PADDING } from '../../../protocol/constants'
 
 export class GameScene extends Phaser.Scene {
   private container!: Phaser.GameObjects.Container
@@ -27,7 +27,7 @@ export class GameScene extends Phaser.Scene {
     const circle = this.add.circle(0, 0, 25, 0x00ff99)
     const barrel = this.add.rectangle(35, 0, 40, 14, 0x00cc77)
     this.container = this.add.container(400, 300, [barrel, circle])
-    this.container.setDepth(80)
+    this.container.setDepth(99)
 
     this.cameras.main.setBackgroundColor(COLOR_OUTER_BOUNDS)
     this.cameras.main.startFollow(this.container)
@@ -36,7 +36,7 @@ export class GameScene extends Phaser.Scene {
     // Add a healthbar
     this.healthBar = this.add.graphics()
     this.healthBar.setScrollFactor(0)
-    this.healthBar.setDepth(99)
+    this.healthBar.setDepth(80)
 
     // Register keys — Phaser cleans these up when the scene stops
     this.keys = {

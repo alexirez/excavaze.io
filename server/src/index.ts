@@ -1,14 +1,12 @@
 import { WebSocketServer, WebSocket } from 'ws'
 import { ServerPlayer, ServerSquare } from './entities'
 import { ClientMessage, WorldStateMessage } from '../../protocol/messages'
-import { WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP } from '../../protocol/constants'
+import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP } from '../../protocol/constants'
 import { DANGER_MAP, DENSITY_MAP } from './data/map'
 
 const PORT = 3000
-const TICK_MS = 50 // 20 tick/sec
 const CHUNK_COLS = 16
 const CHUNK_ROWS = 16
-const SQUARES_DENSITY = 2
 const UNIT_SPEED = 10  // pixels per tick
 const SQUARE_SPEED = 0.5  // multiplies speed of drifting
 
