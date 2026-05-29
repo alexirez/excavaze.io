@@ -112,8 +112,7 @@ function spawnSquaresOnStartup() {
 
   for (let row = 0; row < CHUNK_ROWS; row++) {
     for (let col = 0; col < CHUNK_COLS; col++) {
-      const existing = 0 // TODO: use collision/distance functions (will add later) to count squares in this chunk
-      const toSpawn = Math.max(0, SQUARES_DENSITY - existing)
+      const toSpawn = DENSITY_MAP[row * CHUNK_COLS + col]
       for (let i = 0; i < toSpawn; i++) {
         // TODO: check overlap with existing squares before placing (collision branch)
         const id = Math.random().toString(36).slice(2, 9)
@@ -123,7 +122,7 @@ function spawnSquaresOnStartup() {
             x: col * chunkW + Math.random() * chunkW,
             y: row * chunkH + Math.random() * chunkH,
             hp: SQUARE_BASE_HP,
-            maxHp: SQUARE_BASE_HP, // TODO: multiply based on danger zone. should fetch from an array representing the map with danger level per chunk
+            maxHp: SQUARE_BASE_HP* DANGER_MAP[row * CHUNK_COLS + col],
           },
           angle: Math.random() * Math.PI * 2,
         })
@@ -141,7 +140,7 @@ function fillMapSquares() {
   for (let row = 0; row < CHUNK_ROWS; row++) {
     for (let col = 0; col < CHUNK_COLS; col++) {
       const existing = squaresPerChunk[row * CHUNK_COLS + col]
-      const toSpawn = Math.max(0, SQUARES_DENSITY - existing)
+      const toSpawn = Math.max(0, DENSITY_MAP[row * CHUNK_COLS + col] - existing)
       for (let i = 0; i < toSpawn; i++) {
         const id = Math.random().toString(36).slice(2, 9)
         squares.set(id, {
