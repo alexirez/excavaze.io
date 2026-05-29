@@ -2,6 +2,7 @@ import { WebSocketServer, WebSocket } from 'ws'
 import { ServerPlayer, ServerSquare } from './entities'
 import { ClientMessage, WorldStateMessage } from '../../protocol/messages'
 import { WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP } from '../../protocol/constants'
+import { DANGER_MAP, DENSITY_MAP } from './data/map'
 
 const PORT = 3000
 const TICK_MS = 50 // 20 tick/sec
@@ -149,7 +150,7 @@ function fillMapSquares() {
             x: col * chunkW + Math.random() * chunkW,
             y: row * chunkH + Math.random() * chunkH,
             hp: SQUARE_BASE_HP,
-            maxHp: SQUARE_BASE_HP, // TODO: multiply based on danger zone. should fetch from an array representing the map with danger level per chunk
+            maxHp: SQUARE_BASE_HP * DANGER_MAP[row * CHUNK_COLS + col],
           },
           angle: Math.random() * Math.PI * 2,
         })
