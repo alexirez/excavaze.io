@@ -5,10 +5,14 @@ export interface PlayerState {
   x: number
   y: number
   rotation: number
+  hp: number
+  maxHp: number
 }
 
 export interface SquareState {
   id: string
   x: number
   y: number
+  hp: number
+  maxHp: number
 }

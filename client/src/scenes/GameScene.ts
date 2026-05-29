@@ -1,16 +1,19 @@
 import Phaser from 'phaser'
 import socket from '../network/socket'
+import { PlayerState, SquareState } from '../../../protocol/types'
 import { ServerMessage } from '../../../protocol/messages'
 import { WORLD_WIDTH, WORLD_HEIGHT, COLOR_BACKGROUND, COLOR_OUTER_BOUNDS, WORLD_PADDING } from '../../../protocol/constants'
 
 export class GameScene extends Phaser.Scene {
   private container!: Phaser.GameObjects.Container
+  private healthBar!: Phaser.GameObjects.Graphics
   private keys!: Record<string, Phaser.Input.Keyboard.Key>
   private localId: string | null = null
-  private latestPlayersState: Record<string, { x: number; y: number; rotation: number }> = {}
-  private latestSquaresState: Record<string, { x: number, y: number, rotation: number }> = {}
+  private latestPlayersState: Record<string, PlayerState> = {}
+  private latestSquaresState: Record<string, SquareState> = {}
   private squareRotations: Map<string, number> = new Map()
   private squareSprites: Map<string, Phaser.GameObjects.Rectangle> = new Map()
+  private squareHealthBars: Map<string, Phaser.GameObjects.Graphics> = new Map()
 
   constructor() {
     super({ key: 'GameScene' })
@@ -24,10 +27,16 @@ export class GameScene extends Phaser.Scene {
     const circle = this.add.circle(0, 0, 25, 0x00ff99)
     const barrel = this.add.rectangle(35, 0, 40, 14, 0x00cc77)
     this.container = this.add.container(400, 300, [barrel, circle])
+    this.container.setDepth(80)
 
     this.cameras.main.setBackgroundColor(COLOR_OUTER_BOUNDS)
     this.cameras.main.startFollow(this.container)
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT)
+
+    // Add a healthbar
+    this.healthBar = this.add.graphics()
+    this.healthBar.setScrollFactor(0)
+    this.healthBar.setDepth(99)
 
     // Register keys — Phaser cleans these up when the scene stops
     this.keys = {
@@ -51,18 +60,23 @@ export class GameScene extends Phaser.Scene {
         // For rendering players
         for (const player of msg.players) {
           this.latestPlayersState[player.id] = {
+            id: player.id,
             x: player.x,
             y: player.y,
             rotation: player.rotation,
+            hp: player.hp,
+            maxHp: player.maxHp,
           }
         }
 
         // For rendering squares
         for (const square of msg.squares) {
           this.latestSquaresState[square.id] = {
+            id: square.id,
             x: square.x,
             y: square.y,
-            rotation: 0
+            hp: square.hp,
+            maxHp: square.maxHp,
           }
         }
       }
@@ -92,6 +106,14 @@ export class GameScene extends Phaser.Scene {
       this.container.x = playerState.x
       this.container.y = playerState.y
       this.container.rotation = playerState.rotation
+      
+      // update player's healthbar
+      const ratio = playerState.hp / playerState.maxHp
+      this.healthBar.clear()
+      this.healthBar.fillStyle(0x555555)
+      this.healthBar.fillRect(20, 20, 200, 12)
+      this.healthBar.fillStyle(getHealthColor(ratio))
+      this.healthBar.fillRect(20, 20, ratio * 200, 12)
     }
 
     const liveIds = new Set(Object.keys(this.latestSquaresState))
@@ -102,10 +124,23 @@ export class GameScene extends Phaser.Scene {
         sprite = this.add.rectangle(sq.x, sq.y, 30, 30, 0xf5a623)
         this.squareSprites.set(id, sprite)
         this.squareRotations.set(id, (Math.random() - 0.5) * 0.02)
+        this.squareHealthBars.set(id, this.add.graphics())
       }
       sprite.x = sq.x
       sprite.y = sq.y
       sprite.rotation += this.squareRotations.get(id)!
+      sprite.setDepth(20)
+
+      const bar = this.squareHealthBars.get(id)!
+      const ratio = sq.hp / sq.maxHp
+      const bw = 40
+      const bh = 4
+      bar.clear()
+      bar.fillStyle(0x555555)
+      bar.fillRect(sq.x - bw / 2, sq.y + 30, bw, bh)
+      bar.fillStyle(getHealthColor(ratio))
+      bar.fillRect(sq.x - bw / 2, sq.y + 30, ratio * bw, bh)
+      bar.setDepth(10)    
     }
 
     // Cleanup for destroyed sprites
@@ -114,7 +149,15 @@ export class GameScene extends Phaser.Scene {
         sprite.destroy()
         this.squareSprites.delete(id)
         delete this.latestSquaresState[id]
+        this.squareHealthBars.get(id)!.destroy()
+        this.squareHealthBars.delete(id)
       }
     }
   }
+}
+
+function getHealthColor(ratio: number): number {
+  if (ratio > 0.6) return 0x00ff99
+  if (ratio > 0.3) return 0xffaa00
+  return 0xff3333
 }
