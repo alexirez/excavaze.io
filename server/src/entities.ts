@@ -1,8 +1,13 @@
 import { WebSocket as NodeWebSocket } from 'ws'
-import { PlayerState } from '../../protocol/types'
+import { PlayerState, SquareState } from '../../protocol/types'
 
 export interface ServerPlayer {
   socket: NodeWebSocket
   state: PlayerState
   input: { dx: number; dy: number; rotation: number }
+}
+
+export interface ServerSquare {
+  state: SquareState,
+  angle: number
 }

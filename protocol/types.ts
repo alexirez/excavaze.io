@@ -6,3 +6,9 @@ export interface PlayerState {
   y: number
   rotation: number
 }
+
+export interface SquareState {
+  id: string
+  x: number
+  y: number
+}

@@ -1,22 +1,33 @@
 import Phaser from 'phaser'
 import socket from '../network/socket'
 import { ServerMessage } from '../../../protocol/messages'
+import { WORLD_WIDTH, WORLD_HEIGHT, COLOR_BACKGROUND, COLOR_OUTER_BOUNDS, WORLD_PADDING } from '../../../protocol/constants'
 
 export class GameScene extends Phaser.Scene {
   private container!: Phaser.GameObjects.Container
   private keys!: Record<string, Phaser.Input.Keyboard.Key>
   private localId: string | null = null
-  private latestState: Record<string, { x: number; y: number; rotation: number }> = {}
+  private latestPlayersState: Record<string, { x: number; y: number; rotation: number }> = {}
+  private latestSquaresState: Record<string, { x: number, y: number, rotation: number }> = {}
+  private squareRotations: Map<string, number> = new Map()
+  private squareSprites: Map<string, Phaser.GameObjects.Rectangle> = new Map()
 
   constructor() {
     super({ key: 'GameScene' })
   }
 
   create() {
+    // this rectangle acts as the background of in-bounds area
+    this.add.rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH - WORLD_PADDING * 2.5, WORLD_HEIGHT - WORLD_PADDING * 2.5, COLOR_BACKGROUND).setDepth(-1)
+    
     // Build the player visuals — container keeps circle and barrel together
     const circle = this.add.circle(0, 0, 25, 0x00ff99)
     const barrel = this.add.rectangle(35, 0, 40, 14, 0x00cc77)
     this.container = this.add.container(400, 300, [barrel, circle])
+
+    this.cameras.main.setBackgroundColor(COLOR_OUTER_BOUNDS)
+    this.cameras.main.startFollow(this.container)
+    this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT)
 
     // Register keys — Phaser cleans these up when the scene stops
     this.keys = {
@@ -34,13 +45,24 @@ export class GameScene extends Phaser.Scene {
         this.localId = msg.id
       }
 
+      // Store the latest state for rendering in update()
       if (msg.type === 'world_state') {
-        // Store the latest state for rendering in update()
+
+        // For rendering players
         for (const player of msg.players) {
-          this.latestState[player.id] = {
+          this.latestPlayersState[player.id] = {
             x: player.x,
             y: player.y,
             rotation: player.rotation,
+          }
+        }
+
+        // For rendering squares
+        for (const square of msg.squares) {
+          this.latestSquaresState[square.id] = {
+            x: square.x,
+            y: square.y,
+            rotation: 0
           }
         }
       }
@@ -53,22 +75,46 @@ export class GameScene extends Phaser.Scene {
       const pointer = this.input.activePointer
       const rotation = Phaser.Math.Angle.Between(
         this.container.x, this.container.y,
-        pointer.x, pointer.y
+        this.cameras.main.scrollX + pointer.x,
+        this.cameras.main.scrollY + pointer.y
       )
 
       socket.send(JSON.stringify({ type: 'input', dx, dy, rotation }))
     }, 50)
   }
 
+  // Only rendering, — game logic is on server side
   update() {
-    // Only render — no movement logic here
-    if (!this.localId) return
+    if (!this.localId) return // no id assigned yet -> do nothing
 
-    const state = this.latestState[this.localId]
-    if (!state) return
+    const playerState = this.latestPlayersState[this.localId]
+    if (playerState) {
+      this.container.x = playerState.x
+      this.container.y = playerState.y
+      this.container.rotation = playerState.rotation
+    }
 
-    this.container.x = state.x
-    this.container.y = state.y
-    this.container.rotation = state.rotation
+    const liveIds = new Set(Object.keys(this.latestSquaresState))
+
+    for (const [id, sq] of Object.entries(this.latestSquaresState)) {
+      let sprite = this.squareSprites.get(id)
+      if (!sprite) {
+        sprite = this.add.rectangle(sq.x, sq.y, 30, 30, 0xf5a623)
+        this.squareSprites.set(id, sprite)
+        this.squareRotations.set(id, (Math.random() - 0.5) * 0.02)
+      }
+      sprite.x = sq.x
+      sprite.y = sq.y
+      sprite.rotation += this.squareRotations.get(id)!
+    }
+
+    // Cleanup for destroyed sprites
+    for (const [id, sprite] of this.squareSprites) {
+      if (!liveIds.has(id)) {
+        sprite.destroy()
+        this.squareSprites.delete(id)
+        delete this.latestSquaresState[id]
+      }
+    }
   }
 }
