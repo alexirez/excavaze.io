@@ -1,14 +1,16 @@
 import Phaser from 'phaser'
 import socket from '../network/socket'
+import { PlayerState, SquareState } from '../../../protocol/types'
 import { ServerMessage } from '../../../protocol/messages'
 import { WORLD_WIDTH, WORLD_HEIGHT, COLOR_BACKGROUND, COLOR_OUTER_BOUNDS, WORLD_PADDING } from '../../../protocol/constants'
 
 export class GameScene extends Phaser.Scene {
   private container!: Phaser.GameObjects.Container
+  private healthBar!: Phaser.GameObjects.Graphics
   private keys!: Record<string, Phaser.Input.Keyboard.Key>
   private localId: string | null = null
-  private latestPlayersState: Record<string, { x: number; y: number; rotation: number }> = {}
-  private latestSquaresState: Record<string, { x: number, y: number, rotation: number }> = {}
+  private latestPlayersState: Record<string, PlayerState> = {}
+  private latestSquaresState: Record<string, SquareState> = {}
   private squareRotations: Map<string, number> = new Map()
   private squareSprites: Map<string, Phaser.GameObjects.Rectangle> = new Map()
 
@@ -28,6 +30,10 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(COLOR_OUTER_BOUNDS)
     this.cameras.main.startFollow(this.container)
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT)
+
+    // Add a healthbar
+    this.healthBar = this.add.graphics()
+    this.healthBar.setScrollFactor(0)
 
     // Register keys — Phaser cleans these up when the scene stops
     this.keys = {
@@ -51,18 +57,23 @@ export class GameScene extends Phaser.Scene {
         // For rendering players
         for (const player of msg.players) {
           this.latestPlayersState[player.id] = {
+            id: player.id,
             x: player.x,
             y: player.y,
             rotation: player.rotation,
+            hp: player.hp,
+            maxHp: player.maxHp,
           }
         }
 
         // For rendering squares
         for (const square of msg.squares) {
           this.latestSquaresState[square.id] = {
+            id: square.id,
             x: square.x,
             y: square.y,
-            rotation: 0
+            hp: square.hp,
+            maxHp: square.maxHp,
           }
         }
       }
@@ -92,6 +103,14 @@ export class GameScene extends Phaser.Scene {
       this.container.x = playerState.x
       this.container.y = playerState.y
       this.container.rotation = playerState.rotation
+      
+      // update healthbar
+      const ratio = playerState.hp / playerState.maxHp
+      this.healthBar.clear()
+      this.healthBar.fillStyle(0x555555)
+      this.healthBar.fillRect(20, 20, 200, 12)
+      this.healthBar.fillStyle(getHealthColor(ratio))
+      this.healthBar.fillRect(20, 20, ratio * 200, 12)
     }
 
     const liveIds = new Set(Object.keys(this.latestSquaresState))
@@ -117,4 +136,10 @@ export class GameScene extends Phaser.Scene {
       }
     }
   }
+}
+
+function getHealthColor(ratio: number): number {
+  if (ratio > 0.6) return 0x00ff99
+  if (ratio > 0.3) return 0xffaa00
+  return 0xff3333
 }
