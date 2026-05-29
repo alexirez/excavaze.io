@@ -13,6 +13,7 @@ export class GameScene extends Phaser.Scene {
   private latestSquaresState: Record<string, SquareState> = {}
   private squareRotations: Map<string, number> = new Map()
   private squareSprites: Map<string, Phaser.GameObjects.Rectangle> = new Map()
+  private squareHealthBars: Map<string, Phaser.GameObjects.Graphics> = new Map()
 
   constructor() {
     super({ key: 'GameScene' })
@@ -121,10 +122,21 @@ export class GameScene extends Phaser.Scene {
         sprite = this.add.rectangle(sq.x, sq.y, 30, 30, 0xf5a623)
         this.squareSprites.set(id, sprite)
         this.squareRotations.set(id, (Math.random() - 0.5) * 0.02)
+        this.squareHealthBars.set(id, this.add.graphics())
       }
       sprite.x = sq.x
       sprite.y = sq.y
       sprite.rotation += this.squareRotations.get(id)!
+
+      const bar = this.squareHealthBars.get(id)!
+      const ratio = sq.hp / sq.maxHp
+      const bw = 30
+      const bh = 4
+      bar.clear()
+      bar.fillStyle(0x555555)
+      bar.fillRect(sq.x - bw / 2, sq.y + 20, bw, bh)
+      bar.fillStyle(getHealthColor(ratio))
+      bar.fillRect(sq.x - bw / 2, sq.y + 20, ratio * bw, bh)
     }
 
     // Cleanup for destroyed sprites
@@ -133,6 +145,8 @@ export class GameScene extends Phaser.Scene {
         sprite.destroy()
         this.squareSprites.delete(id)
         delete this.latestSquaresState[id]
+        this.squareHealthBars.get(id)!.destroy()
+        this.squareHealthBars.delete(id)
       }
     }
   }
