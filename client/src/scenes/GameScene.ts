@@ -27,6 +27,7 @@ export class GameScene extends Phaser.Scene {
     const circle = this.add.circle(0, 0, 25, 0x00ff99)
     const barrel = this.add.rectangle(35, 0, 40, 14, 0x00cc77)
     this.container = this.add.container(400, 300, [barrel, circle])
+    this.container.setDepth(80)
 
     this.cameras.main.setBackgroundColor(COLOR_OUTER_BOUNDS)
     this.cameras.main.startFollow(this.container)
@@ -35,6 +36,7 @@ export class GameScene extends Phaser.Scene {
     // Add a healthbar
     this.healthBar = this.add.graphics()
     this.healthBar.setScrollFactor(0)
+    this.healthBar.setDepth(99)
 
     // Register keys — Phaser cleans these up when the scene stops
     this.keys = {
@@ -105,7 +107,7 @@ export class GameScene extends Phaser.Scene {
       this.container.y = playerState.y
       this.container.rotation = playerState.rotation
       
-      // update healthbar
+      // update player's healthbar
       const ratio = playerState.hp / playerState.maxHp
       this.healthBar.clear()
       this.healthBar.fillStyle(0x555555)
@@ -127,16 +129,18 @@ export class GameScene extends Phaser.Scene {
       sprite.x = sq.x
       sprite.y = sq.y
       sprite.rotation += this.squareRotations.get(id)!
+      sprite.setDepth(20)
 
       const bar = this.squareHealthBars.get(id)!
       const ratio = sq.hp / sq.maxHp
-      const bw = 30
+      const bw = 40
       const bh = 4
       bar.clear()
       bar.fillStyle(0x555555)
-      bar.fillRect(sq.x - bw / 2, sq.y + 20, bw, bh)
+      bar.fillRect(sq.x - bw / 2, sq.y + 30, bw, bh)
       bar.fillStyle(getHealthColor(ratio))
-      bar.fillRect(sq.x - bw / 2, sq.y + 20, ratio * bw, bh)
+      bar.fillRect(sq.x - bw / 2, sq.y + 30, ratio * bw, bh)
+      bar.setDepth(10)    
     }
 
     // Cleanup for destroyed sprites
