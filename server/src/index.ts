@@ -78,6 +78,7 @@ setInterval(() => {
 
     for (const id of nearbySquareIds) {
       const square = squares.get(id)!
+      if (!square) continue
       const dx = player.state.x - square.state.x
       const dy = player.state.y - square.state.y
       const distSqr = dx * dx + dy * dy
