@@ -57,6 +57,31 @@ export class GameScene extends Phaser.Scene {
       // Store the latest state for rendering in update()
       if (msg.type === 'world_state') {
 
+        // replace player list with newest update from server
+        this.latestPlayersState = {}
+        for (const player of msg.players) {
+          this.latestPlayersState[player.id] = {
+            id: player.id,
+            x: player.x,
+            y: player.y,
+            rotation: player.rotation,
+            hp: player.hp,
+            maxHp: player.maxHp,
+          }
+        }
+
+        // replace squares list with newest from server
+        this.latestSquaresState = {}
+        for (const square of msg.squares) {
+          this.latestSquaresState[square.id] = {
+            id: square.id,
+            x: square.x,
+            y: square.y,
+            hp: square.hp,
+            maxHp: square.maxHp,
+          }
+        }
+
         // For rendering players
         for (const player of msg.players) {
           this.latestPlayersState[player.id] = {
@@ -108,7 +133,7 @@ export class GameScene extends Phaser.Scene {
       this.container.rotation = playerState.rotation
       
       // update player's healthbar
-      const ratio = playerState.hp / playerState.maxHp
+      const ratio = Math.max(0, playerState.hp / playerState.maxHp)
       this.healthBar.clear()
       this.healthBar.fillStyle(0x555555)
       this.healthBar.fillRect(20, 20, 200, 12)
@@ -132,7 +157,7 @@ export class GameScene extends Phaser.Scene {
       sprite.setDepth(20)
 
       const bar = this.squareHealthBars.get(id)!
-      const ratio = sq.hp / sq.maxHp
+      const ratio = Math.max(0, sq.hp / sq.maxHp)
       const bw = 40
       const bh = 4
       bar.clear()

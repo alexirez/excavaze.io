@@ -95,7 +95,8 @@ setInterval(() => {
   for (const square of squares.values()) {
     if (
       square.state.x < -WORLD_PADDING || square.state.x > WORLD_WIDTH + WORLD_PADDING ||
-      square.state.y < -WORLD_PADDING || square.state.y > WORLD_HEIGHT + WORLD_PADDING
+      square.state.y < -WORLD_PADDING || square.state.y > WORLD_HEIGHT + WORLD_PADDING ||
+      square.state.hp <= 0
     ) {
       toDelete.push(square.state.id)
     } else {
