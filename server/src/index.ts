@@ -130,7 +130,7 @@ setInterval(() => {
   const json = JSON.stringify(message)
 
   for (const player of players.values()) {
-    if (player.socket.readyState === WebSocket.OPEN) {
+    if (player.socket && player.socket.readyState === WebSocket.OPEN) {
       player.socket.send(json)
     }
   }
