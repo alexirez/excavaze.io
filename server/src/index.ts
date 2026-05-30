@@ -10,7 +10,7 @@ const CHUNK_ROWS = 16
 const UNIT_SPEED = 10  // pixels per tick
 const SQUARE_SPEED = 0.5  // multiplies speed of drifting
 const PLAYER_RADIUS = 25
-const SQUARE_RADIUS = 15
+const SQUARE_BASE_RADIUS = 10
 
 const wss = new WebSocketServer({ port: PORT })
 console.log(`Server running on ws://localhost:${PORT}`)
@@ -82,7 +82,7 @@ setInterval(() => {
       const dy = player.state.y - square.state.y
       const dist = Math.sqrt(dx * dx + dy * dy)
 
-      if (dist < PLAYER_RADIUS + SQUARE_RADIUS) {
+      if (dist < PLAYER_RADIUS + square.radius) {
         player.state.hp -= square.state.maxHp * SQUARE_COLLISION_DAMAGE_FACTOR
         square.state.hp -= player.state.maxHp * PLAYER_COLLISION_DAMAGE_FACTOR
       }
@@ -154,6 +154,7 @@ function spawnSquaresOnStartup() {
             maxHp: SQUARE_BASE_HP * DANGER_MAP[row * CHUNK_COLS + col],
           },
           angle: Math.random() * Math.PI * 2,
+          radius: SQUARE_BASE_RADIUS * DANGER_MAP[row * CHUNK_COLS + col],
         })
       }
     }
@@ -180,6 +181,7 @@ function fillMapSquares() {
             maxHp: SQUARE_BASE_HP * DANGER_MAP[row * CHUNK_COLS + col],
           },
           angle: Math.random() * Math.PI * 2,
+          radius: SQUARE_BASE_RADIUS * DANGER_MAP[row * CHUNK_COLS + col],
         })
 
         // if spawning on a player, cancel spawn
