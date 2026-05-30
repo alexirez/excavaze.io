@@ -1,22 +1,25 @@
 import { WebSocketServer, WebSocket } from 'ws'
 import { ServerPlayer, ServerSquare } from './entities'
 import { ClientMessage, WorldStateMessage } from '../../protocol/messages'
-import { WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP } from '../../protocol/constants'
+import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, SQUARE_COLLISION_DAMAGE_FACTOR, PLAYER_COLLISION_DAMAGE_FACTOR } from '../../protocol/constants'
 import { DANGER_MAP, DENSITY_MAP } from './data/map'
 
 const PORT = 3000
-const TICK_MS = 50 // 20 tick/sec
 const CHUNK_COLS = 16
 const CHUNK_ROWS = 16
-const SQUARES_DENSITY = 2
 const UNIT_SPEED = 10  // pixels per tick
 const SQUARE_SPEED = 0.5  // multiplies speed of drifting
+const PLAYER_RADIUS = 25
+const SQUARE_BASE_RADIUS = 10
 
 const wss = new WebSocketServer({ port: PORT })
 console.log(`Server running on ws://localhost:${PORT}`)
 
 const players = new Map<string, ServerPlayer>()
 const squares = new Map<string, ServerSquare>()
+const chunkToSquares = new  Map<number, Set<string>>()
+for (let i = 0; i < CHUNK_ROWS * CHUNK_COLS; i++)
+  chunkToSquares.set(i, new Set())
 
 spawnSquaresOnStartup()
 
@@ -68,13 +71,32 @@ setInterval(() => {
     player.state.rotation = player.input.rotation
   }
 
-  // 2) Process each active square
+  // 2) Check for collisions
+  for (const player of players.values()) {
+    const chunkIndex = getChunkIndex(player.state.x, player.state.y)
+    const nearbySquareIds = getNearbySquareIds(chunkIndex)
+
+    for (const id of nearbySquareIds) {
+      const square = squares.get(id)!
+      const dx = player.state.x - square.state.x
+      const dy = player.state.y - square.state.y
+      const dist = Math.sqrt(dx * dx + dy * dy)
+
+      if (dist < PLAYER_RADIUS + square.radius) {
+        player.state.hp -= square.state.maxHp * SQUARE_COLLISION_DAMAGE_FACTOR
+        square.state.hp -= player.state.maxHp * PLAYER_COLLISION_DAMAGE_FACTOR
+      }
+    }
+  }
+
+  // 3) Process each active square
   const toDelete: string[] = []
   
   for (const square of squares.values()) {
     if (
       square.state.x < -WORLD_PADDING || square.state.x > WORLD_WIDTH + WORLD_PADDING ||
-      square.state.y < -WORLD_PADDING || square.state.y > WORLD_HEIGHT + WORLD_PADDING
+      square.state.y < -WORLD_PADDING || square.state.y > WORLD_HEIGHT + WORLD_PADDING ||
+      square.state.hp <= 0
     ) {
       toDelete.push(square.state.id)
     } else {
@@ -86,10 +108,17 @@ setInterval(() => {
 
   for (const id of toDelete) squares.delete(id)
 
-  // 3) Spawn obstacles to replace old
+  // 4) Recompute squares in each chunk
+  for (const set of chunkToSquares.values()) set.clear()
+  for (const [id, square] of squares) {
+    const index = getChunkIndex(square.state.x, square.state.y)
+    chunkToSquares.get(index)?.add(id)
+  }
+
+  // 5) Spawn new obstacles to replace old
   fillMapSquares()
 
-  // 4) Serialize world state and send to every connected client
+  // 6) Serialize world state and send to every connected client
   const message: WorldStateMessage = {
     type: 'world_state',
     players: Array.from(players.values()).map(p => p.state),
@@ -121,10 +150,11 @@ function spawnSquaresOnStartup() {
             id: id,
             x: col * chunkW + Math.random() * chunkW,
             y: row * chunkH + Math.random() * chunkH,
-            hp: SQUARE_BASE_HP,
-            maxHp: SQUARE_BASE_HP* DANGER_MAP[row * CHUNK_COLS + col],
+            hp: SQUARE_BASE_HP * DANGER_MAP[row * CHUNK_COLS + col],
+            maxHp: SQUARE_BASE_HP * DANGER_MAP[row * CHUNK_COLS + col],
           },
           angle: Math.random() * Math.PI * 2,
+          radius: SQUARE_BASE_RADIUS * DANGER_MAP[row * CHUNK_COLS + col],
         })
       }
     }
@@ -135,11 +165,10 @@ function spawnSquaresOnStartup() {
 function fillMapSquares() {
   const chunkW = WORLD_WIDTH / CHUNK_COLS
   const chunkH = WORLD_HEIGHT / CHUNK_ROWS
-  let squaresPerChunk = countSquaresPerChunk()
 
   for (let row = 0; row < CHUNK_ROWS; row++) {
     for (let col = 0; col < CHUNK_COLS; col++) {
-      const existing = squaresPerChunk[row * CHUNK_COLS + col]
+      const existing = chunkToSquares.get(row * CHUNK_COLS + col)!.size
       const toSpawn = Math.max(0, DENSITY_MAP[row * CHUNK_COLS + col] - existing)
       for (let i = 0; i < toSpawn; i++) {
         const id = Math.random().toString(36).slice(2, 9)
@@ -148,10 +177,11 @@ function fillMapSquares() {
             id: id,
             x: col * chunkW + Math.random() * chunkW,
             y: row * chunkH + Math.random() * chunkH,
-            hp: SQUARE_BASE_HP,
+            hp: SQUARE_BASE_HP * DANGER_MAP[row * CHUNK_COLS + col],
             maxHp: SQUARE_BASE_HP * DANGER_MAP[row * CHUNK_COLS + col],
           },
           angle: Math.random() * Math.PI * 2,
+          radius: SQUARE_BASE_RADIUS * DANGER_MAP[row * CHUNK_COLS + col],
         })
 
         // if spawning on a player, cancel spawn
@@ -161,19 +191,25 @@ function fillMapSquares() {
   }
 }
 
-// Helper method to count squares per chunk, used in fillMapSquares
-function countSquaresPerChunk(): number[] {
-  const chunkW = WORLD_WIDTH / CHUNK_COLS
-  const chunkH = WORLD_HEIGHT / CHUNK_ROWS
-  const counts = new Array(CHUNK_ROWS * CHUNK_COLS).fill(0)
+function getChunkIndex(x: number, y: number): number {
+  const col = Math.floor(x / (WORLD_WIDTH / CHUNK_COLS))
+  const row = Math.floor(y / (WORLD_HEIGHT / CHUNK_ROWS))
+  return row * CHUNK_COLS + col
+}
 
-  for (const square of squares.values()) {
-    const col = Math.floor(square.state.x / chunkW)
-    const row = Math.floor(square.state.y / chunkH)
-    if (col >= 0 && col < CHUNK_COLS && row >= 0 && row < CHUNK_ROWS) {
-      counts[row * CHUNK_COLS + col]++
+function getNearbySquareIds(chunkIndex: number): string[] {
+  const col = chunkIndex % CHUNK_COLS
+  const row = Math.floor(chunkIndex / CHUNK_COLS)
+  const ids: string[] = []
+  for (let dr = -1; dr <= 1; dr++) {
+    for (let dc = -1; dc <= 1; dc++) {
+      const nc = col + dc
+      const nr = row + dr
+      if (nc >= 0 && nc < CHUNK_COLS && nr >= 0 && nr < CHUNK_ROWS) {
+        const neighbors = chunkToSquares.get(nr * CHUNK_COLS + nc)!
+        for (const id of neighbors) ids.push(id)
+      }
     }
   }
-
-  return counts
+  return ids
 }

@@ -2,18 +2,18 @@ import Phaser from 'phaser'
 import socket from '../network/socket'
 import { PlayerState, SquareState } from '../../../protocol/types'
 import { ServerMessage } from '../../../protocol/messages'
-import { WORLD_WIDTH, WORLD_HEIGHT, COLOR_BACKGROUND, COLOR_OUTER_BOUNDS, WORLD_PADDING } from '../../../protocol/constants'
+import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, COLOR_BACKGROUND, COLOR_OUTER_BOUNDS, WORLD_PADDING, SQUARE_BASE_HP } from '../../../protocol/constants'
 
 export class GameScene extends Phaser.Scene {
   private container!: Phaser.GameObjects.Container
-  private healthBar!: Phaser.GameObjects.Graphics
+  private playerHealthBar!: Phaser.GameObjects.Graphics
   private keys!: Record<string, Phaser.Input.Keyboard.Key>
   private localId: string | null = null
   private latestPlayersState: Record<string, PlayerState> = {}
   private latestSquaresState: Record<string, SquareState> = {}
   private squareRotations: Map<string, number> = new Map()
-  private squareSprites: Map<string, Phaser.GameObjects.Rectangle> = new Map()
-  private squareHealthBars: Map<string, Phaser.GameObjects.Graphics> = new Map()
+  private squareGraphics!: Phaser.GameObjects.Graphics
+  private squareHealthBarGraphics!: Phaser.GameObjects.Graphics
 
   constructor() {
     super({ key: 'GameScene' })
@@ -27,16 +27,21 @@ export class GameScene extends Phaser.Scene {
     const circle = this.add.circle(0, 0, 25, 0x00ff99)
     const barrel = this.add.rectangle(35, 0, 40, 14, 0x00cc77)
     this.container = this.add.container(400, 300, [barrel, circle])
-    this.container.setDepth(80)
+    this.container.setDepth(99)
 
     this.cameras.main.setBackgroundColor(COLOR_OUTER_BOUNDS)
     this.cameras.main.startFollow(this.container)
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT)
 
-    // Add a healthbar
-    this.healthBar = this.add.graphics()
-    this.healthBar.setScrollFactor(0)
-    this.healthBar.setDepth(99)
+    this.playerHealthBar = this.add.graphics()
+    this.playerHealthBar.setScrollFactor(0)
+    this.playerHealthBar.setDepth(80)
+
+    this.squareHealthBarGraphics = this.add.graphics()
+    this.squareHealthBarGraphics.setDepth(10)
+
+    this.squareGraphics = this.add.graphics()
+    this.squareGraphics.setDepth(20)
 
     // Register keys — Phaser cleans these up when the scene stops
     this.keys = {
@@ -57,7 +62,8 @@ export class GameScene extends Phaser.Scene {
       // Store the latest state for rendering in update()
       if (msg.type === 'world_state') {
 
-        // For rendering players
+        // replace player list with newest update from server
+        this.latestPlayersState = {}
         for (const player of msg.players) {
           this.latestPlayersState[player.id] = {
             id: player.id,
@@ -69,7 +75,8 @@ export class GameScene extends Phaser.Scene {
           }
         }
 
-        // For rendering squares
+        // replace squares list with newest from server
+        this.latestSquaresState = {}
         for (const square of msg.squares) {
           this.latestSquaresState[square.id] = {
             id: square.id,
@@ -108,49 +115,45 @@ export class GameScene extends Phaser.Scene {
       this.container.rotation = playerState.rotation
       
       // update player's healthbar
-      const ratio = playerState.hp / playerState.maxHp
-      this.healthBar.clear()
-      this.healthBar.fillStyle(0x555555)
-      this.healthBar.fillRect(20, 20, 200, 12)
-      this.healthBar.fillStyle(getHealthColor(ratio))
-      this.healthBar.fillRect(20, 20, ratio * 200, 12)
+      const ratio = Math.max(0, playerState.hp / playerState.maxHp)
+      this.playerHealthBar.clear()
+      this.playerHealthBar.fillStyle(0x555555)
+      this.playerHealthBar.fillRect(20, 20, 200, 12)
+      this.playerHealthBar.fillStyle(getHealthColor(ratio))
+      this.playerHealthBar.fillRect(20, 20, ratio * 200, 12)
     }
 
-    const liveIds = new Set(Object.keys(this.latestSquaresState))
-
+    // update objects' healthbars
+    this.squareHealthBarGraphics.clear()
     for (const [id, sq] of Object.entries(this.latestSquaresState)) {
-      let sprite = this.squareSprites.get(id)
-      if (!sprite) {
-        sprite = this.add.rectangle(sq.x, sq.y, 30, 30, 0xf5a623)
-        this.squareSprites.set(id, sprite)
-        this.squareRotations.set(id, (Math.random() - 0.5) * 0.02)
-        this.squareHealthBars.set(id, this.add.graphics())
-      }
-      sprite.x = sq.x
-      sprite.y = sq.y
-      sprite.rotation += this.squareRotations.get(id)!
-      sprite.setDepth(20)
-
-      const bar = this.squareHealthBars.get(id)!
-      const ratio = sq.hp / sq.maxHp
-      const bw = 40
-      const bh = 4
-      bar.clear()
-      bar.fillStyle(0x555555)
-      bar.fillRect(sq.x - bw / 2, sq.y + 30, bw, bh)
-      bar.fillStyle(getHealthColor(ratio))
-      bar.fillRect(sq.x - bw / 2, sq.y + 30, ratio * bw, bh)
-      bar.setDepth(10)    
+      if (sq.hp >= sq.maxHp) continue
+      const ratio = Math.max(0, sq.hp / sq.maxHp)
+      const bw = 40, bh = 4
+      this.squareHealthBarGraphics.fillStyle(0x555555)
+      this.squareHealthBarGraphics.fillRect(sq.x - bw / 2, sq.y + 30, bw, bh)
+      this.squareHealthBarGraphics.fillStyle(getHealthColor(ratio))
+      this.squareHealthBarGraphics.fillRect(sq.x - bw / 2, sq.y + 30, ratio * bw, bh)
     }
 
-    // Cleanup for destroyed sprites
-    for (const [id, sprite] of this.squareSprites) {
-      if (!liveIds.has(id)) {
-        sprite.destroy()
-        this.squareSprites.delete(id)
-        delete this.latestSquaresState[id]
-        this.squareHealthBars.get(id)!.destroy()
-        this.squareHealthBars.delete(id)
+    this.squareGraphics.clear()
+    for (const [id, sq] of Object.entries(this.latestSquaresState)) {
+      const rotation = this.squareRotations.get(id) ?? 0
+      const size = 20 + (sq.maxHp / SQUARE_BASE_HP) * 10
+
+      this.squareGraphics.save()
+      this.squareGraphics.translateCanvas(sq.x, sq.y)
+      this.squareGraphics.rotateCanvas(rotation)
+      this.squareGraphics.fillStyle(0xf5a623)
+      this.squareGraphics.fillRect(-size / 2, -size / 2, size, size)
+      this.squareGraphics.restore()
+
+      // update rotation for next frame
+      this.squareRotations.set(id, rotation + 0.01)
+    }
+
+    for (const id of this.squareRotations.keys()) {
+      if (!this.latestSquaresState[id]) {
+        this.squareRotations.delete(id)
       }
     }
   }
