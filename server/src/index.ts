@@ -1,7 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws'
 import { ServerPlayer, ServerSquare } from './entities'
 import { ClientMessage, WorldStateMessage } from '../../protocol/messages'
-import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP } from '../../protocol/constants'
+import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, SQUARE_COLLISION_DAMAGE_FACTOR, PLAYER_COLLISION_DAMAGE_FACTOR } from '../../protocol/constants'
 import { DANGER_MAP, DENSITY_MAP } from './data/map'
 
 const PORT = 3000
@@ -9,6 +9,8 @@ const CHUNK_COLS = 16
 const CHUNK_ROWS = 16
 const UNIT_SPEED = 10  // pixels per tick
 const SQUARE_SPEED = 0.5  // multiplies speed of drifting
+const PLAYER_RADIUS = 25
+const SQUARE_RADIUS = 15
 
 const wss = new WebSocketServer({ port: PORT })
 console.log(`Server running on ws://localhost:${PORT}`)
@@ -69,7 +71,25 @@ setInterval(() => {
     player.state.rotation = player.input.rotation
   }
 
-  // 2) Process each active square
+  // 2) Check for collisions
+  for (const player of players.values()) {
+    const chunkIndex = getChunkIndex(player.state.x, player.state.y)
+    const nearbySquareIds = getNearbySquareIds(chunkIndex)
+
+    for (const id of nearbySquareIds) {
+      const square = squares.get(id)!
+      const dx = player.state.x - square.state.x
+      const dy = player.state.y - square.state.y
+      const dist = Math.sqrt(dx * dx + dy * dy)
+
+      if (dist < PLAYER_RADIUS + SQUARE_RADIUS) {
+        player.state.hp -= square.state.maxHp * SQUARE_COLLISION_DAMAGE_FACTOR
+        square.state.hp -= player.state.maxHp * PLAYER_COLLISION_DAMAGE_FACTOR
+      }
+    }
+  }
+
+  // 3) Process each active square
   const toDelete: string[] = []
   
   for (const square of squares.values()) {
@@ -84,20 +104,20 @@ setInterval(() => {
       square.state.y += Math.sin(square.angle) * SQUARE_SPEED
     }
   }
-  
+
   for (const id of toDelete) squares.delete(id)
 
-  // 3) Recompute squares in each chunk
+  // 4) Recompute squares in each chunk
   for (const set of chunkToSquares.values()) set.clear()
   for (const [id, square] of squares) {
     const index = getChunkIndex(square.state.x, square.state.y)
     chunkToSquares.get(index)?.add(id)
   }
 
-  // 4) Spawn new obstacles to replace old
+  // 5) Spawn new obstacles to replace old
   fillMapSquares()
 
-  // 5) Serialize world state and send to every connected client
+  // 6) Serialize world state and send to every connected client
   const message: WorldStateMessage = {
     type: 'world_state',
     players: Array.from(players.values()).map(p => p.state),
@@ -174,7 +194,7 @@ function getChunkIndex(x: number, y: number): number {
   return row * CHUNK_COLS + col
 }
 
-function getNeighborSquareIds(chunkIndex: number): string[] {
+function getNearbySquareIds(chunkIndex: number): string[] {
   const col = chunkIndex % CHUNK_COLS
   const row = Math.floor(chunkIndex / CHUNK_COLS)
   const ids: string[] = []
