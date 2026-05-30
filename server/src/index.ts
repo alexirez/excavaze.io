@@ -15,6 +15,9 @@ console.log(`Server running on ws://localhost:${PORT}`)
 
 const players = new Map<string, ServerPlayer>()
 const squares = new Map<string, ServerSquare>()
+const chunkToSquares = new  Map<number, Set<string>>()
+for (let i = 0; i < CHUNK_ROWS * CHUNK_COLS; i++)
+  chunkToSquares.set(i, new Set())
 
 spawnSquaresOnStartup()
 
@@ -81,13 +84,20 @@ setInterval(() => {
       square.state.y += Math.sin(square.angle) * SQUARE_SPEED
     }
   }
-
+  
   for (const id of toDelete) squares.delete(id)
 
-  // 3) Spawn obstacles to replace old
+  // 3) Recompute squares in each chunk
+  for (const set of chunkToSquares.values()) set.clear()
+  for (const [id, square] of squares) {
+    const index = getChunkIndex(square.state.x, square.state.y)
+    chunkToSquares.get(index)?.add(id)
+  }
+
+  // 4) Spawn new obstacles to replace old
   fillMapSquares()
 
-  // 4) Serialize world state and send to every connected client
+  // 5) Serialize world state and send to every connected client
   const message: WorldStateMessage = {
     type: 'world_state',
     players: Array.from(players.values()).map(p => p.state),
@@ -133,11 +143,10 @@ function spawnSquaresOnStartup() {
 function fillMapSquares() {
   const chunkW = WORLD_WIDTH / CHUNK_COLS
   const chunkH = WORLD_HEIGHT / CHUNK_ROWS
-  let squaresPerChunk = countSquaresPerChunk()
 
   for (let row = 0; row < CHUNK_ROWS; row++) {
     for (let col = 0; col < CHUNK_COLS; col++) {
-      const existing = squaresPerChunk[row * CHUNK_COLS + col]
+      const existing = chunkToSquares.get(row * CHUNK_COLS + col)!.size
       const toSpawn = Math.max(0, DENSITY_MAP[row * CHUNK_COLS + col] - existing)
       for (let i = 0; i < toSpawn; i++) {
         const id = Math.random().toString(36).slice(2, 9)
@@ -159,19 +168,25 @@ function fillMapSquares() {
   }
 }
 
-// Helper method to count squares per chunk, used in fillMapSquares
-function countSquaresPerChunk(): number[] {
-  const chunkW = WORLD_WIDTH / CHUNK_COLS
-  const chunkH = WORLD_HEIGHT / CHUNK_ROWS
-  const counts = new Array(CHUNK_ROWS * CHUNK_COLS).fill(0)
+function getChunkIndex(x: number, y: number): number {
+  const col = Math.floor(x / (WORLD_WIDTH / CHUNK_COLS))
+  const row = Math.floor(y / (WORLD_HEIGHT / CHUNK_ROWS))
+  return row * CHUNK_COLS + col
+}
 
-  for (const square of squares.values()) {
-    const col = Math.floor(square.state.x / chunkW)
-    const row = Math.floor(square.state.y / chunkH)
-    if (col >= 0 && col < CHUNK_COLS && row >= 0 && row < CHUNK_ROWS) {
-      counts[row * CHUNK_COLS + col]++
+function getNeighborSquareIds(chunkIndex: number): string[] {
+  const col = chunkIndex % CHUNK_COLS
+  const row = Math.floor(chunkIndex / CHUNK_COLS)
+  const ids: string[] = []
+  for (let dr = -1; dr <= 1; dr++) {
+    for (let dc = -1; dc <= 1; dc++) {
+      const nc = col + dc
+      const nr = row + dr
+      if (nc >= 0 && nc < CHUNK_COLS && nr >= 0 && nr < CHUNK_ROWS) {
+        const neighbors = chunkToSquares.get(nr * CHUNK_COLS + nc)!
+        for (const id of neighbors) ids.push(id)
+      }
     }
   }
-
-  return counts
+  return ids
 }
