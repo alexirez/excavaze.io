@@ -80,9 +80,10 @@ setInterval(() => {
       const square = squares.get(id)!
       const dx = player.state.x - square.state.x
       const dy = player.state.y - square.state.y
-      const dist = Math.sqrt(dx * dx + dy * dy)
+      const distSqr = dx * dx + dy * dy
+      const radiusSum = PLAYER_RADIUS + square.radius
 
-      if (dist < PLAYER_RADIUS + square.radius) {
+      if (distSqr < radiusSum * radiusSum) {
         player.state.hp -= square.state.maxHp * SQUARE_COLLISION_DAMAGE_FACTOR
         square.state.hp -= player.state.maxHp * PLAYER_COLLISION_DAMAGE_FACTOR
       }
