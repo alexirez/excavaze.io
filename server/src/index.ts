@@ -37,6 +37,7 @@ wss.on('connection', (socket) => {
       rotation: 0 ,
       hp: PLAYER_BASE_HP,
       maxHp: PLAYER_BASE_HP,
+      drillParams: (0 & 0x7), // TODO: set properly
     },
     input: { dx: 0, dy: 0, rotation: 0 },
   })

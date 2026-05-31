@@ -7,6 +7,7 @@ export interface PlayerState {
   rotation: number
   hp: number
   maxHp: number
+  drillParams: number
 }
 
 export interface SquareState {
