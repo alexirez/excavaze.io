@@ -14,6 +14,7 @@ export class GameScene extends Phaser.Scene {
   private squareRotations: Map<string, number> = new Map()
   private squareGraphics!: Phaser.GameObjects.Graphics
   private squareHealthBarGraphics!: Phaser.GameObjects.Graphics
+  private enemyGraphics!: Phaser.GameObjects.Graphics
 
   constructor() {
     super({ key: 'GameScene' })
@@ -42,6 +43,9 @@ export class GameScene extends Phaser.Scene {
 
     this.squareGraphics = this.add.graphics()
     this.squareGraphics.setDepth(20)
+
+    this.enemyGraphics = this.add.graphics()
+    this.enemyGraphics.setDepth(50)
 
     // Register keys — Phaser cleans these up when the scene stops
     this.keys = {
@@ -121,6 +125,25 @@ export class GameScene extends Phaser.Scene {
       this.playerHealthBar.fillRect(20, 20, 200, 12)
       this.playerHealthBar.fillStyle(getHealthColor(ratio))
       this.playerHealthBar.fillRect(20, 20, ratio * 200, 12)
+    }
+
+    // Update enemies
+    this.enemyGraphics.clear()
+    for (const [id, p] of Object.entries(this.latestPlayersState)) {
+      if (id === this.localId) continue
+
+      this.enemyGraphics.save()
+      this.enemyGraphics.translateCanvas(p.x, p.y)
+      this.enemyGraphics.rotateCanvas(p.rotation)
+
+      // body
+      this.enemyGraphics.fillStyle(0xff6b6b)
+      this.enemyGraphics.fillCircle(0, 0, 25)
+
+      // barrel — starts at edge of circle
+      this.enemyGraphics.fillRect(15, -7, 40, 14)
+
+      this.enemyGraphics.restore()
     }
 
     // update objects' healthbars

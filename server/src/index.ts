@@ -12,6 +12,8 @@ const SQUARE_SPEED = 0.5  // multiplies speed of drifting
 const PLAYER_RADIUS = 25
 const SQUARE_BASE_RADIUS = 10
 
+let tick = 0
+
 const wss = new WebSocketServer({ port: PORT })
 console.log(`Server running on ws://localhost:${PORT}`)
 
@@ -64,20 +66,29 @@ wss.on('connection', (socket) => {
 })
 
 setInterval(() => {
-  // 1) Process each player
+  tick++
+
+  // 1) Process each player's input
   for (const player of players.values()) {
     player.state.x = Math.max(WORLD_PADDING, Math.min(WORLD_WIDTH - WORLD_PADDING, player.state.x + player.input.dx * UNIT_SPEED))
     player.state.y = Math.max(WORLD_PADDING, Math.min(WORLD_HEIGHT - WORLD_PADDING, player.state.y + player.input.dy * UNIT_SPEED))
     player.state.rotation = player.input.rotation
   }
 
-  // 2) Check for collisions
+  // 2) Spawn bots
+  if (tick % 60 === 0) {  // every 3s (60 ticks * 50ms)
+    spawnBots()
+  }
+
+  // 3) TODO: Process bot input
+
+  // 4) Check for collisions
   for (const player of players.values()) {
     const chunkIndex = getChunkIndex(player.state.x, player.state.y)
     const nearbySquareIds = getNearbySquareIds(chunkIndex)
 
     for (const id of nearbySquareIds) {
-      const square = squares.get(id)!
+      const square = squares.get(id)
       if (!square) continue
       const dx = player.state.x - square.state.x
       const dy = player.state.y - square.state.y
@@ -91,7 +102,7 @@ setInterval(() => {
     }
   }
 
-  // 3) Process each active square
+  // 5) Process each active square
   const toDelete: string[] = []
   
   for (const square of squares.values()) {
@@ -110,17 +121,19 @@ setInterval(() => {
 
   for (const id of toDelete) squares.delete(id)
 
-  // 4) Recompute squares in each chunk
+  // 6) Recompute squares in each chunk
   for (const set of chunkToSquares.values()) set.clear()
   for (const [id, square] of squares) {
     const index = getChunkIndex(square.state.x, square.state.y)
     chunkToSquares.get(index)?.add(id)
   }
 
-  // 5) Spawn new obstacles to replace old
-  fillMapSquares()
+  // 7) Spawn new obstacles to replace old
+  if (tick % 10 === 0) {  // every 500ms (10 ticks * 50ms)
+    fillMapSquares()
+  }
 
-  // 6) Serialize world state and send to every connected client
+  // 8) Serialize world state and send to every connected client
   const message: WorldStateMessage = {
     type: 'world_state',
     players: Array.from(players.values()).map(p => p.state),
@@ -214,4 +227,8 @@ function getNearbySquareIds(chunkIndex: number): string[] {
     }
   }
   return ids
+}
+
+function spawnBots() {
+  // TODO
 }
