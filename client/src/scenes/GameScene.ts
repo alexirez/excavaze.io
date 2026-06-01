@@ -39,7 +39,7 @@ export class GameScene extends Phaser.Scene {
     this.playerHealthBar.setDepth(80)
 
     this.squareHealthBarGraphics = this.add.graphics()
-    this.squareHealthBarGraphics.setDepth(10)
+    this.squareHealthBarGraphics.setDepth(20)
 
     // initialize graphics
     this.playerGraphics = this.add.graphics()
@@ -47,7 +47,7 @@ export class GameScene extends Phaser.Scene {
     this.enemyGraphics = this.add.graphics()
     this.enemyGraphics.setDepth(50)
     this.squareGraphics = this.add.graphics()
-    this.squareGraphics.setDepth(20)
+    this.squareGraphics.setDepth(15)
 
     // Register keys — Phaser cleans these up when the scene stops
     this.keys = {
@@ -168,11 +168,12 @@ export class GameScene extends Phaser.Scene {
     for (const [id, sq] of Object.entries(this.latestSquaresState)) {
       if (sq.hp >= sq.maxHp) continue
       const ratio = Math.max(0, sq.hp / sq.maxHp)
-      const bw = 40, bh = 4
+      const size = 20 + (sq.maxHp / SQUARE_BASE_HP) * 10
+      const bw = 15 + 8 * sq.maxHp / SQUARE_BASE_HP, bh = 4 + 1 * sq.maxHp / SQUARE_BASE_HP
       this.squareHealthBarGraphics.fillStyle(0x555555)
-      this.squareHealthBarGraphics.fillRect(sq.x - bw / 2, sq.y + 30, bw, bh)
+      this.squareHealthBarGraphics.fillRect(sq.x - bw / 2, sq.y + size / 2 + 8, bw, bh)
       this.squareHealthBarGraphics.fillStyle(getHealthColor(ratio))
-      this.squareHealthBarGraphics.fillRect(sq.x - bw / 2, sq.y + 30, ratio * bw, bh)
+      this.squareHealthBarGraphics.fillRect(sq.x - bw / 2, sq.y + size / 2 + 8, ratio * bw, bh)
     }
 
     this.squareGraphics.clear()
