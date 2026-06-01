@@ -132,7 +132,7 @@ export class GameScene extends Phaser.Scene {
       this.playerGraphics.translateCanvas(playerState.x, playerState.y)
       this.playerGraphics.rotateCanvas(playerState.rotation)
       this.playerGraphics.fillCircle(0, 0, 25)
-      drawDrill(this.playerGraphics, playerState.drillParams)
+      drawDrill(this.playerGraphics, playerState.drillParams, 0x00cc77)
       this.playerGraphics.restore()
       
       // update player's healthbar
@@ -158,7 +158,7 @@ export class GameScene extends Phaser.Scene {
       this.enemyGraphics.fillCircle(0, 0, 25)
 
       // weapon — starts at edge of circle
-      drawDrill(this.enemyGraphics, p.drillParams)
+      drawDrill(this.enemyGraphics, p.drillParams, 0xff4444)
 
       this.enemyGraphics.restore()
     }
@@ -212,33 +212,44 @@ function unpackDrillParams(drillParams: number) {
   }
 }
 
-function drawDrill(g: Phaser.GameObjects.Graphics, drillParams: number) {
+function drawDrill(g: Phaser.GameObjects.Graphics, drillParams: number, color: number) {
   const { drillType, segments } = unpackDrillParams(drillParams)
   switch (drillType) {
-    case 0: drawStackedTrianglesDrill(g, segments || 3); break
-    case 1: drawSingleTriangleDrill(g); break
+    case 0: drawStackedTrianglesDrill(g, segments || 5, 40, color); break
+    case 1: drawSingleTriangleDrill(g, color); break
   }
 }
 
-function drawStackedTrianglesDrill(g: Phaser.GameObjects.Graphics, count: number) {
+function drawStackedTrianglesDrill(g: Phaser.GameObjects.Graphics, count: number, totalLength: number, color: number) {
   const startX = 25 // edge of player circle
-  const totalLength = 40
   const segmentLength = totalLength / count
+  const baseWidth = 25
+
+  // square base
+  g.fillStyle(color)
+  g.fillRect(startX, -baseWidth / 2, segmentLength, baseWidth)
+
+  // stacked triangles
   for (let i = 0; i < count; i++) {
     const x = startX + i * segmentLength
-    const width = 14 * (1 - i / count) // decreasing width toward tip
+    const width = 25 * (1 - i / count) // decreasing width toward tip
+    g.fillStyle(color)
     g.fillTriangle(
-      x, -width / 2,
-      x, width / 2,
+      x - segmentLength * 0.3, -width / 2,
+      x - segmentLength * 0.3, width / 2,
       x + segmentLength, 0
     )
   }
 }
 
-function drawSingleTriangleDrill(g: Phaser.GameObjects.Graphics) {
+function drawSingleTriangleDrill(g: Phaser.GameObjects.Graphics, color: number) {
+  const startX = 25
+  const width = 10
+  const height = 40
+  g.fillStyle(color)
   g.fillTriangle(
-    25, -7,
-    25, 7,
-    65, 0
+    startX, -width,
+    startX, width,
+    startX + height, 0
   )
 }
