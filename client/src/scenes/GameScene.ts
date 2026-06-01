@@ -2,7 +2,7 @@ import Phaser from 'phaser'
 import socket from '../network/socket'
 import { PlayerState, SquareState } from '../../../protocol/types'
 import { ServerMessage } from '../../../protocol/messages'
-import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, COLOR_BACKGROUND, COLOR_OUTER_BOUNDS, WORLD_PADDING, SQUARE_BASE_HP } from '../../../protocol/constants'
+import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, COLOR_BACKGROUND, COLOR_OUTER_BOUNDS, WORLD_PADDING, SQUARE_BASE_HP, PLAYER_BASE_HP } from '../../../protocol/constants'
 
 export class GameScene extends Phaser.Scene {
   private playerHealthBar!: Phaser.GameObjects.Graphics
@@ -131,7 +131,9 @@ export class GameScene extends Phaser.Scene {
       this.playerGraphics.save()
       this.playerGraphics.translateCanvas(playerState.x, playerState.y)
       this.playerGraphics.rotateCanvas(playerState.rotation)
-      this.playerGraphics.fillCircle(0, 0, 25)
+      this.playerGraphics.fillCircle(0, 0, 22)
+      this.playerGraphics.lineStyle(2, 0x00aa66, 1)
+      this.playerGraphics.strokeCircle(0, 0, 25)
       drawDrill(this.playerGraphics, playerState.drillParams, 0x00cc77)
       this.playerGraphics.restore()
       
@@ -156,6 +158,8 @@ export class GameScene extends Phaser.Scene {
       // body
       this.enemyGraphics.fillStyle(0xff6b6b)
       this.enemyGraphics.fillCircle(0, 0, 25)
+      this.enemyGraphics.lineStyle(6 + (p.maxHp - PLAYER_BASE_HP), 0xcc4444, 1)
+      this.enemyGraphics.strokeCircle(0, 0, 23)
 
       // weapon — starts at edge of circle
       drawDrill(this.enemyGraphics, p.drillParams, 0xff4444)
@@ -186,6 +190,8 @@ export class GameScene extends Phaser.Scene {
       this.squareGraphics.rotateCanvas(rotation)
       this.squareGraphics.fillStyle(0xf5a623)
       this.squareGraphics.fillRect(-size / 2, -size / 2, size, size)
+      this.squareGraphics.lineStyle(5 + (sq.maxHp / SQUARE_BASE_HP), 0xc47a0a, 1)
+      this.squareGraphics.strokeRect(-size / 2, -size / 2, size, size)
       this.squareGraphics.restore()
 
       // update rotation for next frame
