@@ -76,32 +76,41 @@ setInterval(() => {
     player.state.rotation = player.input.rotation
   }
 
-  // 2) Spawn bots
-  if (tick % 60 === 0) {  // every 3s (60 ticks * 50ms)
-    spawnBots()
-  }
-
-  // 3) TODO: Process bot input
-
-  // 4) Check for collisions
+  // 2) Check for collisions
   for (const player of players.values()) {
     const chunkIndex = getChunkIndex(player.state.x, player.state.y)
-    const nearbySquareIds = getNearbySquareIds(chunkIndex)
+    const nearbySquareIds = getNearbySquareIds(chunkIndex) // only consider 9 nearest chunks for efficient collision checking
 
     for (const id of nearbySquareIds) {
       const square = squares.get(id)
       if (!square) continue
       const dx = player.state.x - square.state.x
       const dy = player.state.y - square.state.y
-      const distSqr = dx * dx + dy * dy
+      const dist = Math.sqrt(dx * dx + dy * dy)
       const radiusSum = PLAYER_RADIUS + square.radius
 
-      if (distSqr < radiusSum * radiusSum) {
+      if (dist < radiusSum) {
+        const overlap = radiusSum - dist
+        const nx = dx / dist
+        const ny = dy / dist
+
+        // positional correction — push player out of square
+        player.state.x += nx * overlap
+        player.state.y += ny * overlap
+
+        // deal damage
         player.state.hp -= square.state.maxHp * SQUARE_COLLISION_DAMAGE_FACTOR
         square.state.hp -= player.state.maxHp * PLAYER_COLLISION_DAMAGE_FACTOR
       }
     }
   }
+
+  // 3) Spawn bots
+  if (tick % 60 === 0) {  // every 3s (60 ticks * 50ms)
+    spawnBots()
+  }
+
+  // 4) TODO: Process bot input
 
   // 5) Process each active square
   const toDelete: string[] = []
