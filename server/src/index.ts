@@ -13,20 +13,22 @@ const PLAYER_RADIUS = 25
 const SQUARE_BASE_RADIUS = 10
 
 let tick = 0
+let nextPlayerId = 0
+let nextSquareId = 0
 
 const wss = new WebSocketServer({ port: PORT })
 console.log(`Server running on ws://localhost:${PORT}`)
 
-const players = new Map<string, ServerPlayer>()
-const squares = new Map<string, ServerSquare>()
-const chunkToSquares = new  Map<number, Set<string>>()
+const players = new Map<number, ServerPlayer>()
+const squares = new Map<number, ServerSquare>()
+const chunkToSquares = new  Map<number, Set<number>>()
 for (let i = 0; i < CHUNK_ROWS * CHUNK_COLS; i++)
   chunkToSquares.set(i, new Set())
 
 spawnSquaresOnStartup()
 
 wss.on('connection', (socket) => {
-  const id = Math.random().toString(36).slice(2, 9)
+  const id = nextPlayerId++
 
   players.set(id, {
     socket,
@@ -113,7 +115,7 @@ setInterval(() => {
   // 4) TODO: Process bot input
 
   // 5) Process each active square
-  const toDelete: string[] = []
+  const toDelete: number[] = []
   
   for (const square of squares.values()) {
     if (
@@ -169,7 +171,7 @@ function spawnSquaresOnStartup() {
       const toSpawn = DENSITY_MAP[row * CHUNK_COLS + col]
       for (let i = 0; i < toSpawn; i++) {
         // TODO: check overlap with existing squares before placing (collision branch)
-        const id = Math.random().toString(36).slice(2, 9)
+        const id = assignNextSquareId()
         squares.set(id, {
           state: {
             id: id,
@@ -196,7 +198,7 @@ function fillMapSquares() {
       const existing = chunkToSquares.get(row * CHUNK_COLS + col)!.size
       const toSpawn = Math.max(0, DENSITY_MAP[row * CHUNK_COLS + col] - existing)
       for (let i = 0; i < toSpawn; i++) {
-        const id = Math.random().toString(36).slice(2, 9)
+        const id = assignNextSquareId()
         squares.set(id, {
           state: {
             id: id,
@@ -222,10 +224,10 @@ function getChunkIndex(x: number, y: number): number {
   return row * CHUNK_COLS + col
 }
 
-function getNearbySquareIds(chunkIndex: number): string[] {
+function getNearbySquareIds(chunkIndex: number): number[] {
   const col = chunkIndex % CHUNK_COLS
   const row = Math.floor(chunkIndex / CHUNK_COLS)
-  const ids: string[] = []
+  const ids: number[] = []
   for (let dr = -1; dr <= 1; dr++) {
     for (let dc = -1; dc <= 1; dc++) {
       const nc = col + dc
@@ -241,4 +243,12 @@ function getNearbySquareIds(chunkIndex: number): string[] {
 
 function spawnBots() {
   // TODO
+}
+
+function assignNextSquareId() {
+  if (nextSquareId >= 9007199254740991)
+    nextSquareId = 0
+  else
+    nextSquareId++
+  return nextSquareId
 }

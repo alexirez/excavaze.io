@@ -1,7 +1,7 @@
 // Represents a single player's current state in the world.
 // Created and owned by the server, sent to all clients.
 export interface PlayerState {
-  id: string
+  id: number
   x: number
   y: number
   rotation: number
@@ -11,7 +11,7 @@ export interface PlayerState {
 }
 
 export interface SquareState {
-  id: string
+  id: number
   x: number
   y: number
   hp: number

@@ -7,10 +7,10 @@ import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, COLOR_BACKGROUND, COLOR_OUTER_BOUND
 export class GameScene extends Phaser.Scene {
   private playerHealthBar!: Phaser.GameObjects.Graphics
   private keys!: Record<string, Phaser.Input.Keyboard.Key>
-  private localId: string | null = null
-  private latestPlayersState: Record<string, PlayerState> = {}
-  private latestSquaresState: Record<string, SquareState> = {}
-  private squareRotations: Map<string, number> = new Map()
+  private localId: number | null = null
+  private latestPlayersState: Map<number, PlayerState> = new Map()
+  private latestSquaresState: Map<number, SquareState> = new Map()
+  private squareRotations: Map<number, number> = new Map()
   private squareGraphics!: Phaser.GameObjects.Graphics
   private squareHealthBarGraphics!: Phaser.GameObjects.Graphics
   private playerGraphics!: Phaser.GameObjects.Graphics
@@ -69,9 +69,9 @@ export class GameScene extends Phaser.Scene {
       if (msg.type === 'world_state') {
 
         // replace player list with newest update from server
-        this.latestPlayersState = {}
+        this.latestPlayersState.clear()
         for (const player of msg.players) {
-          this.latestPlayersState[player.id] = {
+          this.latestPlayersState.set(player.id, {
             id: player.id,
             x: player.x,
             y: player.y,
@@ -79,19 +79,19 @@ export class GameScene extends Phaser.Scene {
             hp: player.hp,
             maxHp: player.maxHp,
             drillParams: player.drillParams
-          }
+          })
         }
 
         // replace squares list with newest from server
-        this.latestSquaresState = {}
+        this.latestSquaresState.clear()
         for (const square of msg.squares) {
-          this.latestSquaresState[square.id] = {
+          this.latestSquaresState.set(square.id, {
             id: square.id,
             x: square.x,
             y: square.y,
             hp: square.hp,
             maxHp: square.maxHp,
-          }
+          })
         }
       }
     }
@@ -101,9 +101,10 @@ export class GameScene extends Phaser.Scene {
       const dx = (this.keys.D.isDown ? 1 : 0) - (this.keys.A.isDown ? 1 : 0)
       const dy = (this.keys.S.isDown ? 1 : 0) - (this.keys.W.isDown ? 1 : 0)
       const pointer = this.input.activePointer
-      const localPlayer = this.localId ? this.latestPlayersState[this.localId] : null
+      if (this.localId === null) return
+      const localPlayer = this.latestPlayersState.get(this.localId)
       let rotation = 0
-      if (localPlayer) {
+      if (localPlayer != null) {
         rotation = Phaser.Math.Angle.Between(
         localPlayer.x, localPlayer.y,
         this.cameras.main.scrollX + pointer.x,
@@ -119,9 +120,9 @@ export class GameScene extends Phaser.Scene {
 
   // Only rendering, — game logic is on server side
   update() {
-    if (!this.localId) return // no id assigned yet -> do nothing
+    if (this.localId === null) return // no id assigned yet -> do nothing
 
-    const playerState = this.latestPlayersState[this.localId]
+    const playerState = this.latestPlayersState.get(this.localId)
     if (playerState) {
       this.cameraTarget.x = playerState.x
       this.cameraTarget.y = playerState.y
@@ -148,7 +149,7 @@ export class GameScene extends Phaser.Scene {
 
     // Update enemies
     this.enemyGraphics.clear()
-    for (const [id, p] of Object.entries(this.latestPlayersState)) {
+    for (const [id, p] of this.latestPlayersState.entries()) {
       if (id === this.localId) continue
 
       this.enemyGraphics.save()
@@ -169,7 +170,7 @@ export class GameScene extends Phaser.Scene {
 
     // update objects' healthbars
     this.squareHealthBarGraphics.clear()
-    for (const [id, sq] of Object.entries(this.latestSquaresState)) {
+    for (const [id, sq] of this.latestSquaresState.entries()) {
       if (sq.hp >= sq.maxHp) continue
       const ratio = Math.max(0, sq.hp / sq.maxHp)
       const size = 20 + (sq.maxHp / SQUARE_BASE_HP) * 10
@@ -181,7 +182,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.squareGraphics.clear()
-    for (const [id, sq] of Object.entries(this.latestSquaresState)) {
+    for (const [id, sq] of this.latestSquaresState.entries()) {
       const rotation = this.squareRotations.get(id) ?? 0
       const size = 20 + (sq.maxHp / SQUARE_BASE_HP) * 10
 
@@ -199,7 +200,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     for (const id of this.squareRotations.keys()) {
-      if (!this.latestSquaresState[id]) {
+      if (!this.latestSquaresState.get(id)) {
         this.squareRotations.delete(id)
       }
     }
