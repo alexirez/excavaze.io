@@ -83,7 +83,32 @@ setInterval(() => {
     const chunkIndex = getChunkIndex(player.state.x, player.state.y)
     const nearbySquareIds = getNearbySquareIds(chunkIndex) // only consider 9 nearest chunks for efficient collision checking
 
-    for (const id of nearbySquareIds) {
+    for (const [idA, a] of players) { // 1. player to player collisions
+      for (const [idB, b] of players) {
+        if (idB <= idA) continue
+        const dx = a.state.x - b.state.x
+        const dy = a.state.y - b.state.y
+        const dist = Math.sqrt(dx * dx + dy * dy)
+        const radiusSum = PLAYER_RADIUS + PLAYER_RADIUS
+
+        if (dist < radiusSum) {
+          const overlap = radiusSum - dist
+          const nx = dx / dist
+          const ny = dy / dist
+
+          // positional correction — push player out of collided player
+          a.state.x += nx * overlap / 2
+          a.state.y += ny * overlap / 2
+          b.state.x -= nx * overlap / 2
+          b.state.y -= ny * overlap / 2
+
+          a.state.hp -= PLAYER_COLLISION_DAMAGE_FACTOR * 10
+          b.state.hp -= PLAYER_COLLISION_DAMAGE_FACTOR * 10
+        }
+      }
+    }
+
+    for (const id of nearbySquareIds) { // 2. player + square collisions
       const square = squares.get(id)
       if (!square) continue
       const dx = player.state.x - square.state.x
@@ -96,11 +121,9 @@ setInterval(() => {
         const nx = dx / dist
         const ny = dy / dist
 
-        // positional correction — push player out of square
         player.state.x += nx * overlap
         player.state.y += ny * overlap
 
-        // deal damage
         player.state.hp -= square.state.maxHp * SQUARE_COLLISION_DAMAGE_FACTOR
         square.state.hp -= player.state.maxHp * PLAYER_COLLISION_DAMAGE_FACTOR
       }
