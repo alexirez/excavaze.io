@@ -80,10 +80,6 @@ setInterval(() => {
   }
 
   // 2) Check for collisions
-  for (const player of players.values()) {
-    const chunkIndex = getChunkIndex(player.state.x, player.state.y)
-    const nearbySquareIds = getNearbySquareIds(chunkIndex) // only consider 9 nearest chunks for efficient collision checking
-
     for (const [idA, a] of players) { // 1. player to player collisions
       for (const [idB, b] of players) {
         if (idB <= idA) continue
@@ -109,12 +105,16 @@ setInterval(() => {
       }
     }
 
-      for (const [idA, a] of players) {
+      for (const [idA, a] of players) { // 2. player + drill collisions
         for (const [idB, b] of players) {
           if (idA === idB) continue
           b.state.hp -= getDrillDamage(a, b)
         }
       }
+
+  for (const player of players.values()) {
+    const chunkIndex = getChunkIndex(player.state.x, player.state.y)
+    const nearbySquareIds = getNearbySquareIds(chunkIndex) // only consider 9 nearest chunks for efficient collision checking
 
     for (const id of nearbySquareIds) { // 3. player + square collisions
       const square = squares.get(id)
@@ -284,13 +284,80 @@ function assignNextSquareId() {
   return nextSquareId
 }
 
-// TODO
 function getDrillDamage(a: ServerPlayer, b: ServerPlayer): number {
-  const { drillType, segments } = unpackDrillParams(a.state.drillParams)
-  
+  const { drillType } = unpackDrillParams(a.state.drillParams)
   switch (drillType) {
-    case 0: return 0
-    case 1: return 0
+    case 0: return getStackedTrianglesDrillDamage(a, b)
+    case 1: return getSingleTriangleDrillDamage(a, b)
     default: return 0
   }
+}
+
+function getStackedTrianglesDrillDamage(a: ServerPlayer, b: ServerPlayer): number {
+  const { segments } = unpackDrillParams(a.state.drillParams)
+  const count = segments || 5
+  const totalLength = 40
+  const segmentLength = totalLength / count
+  const startX = 25
+  const baseWidth = 25
+  const cos = Math.cos(a.state.rotation)
+  const sin = Math.sin(a.state.rotation)
+
+  for (let i = 0; i < count; i++) {
+    const x = startX + i * segmentLength
+    const width = baseWidth * (1 - i / count)
+    const x0 = x - segmentLength * 0.3
+    const x1 = x + segmentLength
+
+    const [ax, ay] = toWorld(x0, -width / 2, a.state.x, a.state.y, cos, sin)
+    const [bx, by] = toWorld(x0,  width / 2, a.state.x, a.state.y, cos, sin)
+    const [cx, cy] = toWorld(x1,  0,          a.state.x, a.state.y, cos, sin)
+
+    if (pointInTriangle(b.state.x, b.state.y, ax, ay, bx, by, cx, cy)) {
+      return 5 // TODO: scale by attacker stats
+    }
+  }
+  return 0
+}
+
+function getSingleTriangleDrillDamage(a: ServerPlayer, b: ServerPlayer): number {
+  const startX = 25
+  const width = 10
+  const height = 40
+
+  // mirror drawSingleTriangleDrill exactly
+  const cos = Math.cos(a.state.rotation)
+  const sin = Math.sin(a.state.rotation)
+
+  const [ax, ay] = toWorld(startX,          -width, a.state.x, a.state.y, cos, sin)
+  const [bx, by] = toWorld(startX,           width, a.state.x, a.state.y, cos, sin)
+  const [cx, cy] = toWorld(startX + height,  0,     a.state.x, a.state.y, cos, sin)
+
+  if (pointInTriangle(b.state.x, b.state.y, ax, ay, bx, by, cx, cy)) {
+    return 5
+  }
+  return 0
+}
+
+// cross product helper method
+function sign(p1x: number, p1y: number, p2x: number, p2y: number, p3x: number, p3y: number): number {
+  return (p1x - p3x) * (p2y - p3y) - (p2x - p3x) * (p1y - p3y)
+}
+
+// return true if the first point is in the second
+function pointInTriangle(px: number, py: number, ax: number, ay: number, bx: number, by: number, cx: number, cy: number): boolean {
+  const d1 = sign(px, py, ax, ay, bx, by)
+  const d2 = sign(px, py, bx, by, cx, cy)
+  const d3 = sign(px, py, cx, cy, ax, ay)
+  const hasNeg = (d1 < 0) || (d2 < 0) || (d3 < 0)
+  const hasPos = (d1 > 0) || (d2 > 0) || (d3 > 0)
+  return !(hasNeg && hasPos)
+}
+
+// rotate a local-space point by angle and translate to world space
+function toWorld(lx: number, ly: number, originX: number, originY: number, cos: number, sin: number): [number, number] {
+  return [
+    originX + lx * cos - ly * sin,
+    originY + lx * sin + ly * cos,
+  ]
 }
