@@ -3,6 +3,7 @@ import socket from '../network/socket'
 import { PlayerState, SquareState } from '../../../protocol/types'
 import { ServerMessage } from '../../../protocol/messages'
 import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, COLOR_BACKGROUND, COLOR_OUTER_BOUNDS, WORLD_PADDING, SQUARE_BASE_HP, PLAYER_BASE_HP } from '../../../protocol/constants'
+import { unpackDrillParams } from '../../../protocol/utils'
 
 export class GameScene extends Phaser.Scene {
   private playerHealthBar!: Phaser.GameObjects.Graphics
@@ -211,13 +212,6 @@ function getHealthColor(ratio: number): number {
   if (ratio > 0.6) return 0x00ff99
   if (ratio > 0.3) return 0xffaa00
   return 0xff3333
-}
-
-function unpackDrillParams(drillParams: number) {
-  return {
-    drillType: drillParams & 0x7,
-    segments: (drillParams >> 3) & 0x7,
-  }
 }
 
 function drawDrill(g: Phaser.GameObjects.Graphics, drillParams: number, color: number) {

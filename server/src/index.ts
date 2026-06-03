@@ -3,6 +3,7 @@ import { ServerPlayer, ServerSquare } from './entities'
 import { ClientMessage, WorldStateMessage } from '../../protocol/messages'
 import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, SQUARE_COLLISION_DAMAGE_FACTOR, PLAYER_COLLISION_DAMAGE_FACTOR } from '../../protocol/constants'
 import { DANGER_MAP, DENSITY_MAP } from './data/map'
+import { unpackDrillParams } from '../../protocol/utils'
 
 const PORT = 3000
 const CHUNK_COLS = 16
@@ -108,7 +109,14 @@ setInterval(() => {
       }
     }
 
-    for (const id of nearbySquareIds) { // 2. player + square collisions
+      for (const [idA, a] of players) {
+        for (const [idB, b] of players) {
+          if (idA === idB) continue
+          b.state.hp -= getDrillDamage(a, b)
+        }
+      }
+
+    for (const id of nearbySquareIds) { // 3. player + square collisions
       const square = squares.get(id)
       if (!square) continue
       const dx = player.state.x - square.state.x
@@ -130,12 +138,12 @@ setInterval(() => {
     }
   }
 
-  // 3) Spawn bots
-  if (tick % 60 === 0) {  // every 3s (60 ticks * 50ms)
+  // 3) TODO: Process current bots input
+
+  // 4) Spawn bots
+  if (tick % 60 === 0) {
     spawnBots()
   }
-
-  // 4) TODO: Process bot input
 
   // 5) Process each active square
   const toDelete: number[] = []
@@ -274,4 +282,15 @@ function assignNextSquareId() {
   else
     nextSquareId++
   return nextSquareId
+}
+
+// TODO
+function getDrillDamage(a: ServerPlayer, b: ServerPlayer): number {
+  const { drillType, segments } = unpackDrillParams(a.state.drillParams)
+  
+  switch (drillType) {
+    case 0: return 0
+    case 1: return 0
+    default: return 0
+  }
 }
