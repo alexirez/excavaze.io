@@ -3,7 +3,7 @@ import { ServerPlayer, ServerSquare } from './entities'
 import { ClientMessage, WorldStateMessage } from '../../protocol/messages'
 import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, SQUARE_COLLISION_DAMAGE_FACTOR, PLAYER_COLLISION_DAMAGE_FACTOR } from '../../protocol/constants'
 import { DANGER_MAP, DENSITY_MAP } from './data/map'
-import { unpackDrillParams } from '../../protocol/utils'
+import { unpackDrillParams, toWorld, sign, pointInTriangle } from '../../protocol/utils'
 
 const PORT = 3000
 const CHUNK_COLS = 16
@@ -337,27 +337,4 @@ function getSingleTriangleDrillDamage(a: ServerPlayer, b: ServerPlayer): number 
     return 5
   }
   return 0
-}
-
-// cross product helper method
-function sign(p1x: number, p1y: number, p2x: number, p2y: number, p3x: number, p3y: number): number {
-  return (p1x - p3x) * (p2y - p3y) - (p2x - p3x) * (p1y - p3y)
-}
-
-// return true if the first point is in the second
-function pointInTriangle(px: number, py: number, ax: number, ay: number, bx: number, by: number, cx: number, cy: number): boolean {
-  const d1 = sign(px, py, ax, ay, bx, by)
-  const d2 = sign(px, py, bx, by, cx, cy)
-  const d3 = sign(px, py, cx, cy, ax, ay)
-  const hasNeg = (d1 < 0) || (d2 < 0) || (d3 < 0)
-  const hasPos = (d1 > 0) || (d2 > 0) || (d3 > 0)
-  return !(hasNeg && hasPos)
-}
-
-// rotate a local-space point by angle and translate to world space
-function toWorld(lx: number, ly: number, originX: number, originY: number, cos: number, sin: number): [number, number] {
-  return [
-    originX + lx * cos - ly * sin,
-    originY + lx * sin + ly * cos,
-  ]
 }
