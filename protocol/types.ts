@@ -7,6 +7,7 @@ export interface PlayerState {
   rotation: number
   hp: number
   maxHp: number,
+  playerRadius: number
   drillType: number,
   drillDmgMultiplier: number,
   drillLengthMultiplier: number,

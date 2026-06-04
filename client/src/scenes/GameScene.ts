@@ -79,6 +79,7 @@ export class GameScene extends Phaser.Scene {
             rotation: player.rotation,
             hp: player.hp,
             maxHp: player.maxHp,
+            playerRadius: player.playerRadius,
             drillType: player.drillType,
             drillDmgMultiplier: player.drillDmgMultiplier,
             drillLengthMultiplier: player.drillLengthMultiplier
@@ -135,10 +136,10 @@ export class GameScene extends Phaser.Scene {
       this.playerGraphics.save()
       this.playerGraphics.translateCanvas(playerState.x, playerState.y)
       this.playerGraphics.rotateCanvas(playerState.rotation)
-      this.playerGraphics.fillCircle(0, 0, 22)
+      this.playerGraphics.fillCircle(0, 0, playerState.playerRadius - 3)
       this.playerGraphics.lineStyle(2, 0x00aa66, 1)
-      this.playerGraphics.strokeCircle(0, 0, 25)
-      drawDrill(this.playerGraphics, playerState.drillType, 0x00cc77)
+      this.playerGraphics.strokeCircle(0, 0, playerState.playerRadius)
+      drawDrill(this.playerGraphics, playerState, 0x00cc77)
       this.playerGraphics.restore()
       
       // update player's healthbar
@@ -153,7 +154,7 @@ export class GameScene extends Phaser.Scene {
     // Update enemies
     this.enemyGraphics.clear()
     for (const [id, p] of this.latestPlayersState.entries()) {
-      if (id === this.localId) continue
+      if (id === this.localId || playerState === undefined) continue
 
       this.enemyGraphics.save()
       this.enemyGraphics.translateCanvas(p.x, p.y)
@@ -161,12 +162,12 @@ export class GameScene extends Phaser.Scene {
 
       // body
       this.enemyGraphics.fillStyle(0xff6b6b)
-      this.enemyGraphics.fillCircle(0, 0, 25)
+      this.enemyGraphics.fillCircle(0, 0, p.playerRadius)
       this.enemyGraphics.lineStyle(6 + (p.maxHp - PLAYER_BASE_HP), 0xcc4444, 1)
-      this.enemyGraphics.strokeCircle(0, 0, 23)
+      this.enemyGraphics.strokeCircle(0, 0, p.playerRadius - 2)
 
       // weapon — starts at edge of circle
-      drawDrill(this.enemyGraphics, p.drillType, 0xff4444)
+      drawDrill(this.enemyGraphics, p, 0xff4444)
 
       this.enemyGraphics.restore()
     }
@@ -216,16 +217,18 @@ function getHealthColor(ratio: number): number {
   return 0xff3333
 }
 
-function drawDrill(g: Phaser.GameObjects.Graphics, drillType: number, color: number) {
+function drawDrill(g: Phaser.GameObjects.Graphics, p: PlayerState, color: number) {
+  const drillType = p.drillType
   switch (drillType) {
-    case 0: drawStackedTrianglesDrill(g, 40, color); break
-    case 1: drawSingleTriangleDrill(g, color); break
+    case 0: drawStackedTrianglesDrill(g, p, 40, color); break
+    case 1: drawSingleTriangleDrill(g, p, color); break
   }
 }
 
-function drawStackedTrianglesDrill(g: Phaser.GameObjects.Graphics, totalLength: number, color: number) {
-  const startX = 25 // edge of player circle
-  const count = 5 // TODO: 5 segments for now, possibly auto-adjust to reasonable value
+function drawStackedTrianglesDrill(g: Phaser.GameObjects.Graphics, p: PlayerState, totalLength: number, color: number) {
+  totalLength *= p.drillLengthMultiplier
+  const startX = p.playerRadius // edge of player circle
+  const count = Math.floor(totalLength / 6)
   const segmentLength = totalLength / count
   const baseWidth = 25
 
@@ -246,8 +249,8 @@ function drawStackedTrianglesDrill(g: Phaser.GameObjects.Graphics, totalLength: 
   }
 }
 
-function drawSingleTriangleDrill(g: Phaser.GameObjects.Graphics, color: number) {
-  const startX = 25
+function drawSingleTriangleDrill(g: Phaser.GameObjects.Graphics, p: PlayerState, color: number) {
+  const startX = p.playerRadius
   const width = 10
   const height = 40
   g.fillStyle(color)

@@ -40,6 +40,7 @@ wss.on('connection', (socket) => {
       rotation: 0,
       hp: PLAYER_BASE_HP,
       maxHp: PLAYER_BASE_HP,
+      playerRadius: id % 2 === 0 ? 25 : 50, // DEBUG: temporary
       drillType: 0, // TODO: set drill values properly
       drillDmgMultiplier: 1,
       drillLengthMultiplier: 1
