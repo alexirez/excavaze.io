@@ -89,7 +89,7 @@ setInterval(() => {
         const dx = a.state.x - b.state.x
         const dy = a.state.y - b.state.y
         const dist = Math.sqrt(dx * dx + dy * dy)
-        const radiusSum = PLAYER_RADIUS + PLAYER_RADIUS
+        const radiusSum = a.state.playerRadius + b.state.playerRadius
 
         if (dist < radiusSum) {
           const overlap = radiusSum - dist
@@ -125,7 +125,7 @@ setInterval(() => {
       const dx = player.state.x - square.state.x
       const dy = player.state.y - square.state.y
       const dist = Math.sqrt(dx * dx + dy * dy)
-      const radiusSum = PLAYER_RADIUS + square.radius
+      const radiusSum = player.state.playerRadius + square.radius
 
       if (dist < radiusSum) {
         const overlap = radiusSum - dist
