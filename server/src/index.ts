@@ -3,7 +3,7 @@ import { ServerPlayer, ServerSquare } from './entities'
 import { ClientMessage, WorldStateMessage } from '../../protocol/messages'
 import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, SQUARE_COLLISION_DAMAGE_FACTOR, PLAYER_COLLISION_DAMAGE_FACTOR } from '../../protocol/constants'
 import { DANGER_MAP, DENSITY_MAP } from './data/map'
-import { unpackDrillParams, toWorld, sign, pointInTriangle } from '../../protocol/utils'
+import { unpackDrillParams, toWorld, sign, pointInTriangle, circleIntersectsTriangle } from '../../protocol/utils'
 
 const PORT = 3000
 const CHUNK_COLS = 16
@@ -44,7 +44,7 @@ wss.on('connection', (socket) => {
     },
     input: { dx: 0, dy: 0, rotation: 0 },
   })
-  // S->C: Tell this client their assigned ID
+  // S->C: Tell this client their assigned id
   socket.send(JSON.stringify({ type: 'welcome', id }))
   console.log(`Player ${id} connected`)
 
@@ -311,10 +311,10 @@ function getStackedTrianglesDrillDamage(a: ServerPlayer, b: ServerPlayer): numbe
 
     const [ax, ay] = toWorld(x0, -width / 2, a.state.x, a.state.y, cos, sin)
     const [bx, by] = toWorld(x0,  width / 2, a.state.x, a.state.y, cos, sin)
-    const [cx, cy] = toWorld(x1,  0,          a.state.x, a.state.y, cos, sin)
+    const [cx, cy] = toWorld(x1,  0,         a.state.x, a.state.y, cos, sin)
 
-    if (pointInTriangle(b.state.x, b.state.y, ax, ay, bx, by, cx, cy)) {
-      return 5 // TODO: scale by attacker stats
+    if (circleIntersectsTriangle(b.state.x, b.state.y, PLAYER_RADIUS, ax, ay, bx, by, cx, cy)) {
+      return 15
     }
   }
   return 0
@@ -324,17 +324,15 @@ function getSingleTriangleDrillDamage(a: ServerPlayer, b: ServerPlayer): number 
   const startX = 25
   const width = 10
   const height = 40
-
-  // mirror drawSingleTriangleDrill exactly
   const cos = Math.cos(a.state.rotation)
   const sin = Math.sin(a.state.rotation)
 
-  const [ax, ay] = toWorld(startX,          -width, a.state.x, a.state.y, cos, sin)
-  const [bx, by] = toWorld(startX,           width, a.state.x, a.state.y, cos, sin)
-  const [cx, cy] = toWorld(startX + height,  0,     a.state.x, a.state.y, cos, sin)
+  const [ax, ay] = toWorld(startX,         -width, a.state.x, a.state.y, cos, sin)
+  const [bx, by] = toWorld(startX,          width, a.state.x, a.state.y, cos, sin)
+  const [cx, cy] = toWorld(startX + height, 0,     a.state.x, a.state.y, cos, sin)
 
-  if (pointInTriangle(b.state.x, b.state.y, ax, ay, bx, by, cx, cy)) {
-    return 5
+  if (circleIntersectsTriangle(b.state.x, b.state.y, PLAYER_RADIUS, ax, ay, bx, by, cx, cy)) {
+    return 15
   }
   return 0
 }
