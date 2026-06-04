@@ -79,7 +79,9 @@ export class GameScene extends Phaser.Scene {
             rotation: player.rotation,
             hp: player.hp,
             maxHp: player.maxHp,
-            drillParams: player.drillParams
+            drillType: player.drillType,
+            drillDmgMultiplier: player.drillDmgMultiplier,
+            drillLengthMultiplier: player.drillLengthMultiplier
           })
         }
 
@@ -136,7 +138,7 @@ export class GameScene extends Phaser.Scene {
       this.playerGraphics.fillCircle(0, 0, 22)
       this.playerGraphics.lineStyle(2, 0x00aa66, 1)
       this.playerGraphics.strokeCircle(0, 0, 25)
-      drawDrill(this.playerGraphics, playerState.drillParams, 0x00cc77)
+      drawDrill(this.playerGraphics, playerState.drillType, 0x00cc77)
       this.playerGraphics.restore()
       
       // update player's healthbar
@@ -164,7 +166,7 @@ export class GameScene extends Phaser.Scene {
       this.enemyGraphics.strokeCircle(0, 0, 23)
 
       // weapon — starts at edge of circle
-      drawDrill(this.enemyGraphics, p.drillParams, 0xff4444)
+      drawDrill(this.enemyGraphics, p.drillType, 0xff4444)
 
       this.enemyGraphics.restore()
     }
@@ -214,16 +216,16 @@ function getHealthColor(ratio: number): number {
   return 0xff3333
 }
 
-function drawDrill(g: Phaser.GameObjects.Graphics, drillParams: number, color: number) {
-  const { drillType, segments } = unpackDrillParams(drillParams)
+function drawDrill(g: Phaser.GameObjects.Graphics, drillType: number, color: number) {
   switch (drillType) {
-    case 0: drawStackedTrianglesDrill(g, segments || 5, 40, color); break
+    case 0: drawStackedTrianglesDrill(g, 40, color); break
     case 1: drawSingleTriangleDrill(g, color); break
   }
 }
 
-function drawStackedTrianglesDrill(g: Phaser.GameObjects.Graphics, count: number, totalLength: number, color: number) {
+function drawStackedTrianglesDrill(g: Phaser.GameObjects.Graphics, totalLength: number, color: number) {
   const startX = 25 // edge of player circle
+  const count = 5 // TODO: 5 segments for now, possibly auto-adjust to reasonable value
   const segmentLength = totalLength / count
   const baseWidth = 25
 

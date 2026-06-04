@@ -37,10 +37,12 @@ wss.on('connection', (socket) => {
       id, 
       x: 400, 
       y: 300, 
-      rotation: 0 ,
+      rotation: 0,
       hp: PLAYER_BASE_HP,
       maxHp: PLAYER_BASE_HP,
-      drillParams: (0 & 0x7), // TODO: set properly
+      drillType: 0, // TODO: set drill values properly
+      drillDmgMultiplier: 1,
+      drillLengthMultiplier: 1
     },
     input: { dx: 0, dy: 0, rotation: 0 },
   })
@@ -285,7 +287,7 @@ function assignNextSquareId() {
 }
 
 function getDrillDamage(a: ServerPlayer, b: ServerPlayer): number {
-  const { drillType } = unpackDrillParams(a.state.drillParams)
+  const drillType = a.state.drillType
   switch (drillType) {
     case 0: return getStackedTrianglesDrillDamage(a, b)
     case 1: return getSingleTriangleDrillDamage(a, b)
@@ -294,24 +296,23 @@ function getDrillDamage(a: ServerPlayer, b: ServerPlayer): number {
 }
 
 function getStackedTrianglesDrillDamage(a: ServerPlayer, b: ServerPlayer): number {
-  const { segments } = unpackDrillParams(a.state.drillParams)
-  const count = segments || 5
+  const segments = 5 // TODO: auto-adjust to reasonable value. make sure to sync with render system
   const totalLength = 40
-  const segmentLength = totalLength / count
+  const segmentLength = totalLength / segments
   const startX = 25
   const baseWidth = 25
   const cos = Math.cos(a.state.rotation)
   const sin = Math.sin(a.state.rotation)
 
-  for (let i = 0; i < count; i++) {
+  for (let i = 0; i < segments; i++) {
     const x = startX + i * segmentLength
-    const width = baseWidth * (1 - i / count)
+    const width = baseWidth * (1 - i / segments)
     const x0 = x - segmentLength * 0.3
     const x1 = x + segmentLength
 
     const [ax, ay] = toWorld(x0, -width / 2, a.state.x, a.state.y, cos, sin)
     const [bx, by] = toWorld(x0,  width / 2, a.state.x, a.state.y, cos, sin)
-    const [cx, cy] = toWorld(x1,  0,         a.state.x, a.state.y, cos, sin)
+    const [cx, cy] = toWorld(x1,          0, a.state.x, a.state.y, cos, sin)
 
     if (circleIntersectsTriangle(b.state.x, b.state.y, PLAYER_RADIUS, ax, ay, bx, by, cx, cy)) {
       return 15
@@ -329,7 +330,7 @@ function getSingleTriangleDrillDamage(a: ServerPlayer, b: ServerPlayer): number 
 
   const [ax, ay] = toWorld(startX,         -width, a.state.x, a.state.y, cos, sin)
   const [bx, by] = toWorld(startX,          width, a.state.x, a.state.y, cos, sin)
-  const [cx, cy] = toWorld(startX + height, 0,     a.state.x, a.state.y, cos, sin)
+  const [cx, cy] = toWorld(startX + height,     0, a.state.x, a.state.y, cos, sin)
 
   if (circleIntersectsTriangle(b.state.x, b.state.y, PLAYER_RADIUS, ax, ay, bx, by, cx, cy)) {
     return 15
