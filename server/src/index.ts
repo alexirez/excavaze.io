@@ -111,7 +111,11 @@ setInterval(() => {
       for (const [idA, a] of players) { // 2. player + drill collisions
         for (const [idB, b] of players) {
           if (idA === idB) continue
-          b.state.hp -= getDrillDamage(a, b)
+          b.state.hp -= getDrillDamageOnCircle(
+            a.state.x, a.state.y, a.state.rotation, a.state.playerRadius, 
+            a.state.drillType, a.state.drillLengthMultiplier, a.state.drillDmgMultiplier,
+            b.state.x, b.state.y, b.state.playerRadius
+          )
         }
       }
 
@@ -131,8 +135,11 @@ setInterval(() => {
       if (dist > drillReach + square.radius) continue // out of drill range, skip checking for drillDmg or player collision
 
       // 3. drill + square collisions
-      const drillDmg = getDrillDamageOnCircleCollider(player, square, dist)
-      square.state.hp -= drillDmg
+      square.state.hp -= getDrillDamageOnCircle(
+        player.state.x, player.state.y, player.state.rotation, player.state.playerRadius, 
+        player.state.drillType, player.state.drillLengthMultiplier, player.state.drillDmgMultiplier,
+        square.state.x, square.state.y, square.radius
+      )
 
       // 4. player + square collisions
       const radiusSumPlayer = player.state.playerRadius + square.radius
@@ -296,23 +303,28 @@ function assignNextSquareId() {
   return nextSquareId
 }
 
-function getDrillDamage(a: ServerPlayer, b: ServerPlayer): number {
-  const drillType = a.state.drillType
+function getDrillDamageOnCircle(originX: number, originY: number, rotation: number,
+  playerRadius: number, drillType: number, drillLengthMultiplier: number, drillDmgMultiplier: number, 
+  targetX: number, targetY: number, targetRadius: number): number {
   switch (drillType) {
-    case 0: return getStackedTrianglesDrillDamage(a, b)
-    case 1: return getSingleTriangleDrillDamage(a, b)
+    case 0: return getStackedTrianglesDrillDamage(originX, originY, rotation, playerRadius, drillLengthMultiplier, drillDmgMultiplier, targetX, targetY, targetRadius)
+    case 1: return getSingleTriangleDrillDamage(originX, originY, rotation, playerRadius, drillLengthMultiplier, drillDmgMultiplier, targetX, targetY, targetRadius)
     default: return 0
   }
 }
 
-function getStackedTrianglesDrillDamage(a: ServerPlayer, b: ServerPlayer): number {
-  const segments = 5 // TODO: auto-adjust to reasonable value. make sure to sync with render system
-  const totalLength = 40
+function getStackedTrianglesDrillDamage(
+  originX: number, originY: number, rotation: number,
+  playerRadius: number, drillLengthMultiplier: number, drillDmgMultiplier: number,
+  targetX: number, targetY: number, targetRadius: number
+): number {
+  const segments = 5
+  const totalLength = 40 * drillLengthMultiplier
   const segmentLength = totalLength / segments
-  const startX = a.state.playerRadius
+  const startX = playerRadius
   const baseWidth = 25
-  const cos = Math.cos(a.state.rotation)
-  const sin = Math.sin(a.state.rotation)
+  const cos = Math.cos(rotation)
+  const sin = Math.sin(rotation)
 
   for (let i = 0; i < segments; i++) {
     const x = startX + i * segmentLength
@@ -320,30 +332,34 @@ function getStackedTrianglesDrillDamage(a: ServerPlayer, b: ServerPlayer): numbe
     const x0 = x - segmentLength * 0.3
     const x1 = x + segmentLength
 
-    const [ax, ay] = toWorld(x0, -width / 2, a.state.x, a.state.y, cos, sin)
-    const [bx, by] = toWorld(x0,  width / 2, a.state.x, a.state.y, cos, sin)
-    const [cx, cy] = toWorld(x1,          0, a.state.x, a.state.y, cos, sin)
+    const [ax, ay] = toWorld(x0, -width / 2, originX, originY, cos, sin)
+    const [bx, by] = toWorld(x0,  width / 2, originX, originY, cos, sin)
+    const [cx, cy] = toWorld(x1,          0, originX, originY, cos, sin)
 
-    if (circleIntersectsTriangle(b.state.x, b.state.y, b.state.playerRadius, ax, ay, bx, by, cx, cy)) {
-      return 15
+    if (circleIntersectsTriangle(targetX, targetY, targetRadius, ax, ay, bx, by, cx, cy)) {
+      return 15 * drillDmgMultiplier
     }
   }
   return 0
 }
 
-function getSingleTriangleDrillDamage(a: ServerPlayer, b: ServerPlayer): number {
-  const startX = a.state.playerRadius
+function getSingleTriangleDrillDamage(
+  originX: number, originY: number, rotation: number,
+  playerRadius: number, drillLengthMultiplier: number, drillDmgMultiplier: number,
+  targetX: number, targetY: number, targetRadius: number
+): number {
+  const startX = playerRadius
   const width = 10
-  const height = 40
-  const cos = Math.cos(a.state.rotation)
-  const sin = Math.sin(a.state.rotation)
+  const height = 40 * drillLengthMultiplier
+  const cos = Math.cos(rotation)
+  const sin = Math.sin(rotation)
 
-  const [ax, ay] = toWorld(startX,         -width, a.state.x, a.state.y, cos, sin)
-  const [bx, by] = toWorld(startX,          width, a.state.x, a.state.y, cos, sin)
-  const [cx, cy] = toWorld(startX + height,     0, a.state.x, a.state.y, cos, sin)
+  const [ax, ay] = toWorld(startX,        -width, originX, originY, cos, sin)
+  const [bx, by] = toWorld(startX,         width, originX, originY, cos, sin)
+  const [cx, cy] = toWorld(startX + height,    0, originX, originY, cos, sin)
 
-  if (circleIntersectsTriangle(b.state.x, b.state.y, b.state.playerRadius, ax, ay, bx, by, cx, cy)) {
-    return 15
+  if (circleIntersectsTriangle(targetX, targetY, targetRadius, ax, ay, bx, by, cx, cy)) {
+    return 15 * drillDmgMultiplier
   }
   return 0
 }
