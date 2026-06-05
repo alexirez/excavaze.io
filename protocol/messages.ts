@@ -18,7 +18,7 @@ export interface WorldStateMessage {
 // S->C: Server tells the client what their assigned ID is upon connecting
 export interface WelcomeMessage {
   type: 'welcome'
-  id: string
+  id: number
 }
 
 export type ClientMessage = InputMessage

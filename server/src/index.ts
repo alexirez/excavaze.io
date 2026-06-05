@@ -3,6 +3,7 @@ import { ServerPlayer, ServerSquare } from './entities'
 import { ClientMessage, WorldStateMessage } from '../../protocol/messages'
 import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, SQUARE_COLLISION_DAMAGE_FACTOR, PLAYER_COLLISION_DAMAGE_FACTOR } from '../../protocol/constants'
 import { DANGER_MAP, DENSITY_MAP } from './data/map'
+import { unpackDrillParams, toWorld, sign, pointInTriangle, circleIntersectsTriangle } from '../../protocol/utils'
 
 const PORT = 3000
 const CHUNK_COLS = 16
@@ -12,19 +13,23 @@ const SQUARE_SPEED = 0.5  // multiplies speed of drifting
 const PLAYER_RADIUS = 25
 const SQUARE_BASE_RADIUS = 10
 
+let tick = 0
+let nextPlayerId = 0
+let nextSquareId = 0
+
 const wss = new WebSocketServer({ port: PORT })
 console.log(`Server running on ws://localhost:${PORT}`)
 
-const players = new Map<string, ServerPlayer>()
-const squares = new Map<string, ServerSquare>()
-const chunkToSquares = new  Map<number, Set<string>>()
+const players = new Map<number, ServerPlayer>()
+const squares = new Map<number, ServerSquare>()
+const chunkToSquares = new  Map<number, Set<number>>()
 for (let i = 0; i < CHUNK_ROWS * CHUNK_COLS; i++)
   chunkToSquares.set(i, new Set())
 
 spawnSquaresOnStartup()
 
 wss.on('connection', (socket) => {
-  const id = Math.random().toString(36).slice(2, 9)
+  const id = nextPlayerId++
 
   players.set(id, {
     socket,
@@ -32,13 +37,17 @@ wss.on('connection', (socket) => {
       id, 
       x: 400, 
       y: 300, 
-      rotation: 0 ,
+      rotation: 0,
       hp: PLAYER_BASE_HP,
       maxHp: PLAYER_BASE_HP,
+      playerRadius: id % 2 === 0 ? 25 : 50, // DEBUG: temporary
+      drillType: 0, // TODO: set drill values properly
+      drillDmgMultiplier: 1,
+      drillLengthMultiplier: 1
     },
     input: { dx: 0, dy: 0, rotation: 0 },
   })
-  // S->C: Tell this client their assigned ID
+  // S->C: Tell this client their assigned id
   socket.send(JSON.stringify({ type: 'welcome', id }))
   console.log(`Player ${id} connected`)
 
@@ -64,7 +73,9 @@ wss.on('connection', (socket) => {
 })
 
 setInterval(() => {
-  // 1) Process each player
+  tick++
+
+  // 1) Process each player's input
   for (const player of players.values()) {
     player.state.x = Math.max(WORLD_PADDING, Math.min(WORLD_WIDTH - WORLD_PADDING, player.state.x + player.input.dx * UNIT_SPEED))
     player.state.y = Math.max(WORLD_PADDING, Math.min(WORLD_HEIGHT - WORLD_PADDING, player.state.y + player.input.dy * UNIT_SPEED))
@@ -72,27 +83,73 @@ setInterval(() => {
   }
 
   // 2) Check for collisions
+    for (const [idA, a] of players) { // 1. player to player collisions
+      for (const [idB, b] of players) {
+        if (idB <= idA) continue
+        const dx = a.state.x - b.state.x
+        const dy = a.state.y - b.state.y
+        const dist = Math.sqrt(dx * dx + dy * dy)
+        const radiusSum = a.state.playerRadius + b.state.playerRadius
+
+        if (dist < radiusSum && dist > 0.001) {
+          const overlap = radiusSum - dist
+          const nx = dx / dist
+          const ny = dy / dist
+
+          // positional correction — push player out of collided player
+          a.state.x += nx * overlap / 2
+          a.state.y += ny * overlap / 2
+          b.state.x -= nx * overlap / 2
+          b.state.y -= ny * overlap / 2
+
+          a.state.hp -= PLAYER_COLLISION_DAMAGE_FACTOR * 10
+          b.state.hp -= PLAYER_COLLISION_DAMAGE_FACTOR * 10
+        }
+      }
+    }
+
+      for (const [idA, a] of players) { // 2. player + drill collisions
+        for (const [idB, b] of players) {
+          if (idA === idB) continue
+          b.state.hp -= getDrillDamage(a, b)
+        }
+      }
+
   for (const player of players.values()) {
     const chunkIndex = getChunkIndex(player.state.x, player.state.y)
-    const nearbySquareIds = getNearbySquareIds(chunkIndex)
+    const nearbySquareIds = getNearbySquareIds(chunkIndex) // only consider 9 nearest chunks for efficient collision checking
 
-    for (const id of nearbySquareIds) {
-      const square = squares.get(id)!
+    for (const id of nearbySquareIds) { // 3. player + square collisions
+      const square = squares.get(id)
       if (!square) continue
       const dx = player.state.x - square.state.x
       const dy = player.state.y - square.state.y
-      const distSqr = dx * dx + dy * dy
-      const radiusSum = PLAYER_RADIUS + square.radius
+      const dist = Math.sqrt(dx * dx + dy * dy)
+      const radiusSum = player.state.playerRadius + square.radius
 
-      if (distSqr < radiusSum * radiusSum) {
+      if (dist < radiusSum) {
+        const overlap = radiusSum - dist
+        const nx = dx / dist
+        const ny = dy / dist
+
+        player.state.x += nx * overlap
+        player.state.y += ny * overlap
+
         player.state.hp -= square.state.maxHp * SQUARE_COLLISION_DAMAGE_FACTOR
         square.state.hp -= player.state.maxHp * PLAYER_COLLISION_DAMAGE_FACTOR
       }
     }
   }
 
-  // 3) Process each active square
-  const toDelete: string[] = []
+  // 3) TODO: Process current bots input
+
+  // 4) Spawn bots
+  if (tick % 60 === 0) {
+    spawnBots()
+  }
+
+  // 5) Process each active square
+  const toDelete: number[] = []
   
   for (const square of squares.values()) {
     if (
@@ -110,17 +167,19 @@ setInterval(() => {
 
   for (const id of toDelete) squares.delete(id)
 
-  // 4) Recompute squares in each chunk
+  // 6) Recompute squares in each chunk
   for (const set of chunkToSquares.values()) set.clear()
   for (const [id, square] of squares) {
     const index = getChunkIndex(square.state.x, square.state.y)
     chunkToSquares.get(index)?.add(id)
   }
 
-  // 5) Spawn new obstacles to replace old
-  fillMapSquares()
+  // 7) Spawn new obstacles to replace old
+  if (tick % 10 === 0) {  // every 500ms (10 ticks * 50ms)
+    fillMapSquares()
+  }
 
-  // 6) Serialize world state and send to every connected client
+  // 8) Serialize world state and send to every connected client
   const message: WorldStateMessage = {
     type: 'world_state',
     players: Array.from(players.values()).map(p => p.state),
@@ -130,7 +189,7 @@ setInterval(() => {
   const json = JSON.stringify(message)
 
   for (const player of players.values()) {
-    if (player.socket.readyState === WebSocket.OPEN) {
+    if (player.socket && player.socket.readyState === WebSocket.OPEN) {
       player.socket.send(json)
     }
   }
@@ -146,7 +205,7 @@ function spawnSquaresOnStartup() {
       const toSpawn = DENSITY_MAP[row * CHUNK_COLS + col]
       for (let i = 0; i < toSpawn; i++) {
         // TODO: check overlap with existing squares before placing (collision branch)
-        const id = Math.random().toString(36).slice(2, 9)
+        const id = assignNextSquareId()
         squares.set(id, {
           state: {
             id: id,
@@ -173,7 +232,7 @@ function fillMapSquares() {
       const existing = chunkToSquares.get(row * CHUNK_COLS + col)!.size
       const toSpawn = Math.max(0, DENSITY_MAP[row * CHUNK_COLS + col] - existing)
       for (let i = 0; i < toSpawn; i++) {
-        const id = Math.random().toString(36).slice(2, 9)
+        const id = assignNextSquareId()
         squares.set(id, {
           state: {
             id: id,
@@ -199,10 +258,10 @@ function getChunkIndex(x: number, y: number): number {
   return row * CHUNK_COLS + col
 }
 
-function getNearbySquareIds(chunkIndex: number): string[] {
+function getNearbySquareIds(chunkIndex: number): number[] {
   const col = chunkIndex % CHUNK_COLS
   const row = Math.floor(chunkIndex / CHUNK_COLS)
-  const ids: string[] = []
+  const ids: number[] = []
   for (let dr = -1; dr <= 1; dr++) {
     for (let dc = -1; dc <= 1; dc++) {
       const nc = col + dc
@@ -214,4 +273,68 @@ function getNearbySquareIds(chunkIndex: number): string[] {
     }
   }
   return ids
+}
+
+function spawnBots() {
+  // TODO
+}
+
+function assignNextSquareId() {
+  if (nextSquareId >= 9007199254740991)
+    nextSquareId = 0
+  else
+    nextSquareId++
+  return nextSquareId
+}
+
+function getDrillDamage(a: ServerPlayer, b: ServerPlayer): number {
+  const drillType = a.state.drillType
+  switch (drillType) {
+    case 0: return getStackedTrianglesDrillDamage(a, b)
+    case 1: return getSingleTriangleDrillDamage(a, b)
+    default: return 0
+  }
+}
+
+function getStackedTrianglesDrillDamage(a: ServerPlayer, b: ServerPlayer): number {
+  const segments = 5 // TODO: auto-adjust to reasonable value. make sure to sync with render system
+  const totalLength = 40
+  const segmentLength = totalLength / segments
+  const startX = a.state.playerRadius
+  const baseWidth = 25
+  const cos = Math.cos(a.state.rotation)
+  const sin = Math.sin(a.state.rotation)
+
+  for (let i = 0; i < segments; i++) {
+    const x = startX + i * segmentLength
+    const width = baseWidth * (1 - i / segments)
+    const x0 = x - segmentLength * 0.3
+    const x1 = x + segmentLength
+
+    const [ax, ay] = toWorld(x0, -width / 2, a.state.x, a.state.y, cos, sin)
+    const [bx, by] = toWorld(x0,  width / 2, a.state.x, a.state.y, cos, sin)
+    const [cx, cy] = toWorld(x1,          0, a.state.x, a.state.y, cos, sin)
+
+    if (circleIntersectsTriangle(b.state.x, b.state.y, b.state.playerRadius, ax, ay, bx, by, cx, cy)) {
+      return 15
+    }
+  }
+  return 0
+}
+
+function getSingleTriangleDrillDamage(a: ServerPlayer, b: ServerPlayer): number {
+  const startX = a.state.playerRadius
+  const width = 10
+  const height = 40
+  const cos = Math.cos(a.state.rotation)
+  const sin = Math.sin(a.state.rotation)
+
+  const [ax, ay] = toWorld(startX,         -width, a.state.x, a.state.y, cos, sin)
+  const [bx, by] = toWorld(startX,          width, a.state.x, a.state.y, cos, sin)
+  const [cx, cy] = toWorld(startX + height,     0, a.state.x, a.state.y, cos, sin)
+
+  if (circleIntersectsTriangle(b.state.x, b.state.y, b.state.playerRadius, ax, ay, bx, by, cx, cy)) {
+    return 15
+  }
+  return 0
 }

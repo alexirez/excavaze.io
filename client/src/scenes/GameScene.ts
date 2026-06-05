@@ -2,46 +2,53 @@ import Phaser from 'phaser'
 import socket from '../network/socket'
 import { PlayerState, SquareState } from '../../../protocol/types'
 import { ServerMessage } from '../../../protocol/messages'
-import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, COLOR_BACKGROUND, COLOR_OUTER_BOUNDS, WORLD_PADDING, SQUARE_BASE_HP } from '../../../protocol/constants'
+import { WORLD_WIDTH, WORLD_HEIGHT, COLOR_BACKGROUND, COLOR_OUTER_BOUNDS, WORLD_PADDING, SQUARE_BASE_HP, PLAYER_BASE_HP } from '../../../protocol/constants'
+import { unpackDrillParams } from '../../../protocol/utils'
 
 export class GameScene extends Phaser.Scene {
-  private container!: Phaser.GameObjects.Container
   private playerHealthBar!: Phaser.GameObjects.Graphics
   private keys!: Record<string, Phaser.Input.Keyboard.Key>
-  private localId: string | null = null
-  private latestPlayersState: Record<string, PlayerState> = {}
-  private latestSquaresState: Record<string, SquareState> = {}
-  private squareRotations: Map<string, number> = new Map()
+  private localId: number | null = null
+  private latestPlayersState: Map<number, PlayerState> = new Map()
+  private latestSquaresState: Map<number, SquareState> = new Map()
+  private squareRotations: Map<number, number> = new Map()
   private squareGraphics!: Phaser.GameObjects.Graphics
   private squareHealthBarGraphics!: Phaser.GameObjects.Graphics
+  private playerGraphics!: Phaser.GameObjects.Graphics
+  private enemyGraphics!: Phaser.GameObjects.Graphics
+  private cameraTarget!: Phaser.GameObjects.Rectangle
 
   constructor() {
     super({ key: 'GameScene' })
   }
 
-  create() {
-    // this rectangle acts as the background of in-bounds area
+  create() {    
+    // background of in-bounds area
     this.add.rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH - WORLD_PADDING * 2.5, WORLD_HEIGHT - WORLD_PADDING * 2.5, COLOR_BACKGROUND).setDepth(-1)
-    
-    // Build the player visuals — container keeps circle and barrel together
-    const circle = this.add.circle(0, 0, 25, 0x00ff99)
-    const barrel = this.add.rectangle(35, 0, 40, 14, 0x00cc77)
-    this.container = this.add.container(400, 300, [barrel, circle])
-    this.container.setDepth(99)
 
+    // background of outer bounds
     this.cameras.main.setBackgroundColor(COLOR_OUTER_BOUNDS)
-    this.cameras.main.startFollow(this.container)
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT)
 
+    this.cameraTarget = this.add.rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 1, 1)
+    this.cameraTarget.setVisible(false)
+    this.cameras.main.startFollow(this.cameraTarget)
+
+    // initialize healthbar graphics
     this.playerHealthBar = this.add.graphics()
     this.playerHealthBar.setScrollFactor(0)
     this.playerHealthBar.setDepth(80)
 
     this.squareHealthBarGraphics = this.add.graphics()
-    this.squareHealthBarGraphics.setDepth(10)
+    this.squareHealthBarGraphics.setDepth(20)
 
+    // initialize graphics
+    this.playerGraphics = this.add.graphics()
+    this.playerGraphics.setDepth(99)
+    this.enemyGraphics = this.add.graphics()
+    this.enemyGraphics.setDepth(50)
     this.squareGraphics = this.add.graphics()
-    this.squareGraphics.setDepth(20)
+    this.squareGraphics.setDepth(15)
 
     // Register keys — Phaser cleans these up when the scene stops
     this.keys = {
@@ -63,28 +70,32 @@ export class GameScene extends Phaser.Scene {
       if (msg.type === 'world_state') {
 
         // replace player list with newest update from server
-        this.latestPlayersState = {}
+        this.latestPlayersState.clear()
         for (const player of msg.players) {
-          this.latestPlayersState[player.id] = {
+          this.latestPlayersState.set(player.id, {
             id: player.id,
             x: player.x,
             y: player.y,
             rotation: player.rotation,
             hp: player.hp,
             maxHp: player.maxHp,
-          }
+            playerRadius: player.playerRadius,
+            drillType: player.drillType,
+            drillDmgMultiplier: player.drillDmgMultiplier,
+            drillLengthMultiplier: player.drillLengthMultiplier
+          })
         }
 
         // replace squares list with newest from server
-        this.latestSquaresState = {}
+        this.latestSquaresState.clear()
         for (const square of msg.squares) {
-          this.latestSquaresState[square.id] = {
+          this.latestSquaresState.set(square.id, {
             id: square.id,
             x: square.x,
             y: square.y,
             hp: square.hp,
             maxHp: square.maxHp,
-          }
+          })
         }
       }
     }
@@ -94,11 +105,18 @@ export class GameScene extends Phaser.Scene {
       const dx = (this.keys.D.isDown ? 1 : 0) - (this.keys.A.isDown ? 1 : 0)
       const dy = (this.keys.S.isDown ? 1 : 0) - (this.keys.W.isDown ? 1 : 0)
       const pointer = this.input.activePointer
-      const rotation = Phaser.Math.Angle.Between(
-        this.container.x, this.container.y,
+      if (this.localId === null) return
+      const localPlayer = this.latestPlayersState.get(this.localId)
+      let rotation = 0
+      if (localPlayer != null) {
+        rotation = Phaser.Math.Angle.Between(
+        localPlayer.x, localPlayer.y,
         this.cameras.main.scrollX + pointer.x,
         this.cameras.main.scrollY + pointer.y
-      )
+        )
+      } else {
+        rotation = 0
+      }
 
       socket.send(JSON.stringify({ type: 'input', dx, dy, rotation }))
     }, 50)
@@ -106,13 +124,23 @@ export class GameScene extends Phaser.Scene {
 
   // Only rendering, — game logic is on server side
   update() {
-    if (!this.localId) return // no id assigned yet -> do nothing
+    if (this.localId === null) return // no id assigned yet -> do nothing
 
-    const playerState = this.latestPlayersState[this.localId]
+    const playerState = this.latestPlayersState.get(this.localId)
     if (playerState) {
-      this.container.x = playerState.x
-      this.container.y = playerState.y
-      this.container.rotation = playerState.rotation
+      this.cameraTarget.x = playerState.x
+      this.cameraTarget.y = playerState.y
+
+      this.playerGraphics.clear()
+      this.playerGraphics.fillStyle(0x00ff99)
+      this.playerGraphics.save()
+      this.playerGraphics.translateCanvas(playerState.x, playerState.y)
+      this.playerGraphics.rotateCanvas(playerState.rotation)
+      this.playerGraphics.fillCircle(0, 0, playerState.playerRadius - 3)
+      this.playerGraphics.lineStyle(2, 0x00aa66, 1)
+      this.playerGraphics.strokeCircle(0, 0, playerState.playerRadius)
+      drawDrill(this.playerGraphics, playerState, 0x00cc77)
+      this.playerGraphics.restore()
       
       // update player's healthbar
       const ratio = Math.max(0, playerState.hp / playerState.maxHp)
@@ -123,20 +151,42 @@ export class GameScene extends Phaser.Scene {
       this.playerHealthBar.fillRect(20, 20, ratio * 200, 12)
     }
 
+    // Update enemies
+    this.enemyGraphics.clear()
+    for (const [id, p] of this.latestPlayersState.entries()) {
+      if (id === this.localId || playerState === undefined) continue
+
+      this.enemyGraphics.save()
+      this.enemyGraphics.translateCanvas(p.x, p.y)
+      this.enemyGraphics.rotateCanvas(p.rotation)
+
+      // body
+      this.enemyGraphics.fillStyle(0xff6b6b)
+      this.enemyGraphics.fillCircle(0, 0, p.playerRadius)
+      this.enemyGraphics.lineStyle(6 + (p.maxHp - PLAYER_BASE_HP), 0xcc4444, 1)
+      this.enemyGraphics.strokeCircle(0, 0, p.playerRadius - 2)
+
+      // weapon — starts at edge of circle
+      drawDrill(this.enemyGraphics, p, 0xff4444)
+
+      this.enemyGraphics.restore()
+    }
+
     // update objects' healthbars
     this.squareHealthBarGraphics.clear()
-    for (const [id, sq] of Object.entries(this.latestSquaresState)) {
+    for (const [id, sq] of this.latestSquaresState.entries()) {
       if (sq.hp >= sq.maxHp) continue
       const ratio = Math.max(0, sq.hp / sq.maxHp)
-      const bw = 40, bh = 4
+      const size = 20 + (sq.maxHp / SQUARE_BASE_HP) * 10
+      const bw = 15 + 8 * sq.maxHp / SQUARE_BASE_HP, bh = 4 + 1 * sq.maxHp / SQUARE_BASE_HP
       this.squareHealthBarGraphics.fillStyle(0x555555)
-      this.squareHealthBarGraphics.fillRect(sq.x - bw / 2, sq.y + 30, bw, bh)
+      this.squareHealthBarGraphics.fillRect(sq.x - bw / 2, sq.y + size / 2 + 8, bw, bh)
       this.squareHealthBarGraphics.fillStyle(getHealthColor(ratio))
-      this.squareHealthBarGraphics.fillRect(sq.x - bw / 2, sq.y + 30, ratio * bw, bh)
+      this.squareHealthBarGraphics.fillRect(sq.x - bw / 2, sq.y + size / 2 + 8, ratio * bw, bh)
     }
 
     this.squareGraphics.clear()
-    for (const [id, sq] of Object.entries(this.latestSquaresState)) {
+    for (const [id, sq] of this.latestSquaresState.entries()) {
       const rotation = this.squareRotations.get(id) ?? 0
       const size = 20 + (sq.maxHp / SQUARE_BASE_HP) * 10
 
@@ -145,6 +195,8 @@ export class GameScene extends Phaser.Scene {
       this.squareGraphics.rotateCanvas(rotation)
       this.squareGraphics.fillStyle(0xf5a623)
       this.squareGraphics.fillRect(-size / 2, -size / 2, size, size)
+      this.squareGraphics.lineStyle(5 + (sq.maxHp / SQUARE_BASE_HP), 0xc47a0a, 1)
+      this.squareGraphics.strokeRect(-size / 2, -size / 2, size, size)
       this.squareGraphics.restore()
 
       // update rotation for next frame
@@ -152,7 +204,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     for (const id of this.squareRotations.keys()) {
-      if (!this.latestSquaresState[id]) {
+      if (!this.latestSquaresState.get(id)) {
         this.squareRotations.delete(id)
       }
     }
@@ -163,4 +215,48 @@ function getHealthColor(ratio: number): number {
   if (ratio > 0.6) return 0x00ff99
   if (ratio > 0.3) return 0xffaa00
   return 0xff3333
+}
+
+function drawDrill(g: Phaser.GameObjects.Graphics, p: PlayerState, color: number) {
+  const drillType = p.drillType
+  switch (drillType) {
+    case 0: drawStackedTrianglesDrill(g, p, 40, color); break
+    case 1: drawSingleTriangleDrill(g, p, color); break
+  }
+}
+
+function drawStackedTrianglesDrill(g: Phaser.GameObjects.Graphics, p: PlayerState, totalLength: number, color: number) {
+  totalLength *= p.drillLengthMultiplier
+  const startX = p.playerRadius // edge of player circle
+  const count = Math.floor(totalLength / 6)
+  const segmentLength = totalLength / count
+  const baseWidth = 25
+
+  // square base
+  g.fillStyle(color)
+  g.fillRect(startX, -baseWidth / 2, segmentLength, baseWidth)
+
+  // stacked triangles
+  for (let i = 0; i < count; i++) {
+    const x = startX + i * segmentLength
+    const width = 25 * (1 - i / count) // decreasing width toward tip
+    g.fillStyle(color)
+    g.fillTriangle(
+      x - segmentLength * 0.3, -width / 2,
+      x - segmentLength * 0.3, width / 2,
+      x + segmentLength, 0
+    )
+  }
+}
+
+function drawSingleTriangleDrill(g: Phaser.GameObjects.Graphics, p: PlayerState, color: number) {
+  const startX = p.playerRadius
+  const width = 10
+  const height = 40
+  g.fillStyle(color)
+  g.fillTriangle(
+    startX, -width,
+    startX, width,
+    startX + height, 0
+  )
 }
