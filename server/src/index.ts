@@ -3,14 +3,13 @@ import { ServerPlayer, ServerSquare } from './entities'
 import { ClientMessage, WorldStateMessage } from '../../protocol/messages'
 import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, SQUARE_COLLISION_DAMAGE_FACTOR, PLAYER_COLLISION_DAMAGE_FACTOR } from '../../protocol/constants'
 import { DANGER_MAP, DENSITY_MAP } from './data/map'
-import { unpackDrillParams, toWorld, sign, pointInTriangle, circleIntersectsTriangle } from '../../protocol/utils'
+import { toWorld, circleIntersectsTriangle } from '../../protocol/utils'
 
 const PORT = 3000
 const CHUNK_COLS = 16
 const CHUNK_ROWS = 16
-const UNIT_SPEED = 10  // pixels per tick
-const SQUARE_SPEED = 0.5  // multiplies speed of drifting
-const PLAYER_RADIUS = 25
+const UNIT_SPEED = 10
+const SQUARE_SPEED = 0.5  // multiplies square drifting speed
 const SQUARE_BASE_RADIUS = 10
 
 let tick = 0
@@ -22,7 +21,7 @@ console.log(`Server running on ws://localhost:${PORT}`)
 
 const players = new Map<number, ServerPlayer>()
 const squares = new Map<number, ServerSquare>()
-const chunkToSquares = new  Map<number, Set<number>>()
+const chunkToSquares = new Map<number, Set<number>>()
 for (let i = 0; i < CHUNK_ROWS * CHUNK_COLS; i++)
   chunkToSquares.set(i, new Set())
 
@@ -41,7 +40,7 @@ wss.on('connection', (socket) => {
       hp: PLAYER_BASE_HP,
       maxHp: PLAYER_BASE_HP,
       playerRadius: id % 2 === 0 ? 25 : 50, // DEBUG: temporary
-      drillType: 0, // TODO: set drill values properly
+      drillType: 0,
       drillDmgMultiplier: 1,
       drillLengthMultiplier: 1
     },
@@ -132,17 +131,15 @@ setInterval(() => {
       const dy = player.state.y - square.state.y
       const dist = Math.sqrt(dx * dx + dy * dy)
 
-      if (dist > drillReach + square.radius) continue // out of drill range, skip checking for drillDmg or player collision
+      if (dist > drillReach + square.radius) continue
 
-      // 3. drill + square collisions
-      square.state.hp -= getDrillDamageOnCircle(
+      square.state.hp -= getDrillDamageOnCircle( // 3. drill + square collisions
         player.state.x, player.state.y, player.state.rotation, player.state.playerRadius, 
         player.state.drillType, player.state.drillLengthMultiplier, player.state.drillDmgMultiplier,
         square.state.x, square.state.y, square.radius
       )
 
-      // 4. player + square collisions
-      const radiusSumPlayer = player.state.playerRadius + square.radius
+      const radiusSumPlayer = player.state.playerRadius + square.radius // 4. player + square collisions
       if (dist < radiusSumPlayer) {
         const overlap = radiusSumPlayer - dist
         const nx = dx / dist
@@ -191,7 +188,7 @@ setInterval(() => {
   }
 
   // 7) Spawn new obstacles to replace old
-  if (tick % 10 === 0) {  // every 500ms (10 ticks * 50ms)
+  if (tick % 10 === 0) {
     fillMapSquares()
   }
 

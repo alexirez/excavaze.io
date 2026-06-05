@@ -3,7 +3,6 @@ import socket from '../network/socket'
 import { PlayerState, SquareState } from '../../../protocol/types'
 import { ServerMessage } from '../../../protocol/messages'
 import { WORLD_WIDTH, WORLD_HEIGHT, COLOR_BACKGROUND, COLOR_OUTER_BOUNDS, WORLD_PADDING, SQUARE_BASE_HP, PLAYER_BASE_HP } from '../../../protocol/constants'
-import { unpackDrillParams } from '../../../protocol/utils'
 
 export class GameScene extends Phaser.Scene {
   private playerHealthBar!: Phaser.GameObjects.Graphics
@@ -122,7 +121,7 @@ export class GameScene extends Phaser.Scene {
     }, 50)
   }
 
-  // Only rendering, — game logic is on server side
+  // Only rendering, game logic is on server side
   update() {
     if (this.localId === null) return // no id assigned yet -> do nothing
 
@@ -220,13 +219,13 @@ function getHealthColor(ratio: number): number {
 function drawDrill(g: Phaser.GameObjects.Graphics, p: PlayerState, color: number) {
   const drillType = p.drillType
   switch (drillType) {
-    case 0: drawStackedTrianglesDrill(g, p, 40, color); break
+    case 0: drawStackedTrianglesDrill(g, p, color); break
     case 1: drawSingleTriangleDrill(g, p, color); break
   }
 }
 
-function drawStackedTrianglesDrill(g: Phaser.GameObjects.Graphics, p: PlayerState, totalLength: number, color: number) {
-  totalLength *= p.drillLengthMultiplier
+function drawStackedTrianglesDrill(g: Phaser.GameObjects.Graphics, p: PlayerState, color: number) {
+  const totalLength = 40 * p.drillLengthMultiplier
   const startX = p.playerRadius // edge of player circle
   const count = Math.floor(totalLength / 6)
   const segmentLength = totalLength / count
@@ -252,7 +251,7 @@ function drawStackedTrianglesDrill(g: Phaser.GameObjects.Graphics, p: PlayerStat
 function drawSingleTriangleDrill(g: Phaser.GameObjects.Graphics, p: PlayerState, color: number) {
   const startX = p.playerRadius
   const width = 10
-  const height = 40
+  const height = 40 * p.drillLengthMultiplier
   g.fillStyle(color)
   g.fillTriangle(
     startX, -width,
