@@ -118,17 +118,26 @@ setInterval(() => {
   for (const player of players.values()) {
     const chunkIndex = getChunkIndex(player.state.x, player.state.y)
     const nearbySquareIds = getNearbySquareIds(chunkIndex) // only consider 9 nearest chunks for efficient collision checking
+    const drillReach = player.state.playerRadius + 40 * player.state.drillLengthMultiplier
 
-    for (const id of nearbySquareIds) { // 3. player + square collisions
-      const square = squares.get(id)
+    for (const id of nearbySquareIds) {
+
+      const square = squares.get(id) 
       if (!square) continue
       const dx = player.state.x - square.state.x
       const dy = player.state.y - square.state.y
       const dist = Math.sqrt(dx * dx + dy * dy)
-      const radiusSum = player.state.playerRadius + square.radius
 
-      if (dist < radiusSum) {
-        const overlap = radiusSum - dist
+      if (dist > drillReach + square.radius) continue // out of drill range, skip checking for drillDmg or player collision
+
+      // 3. drill + square collisions
+      const drillDmg = getDrillDamageOnCircleCollider(player, square, dist)
+      square.state.hp -= drillDmg
+
+      // 4. player + square collisions
+      const radiusSumPlayer = player.state.playerRadius + square.radius
+      if (dist < radiusSumPlayer) {
+        const overlap = radiusSumPlayer - dist
         const nx = dx / dist
         const ny = dy / dist
 
