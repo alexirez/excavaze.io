@@ -91,7 +91,7 @@ setInterval(() => {
         const dist = Math.sqrt(dx * dx + dy * dy)
         const radiusSum = a.state.playerRadius + b.state.playerRadius
 
-        if (dist < radiusSum) {
+        if (dist < radiusSum && dist > 0.001) {
           const overlap = radiusSum - dist
           const nx = dx / dist
           const ny = dy / dist
