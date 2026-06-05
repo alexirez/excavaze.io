@@ -300,7 +300,7 @@ function getStackedTrianglesDrillDamage(a: ServerPlayer, b: ServerPlayer): numbe
   const segments = 5 // TODO: auto-adjust to reasonable value. make sure to sync with render system
   const totalLength = 40
   const segmentLength = totalLength / segments
-  const startX = 25
+  const startX = a.state.playerRadius
   const baseWidth = 25
   const cos = Math.cos(a.state.rotation)
   const sin = Math.sin(a.state.rotation)
@@ -315,7 +315,7 @@ function getStackedTrianglesDrillDamage(a: ServerPlayer, b: ServerPlayer): numbe
     const [bx, by] = toWorld(x0,  width / 2, a.state.x, a.state.y, cos, sin)
     const [cx, cy] = toWorld(x1,          0, a.state.x, a.state.y, cos, sin)
 
-    if (circleIntersectsTriangle(b.state.x, b.state.y, PLAYER_RADIUS, ax, ay, bx, by, cx, cy)) {
+    if (circleIntersectsTriangle(b.state.x, b.state.y, b.state.playerRadius, ax, ay, bx, by, cx, cy)) {
       return 15
     }
   }
@@ -323,7 +323,7 @@ function getStackedTrianglesDrillDamage(a: ServerPlayer, b: ServerPlayer): numbe
 }
 
 function getSingleTriangleDrillDamage(a: ServerPlayer, b: ServerPlayer): number {
-  const startX = 25
+  const startX = a.state.playerRadius
   const width = 10
   const height = 40
   const cos = Math.cos(a.state.rotation)
@@ -333,7 +333,7 @@ function getSingleTriangleDrillDamage(a: ServerPlayer, b: ServerPlayer): number 
   const [bx, by] = toWorld(startX,          width, a.state.x, a.state.y, cos, sin)
   const [cx, cy] = toWorld(startX + height,     0, a.state.x, a.state.y, cos, sin)
 
-  if (circleIntersectsTriangle(b.state.x, b.state.y, PLAYER_RADIUS, ax, ay, bx, by, cx, cy)) {
+  if (circleIntersectsTriangle(b.state.x, b.state.y, b.state.playerRadius, ax, ay, bx, by, cx, cy)) {
     return 15
   }
   return 0
