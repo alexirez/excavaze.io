@@ -12,6 +12,10 @@ const UNIT_SPEED = 10
 const SQUARE_SPEED = 0.5  // multiplies square drifting speed
 const SQUARE_BASE_RADIUS = 10
 
+const chunkHeat = new Float32Array(CHUNK_ROWS * CHUNK_COLS)
+const HEAT_SPAWN_THRESHOLD = 10
+const HEAT_RATE = 1 // per tick cycle
+
 let tick = 0
 let nextPlayerId = 0
 let nextSquareId = 0
@@ -217,7 +221,6 @@ function spawnSquaresOnStartup() {
     for (let col = 0; col < CHUNK_COLS; col++) {
       const toSpawn = DENSITY_MAP[row * CHUNK_COLS + col]
       for (let i = 0; i < toSpawn; i++) {
-        // TODO: check overlap with existing squares before placing (collision branch)
         const id = assignNextSquareId()
         squares.set(id, {
           state: {
@@ -242,9 +245,13 @@ function fillMapSquares() {
 
   for (let row = 0; row < CHUNK_ROWS; row++) {
     for (let col = 0; col < CHUNK_COLS; col++) {
-      const existing = chunkToSquares.get(row * CHUNK_COLS + col)!.size
-      const toSpawn = Math.max(0, DENSITY_MAP[row * CHUNK_COLS + col] - existing)
-      for (let i = 0; i < toSpawn; i++) {
+      const idx = row * CHUNK_COLS + col
+      const deficit = DENSITY_MAP[idx] - chunkToSquares.get(idx)!.size
+      if (deficit <= 0) { chunkHeat[idx] = 0; continue }
+      chunkHeat[idx] += HEAT_RATE * deficit
+
+      while (chunkHeat[idx] > HEAT_SPAWN_THRESHOLD) {
+        chunkHeat[idx] -= HEAT_SPAWN_THRESHOLD
         const randX = col * chunkW + Math.random() * chunkW
         const randY = row * chunkH + Math.random() * chunkH
         if (!isSpawnClearOfPlayers(randX, randY, MIN_OBSTACLE_SPAWN_DIST)) continue
