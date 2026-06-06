@@ -10,7 +10,7 @@ const CHUNK_COLS = 16
 const CHUNK_ROWS = 16
 const UNIT_SPEED = 10
 const SQUARE_SPEED = 0.5  // multiplies square drifting speed
-const SQUARE_BASE_RADIUS = 10
+const SQUARE_BASE_RADIUS = 9
 
 const chunkHeat = new Float32Array(CHUNK_ROWS * CHUNK_COLS)
 const HEAT_SPAWN_THRESHOLD = 10
@@ -140,7 +140,7 @@ setInterval(() => {
       square.state.hp -= getDrillDamageOnCircle( // 3. drill + square collisions
         player.state.x, player.state.y, player.state.rotation, player.state.playerRadius, 
         player.state.drillType, player.state.drillLengthMultiplier, player.state.drillDmgMultiplier,
-        square.state.x, square.state.y, square.radius
+        square.state.x, square.state.y, square.radius + 2
       )
 
       const radiusSumPlayer = player.state.playerRadius + square.radius // 4. player + square collisions

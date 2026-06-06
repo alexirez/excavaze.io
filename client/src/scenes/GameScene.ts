@@ -199,7 +199,7 @@ export class GameScene extends Phaser.Scene {
       this.squareGraphics.restore()
 
       // update rotation for next frame
-      this.squareRotations.set(id, rotation + 0.01)
+      this.squareRotations.set(id, rotation + 0.007)
     }
 
     for (const id of this.squareRotations.keys()) {
