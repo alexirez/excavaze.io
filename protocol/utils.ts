@@ -1,13 +1,3 @@
-export function unpackDrillParams(drillParams: number) {
-  return {
-    drillType: drillParams & 0x7,
-    segments: (drillParams >> 3) & 0x7,
-  }
-}
-
-export function packDrillParams(drillType: number, segments: number): number {
-  return (drillType & 0x7) | ((segments & 0x7) << 3)
-}
 
 export function sign(p1x: number, p1y: number, p2x: number, p2y: number, p3x: number, p3y: number): number {
   return (p1x - p3x) * (p2y - p3y) - (p2x - p3x) * (p1y - p3y)

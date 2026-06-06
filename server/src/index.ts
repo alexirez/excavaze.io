@@ -1,17 +1,20 @@
 import { WebSocketServer, WebSocket } from 'ws'
 import { ServerPlayer, ServerSquare } from './entities'
 import { ClientMessage, WorldStateMessage } from '../../protocol/messages'
-import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, SQUARE_COLLISION_DAMAGE_FACTOR, PLAYER_COLLISION_DAMAGE_FACTOR } from '../../protocol/constants'
+import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, SQUARE_COLLISION_DAMAGE_FACTOR, PLAYER_COLLISION_DAMAGE_FACTOR, MIN_OBSTACLE_SPAWN_DIST } from '../../protocol/constants'
 import { DANGER_MAP, DENSITY_MAP } from './data/map'
-import { unpackDrillParams, toWorld, sign, pointInTriangle, circleIntersectsTriangle } from '../../protocol/utils'
+import { toWorld, circleIntersectsTriangle } from '../../protocol/utils'
 
 const PORT = 3000
 const CHUNK_COLS = 16
 const CHUNK_ROWS = 16
-const UNIT_SPEED = 10  // pixels per tick
-const SQUARE_SPEED = 0.5  // multiplies speed of drifting
-const PLAYER_RADIUS = 25
-const SQUARE_BASE_RADIUS = 10
+const UNIT_SPEED = 10
+const SQUARE_SPEED = 0.5  // multiplies square drifting speed
+const SQUARE_BASE_RADIUS = 9
+
+const chunkHeat = new Float32Array(CHUNK_ROWS * CHUNK_COLS)
+const HEAT_SPAWN_THRESHOLD = 10
+const HEAT_RATE = 1 // per tick cycle
 
 let tick = 0
 let nextPlayerId = 0
@@ -22,7 +25,7 @@ console.log(`Server running on ws://localhost:${PORT}`)
 
 const players = new Map<number, ServerPlayer>()
 const squares = new Map<number, ServerSquare>()
-const chunkToSquares = new  Map<number, Set<number>>()
+const chunkToSquares = new Map<number, Set<number>>()
 for (let i = 0; i < CHUNK_ROWS * CHUNK_COLS; i++)
   chunkToSquares.set(i, new Set())
 
@@ -41,7 +44,7 @@ wss.on('connection', (socket) => {
       hp: PLAYER_BASE_HP,
       maxHp: PLAYER_BASE_HP,
       playerRadius: id % 2 === 0 ? 25 : 50, // DEBUG: temporary
-      drillType: 0, // TODO: set drill values properly
+      drillType: 0,
       drillDmgMultiplier: 1,
       drillLengthMultiplier: 1
     },
@@ -111,24 +114,38 @@ setInterval(() => {
       for (const [idA, a] of players) { // 2. player + drill collisions
         for (const [idB, b] of players) {
           if (idA === idB) continue
-          b.state.hp -= getDrillDamage(a, b)
+          b.state.hp -= getDrillDamageOnCircle(
+            a.state.x, a.state.y, a.state.rotation, a.state.playerRadius, 
+            a.state.drillType, a.state.drillLengthMultiplier, a.state.drillDmgMultiplier,
+            b.state.x, b.state.y, b.state.playerRadius
+          )
         }
       }
 
   for (const player of players.values()) {
     const chunkIndex = getChunkIndex(player.state.x, player.state.y)
     const nearbySquareIds = getNearbySquareIds(chunkIndex) // only consider 9 nearest chunks for efficient collision checking
+    const drillReach = player.state.playerRadius + 40 * player.state.drillLengthMultiplier
 
-    for (const id of nearbySquareIds) { // 3. player + square collisions
-      const square = squares.get(id)
+    for (const id of nearbySquareIds) {
+
+      const square = squares.get(id) 
       if (!square) continue
       const dx = player.state.x - square.state.x
       const dy = player.state.y - square.state.y
       const dist = Math.sqrt(dx * dx + dy * dy)
-      const radiusSum = player.state.playerRadius + square.radius
 
-      if (dist < radiusSum) {
-        const overlap = radiusSum - dist
+      if (dist > drillReach + square.radius) continue
+
+      square.state.hp -= getDrillDamageOnCircle( // 3. drill + square collisions
+        player.state.x, player.state.y, player.state.rotation, player.state.playerRadius, 
+        player.state.drillType, player.state.drillLengthMultiplier, player.state.drillDmgMultiplier,
+        square.state.x, square.state.y, square.radius + 2
+      )
+
+      const radiusSumPlayer = player.state.playerRadius + square.radius // 4. player + square collisions
+      if (dist < radiusSumPlayer) {
+        const overlap = radiusSumPlayer - dist
         const nx = dx / dist
         const ny = dy / dist
 
@@ -175,7 +192,7 @@ setInterval(() => {
   }
 
   // 7) Spawn new obstacles to replace old
-  if (tick % 10 === 0) {  // every 500ms (10 ticks * 50ms)
+  if (tick % 10 === 0) {
     fillMapSquares()
   }
 
@@ -204,7 +221,6 @@ function spawnSquaresOnStartup() {
     for (let col = 0; col < CHUNK_COLS; col++) {
       const toSpawn = DENSITY_MAP[row * CHUNK_COLS + col]
       for (let i = 0; i < toSpawn; i++) {
-        // TODO: check overlap with existing squares before placing (collision branch)
         const id = assignNextSquareId()
         squares.set(id, {
           state: {
@@ -229,24 +245,28 @@ function fillMapSquares() {
 
   for (let row = 0; row < CHUNK_ROWS; row++) {
     for (let col = 0; col < CHUNK_COLS; col++) {
-      const existing = chunkToSquares.get(row * CHUNK_COLS + col)!.size
-      const toSpawn = Math.max(0, DENSITY_MAP[row * CHUNK_COLS + col] - existing)
-      for (let i = 0; i < toSpawn; i++) {
+      const idx = row * CHUNK_COLS + col
+      const deficit = DENSITY_MAP[idx] - chunkToSquares.get(idx)!.size
+      if (deficit <= 0) { chunkHeat[idx] = 0; continue }
+      chunkHeat[idx] += HEAT_RATE * deficit
+
+      while (chunkHeat[idx] > HEAT_SPAWN_THRESHOLD) {
+        chunkHeat[idx] -= HEAT_SPAWN_THRESHOLD
+        const randX = col * chunkW + Math.random() * chunkW
+        const randY = row * chunkH + Math.random() * chunkH
+        if (!isSpawnClearOfPlayers(randX, randY, MIN_OBSTACLE_SPAWN_DIST)) continue
         const id = assignNextSquareId()
         squares.set(id, {
           state: {
             id: id,
-            x: col * chunkW + Math.random() * chunkW,
-            y: row * chunkH + Math.random() * chunkH,
+            x: randX,
+            y: randY,
             hp: SQUARE_BASE_HP * DANGER_MAP[row * CHUNK_COLS + col],
             maxHp: SQUARE_BASE_HP * DANGER_MAP[row * CHUNK_COLS + col],
           },
           angle: Math.random() * Math.PI * 2,
           radius: SQUARE_BASE_RADIUS * DANGER_MAP[row * CHUNK_COLS + col],
         })
-
-        // if spawning on a player, cancel spawn
-        // TODO
       }
     }
   }
@@ -287,23 +307,28 @@ function assignNextSquareId() {
   return nextSquareId
 }
 
-function getDrillDamage(a: ServerPlayer, b: ServerPlayer): number {
-  const drillType = a.state.drillType
+function getDrillDamageOnCircle(originX: number, originY: number, rotation: number,
+  playerRadius: number, drillType: number, drillLengthMultiplier: number, drillDmgMultiplier: number, 
+  targetX: number, targetY: number, targetRadius: number): number {
   switch (drillType) {
-    case 0: return getStackedTrianglesDrillDamage(a, b)
-    case 1: return getSingleTriangleDrillDamage(a, b)
+    case 0: return getStackedTrianglesDrillDamage(originX, originY, rotation, playerRadius, drillLengthMultiplier, drillDmgMultiplier, targetX, targetY, targetRadius)
+    case 1: return getSingleTriangleDrillDamage(originX, originY, rotation, playerRadius, drillLengthMultiplier, drillDmgMultiplier, targetX, targetY, targetRadius)
     default: return 0
   }
 }
 
-function getStackedTrianglesDrillDamage(a: ServerPlayer, b: ServerPlayer): number {
-  const segments = 5 // TODO: auto-adjust to reasonable value. make sure to sync with render system
-  const totalLength = 40
+function getStackedTrianglesDrillDamage(
+  originX: number, originY: number, rotation: number,
+  playerRadius: number, drillLengthMultiplier: number, drillDmgMultiplier: number,
+  targetX: number, targetY: number, targetRadius: number
+): number {
+  const segments = 5
+  const totalLength = 40 * drillLengthMultiplier
   const segmentLength = totalLength / segments
-  const startX = a.state.playerRadius
+  const startX = playerRadius
   const baseWidth = 25
-  const cos = Math.cos(a.state.rotation)
-  const sin = Math.sin(a.state.rotation)
+  const cos = Math.cos(rotation)
+  const sin = Math.sin(rotation)
 
   for (let i = 0; i < segments; i++) {
     const x = startX + i * segmentLength
@@ -311,30 +336,45 @@ function getStackedTrianglesDrillDamage(a: ServerPlayer, b: ServerPlayer): numbe
     const x0 = x - segmentLength * 0.3
     const x1 = x + segmentLength
 
-    const [ax, ay] = toWorld(x0, -width / 2, a.state.x, a.state.y, cos, sin)
-    const [bx, by] = toWorld(x0,  width / 2, a.state.x, a.state.y, cos, sin)
-    const [cx, cy] = toWorld(x1,          0, a.state.x, a.state.y, cos, sin)
+    const [ax, ay] = toWorld(x0, -width / 2, originX, originY, cos, sin)
+    const [bx, by] = toWorld(x0,  width / 2, originX, originY, cos, sin)
+    const [cx, cy] = toWorld(x1,          0, originX, originY, cos, sin)
 
-    if (circleIntersectsTriangle(b.state.x, b.state.y, b.state.playerRadius, ax, ay, bx, by, cx, cy)) {
-      return 15
+    if (circleIntersectsTriangle(targetX, targetY, targetRadius, ax, ay, bx, by, cx, cy)) {
+      return 15 * drillDmgMultiplier
     }
   }
   return 0
 }
 
-function getSingleTriangleDrillDamage(a: ServerPlayer, b: ServerPlayer): number {
-  const startX = a.state.playerRadius
+function getSingleTriangleDrillDamage(
+  originX: number, originY: number, rotation: number,
+  playerRadius: number, drillLengthMultiplier: number, drillDmgMultiplier: number,
+  targetX: number, targetY: number, targetRadius: number
+): number {
+  const startX = playerRadius
   const width = 10
-  const height = 40
-  const cos = Math.cos(a.state.rotation)
-  const sin = Math.sin(a.state.rotation)
+  const height = 40 * drillLengthMultiplier
+  const cos = Math.cos(rotation)
+  const sin = Math.sin(rotation)
 
-  const [ax, ay] = toWorld(startX,         -width, a.state.x, a.state.y, cos, sin)
-  const [bx, by] = toWorld(startX,          width, a.state.x, a.state.y, cos, sin)
-  const [cx, cy] = toWorld(startX + height,     0, a.state.x, a.state.y, cos, sin)
+  const [ax, ay] = toWorld(startX,        -width, originX, originY, cos, sin)
+  const [bx, by] = toWorld(startX,         width, originX, originY, cos, sin)
+  const [cx, cy] = toWorld(startX + height,    0, originX, originY, cos, sin)
 
-  if (circleIntersectsTriangle(b.state.x, b.state.y, b.state.playerRadius, ax, ay, bx, by, cx, cy)) {
-    return 15
+  if (circleIntersectsTriangle(targetX, targetY, targetRadius, ax, ay, bx, by, cx, cy)) {
+    return 15 * drillDmgMultiplier
   }
   return 0
+}
+
+// Returns whether or not spot is available for obstacles to spawn here.
+// *Only accounts for players, not other obstacles
+function isSpawnClearOfPlayers(spawnX: number, spawnY: number, minDist: number): boolean {
+  for (const p of players.values()) {
+    const dx = p.state.x - spawnX
+    const dy = p.state.y - spawnY
+    if (dx * dx + dy * dy < minDist * minDist) return false
+  }
+  return true
 }
