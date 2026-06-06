@@ -9,6 +9,6 @@ export interface ServerPlayer {
 
 export interface ServerSquare {
   state: SquareState,
-  angle: number,
+  pathAngle: number,
   radius: number
 }

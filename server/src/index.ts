@@ -1,7 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws'
 import { ServerPlayer, ServerSquare } from './entities'
 import { ClientMessage, WorldStateMessage } from '../../protocol/messages'
-import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, SQUARE_COLLISION_DAMAGE_FACTOR, PLAYER_COLLISION_DAMAGE_FACTOR, MIN_OBSTACLE_SPAWN_DIST } from '../../protocol/constants'
+import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, SQUARE_COLLISION_DAMAGE_FACTOR, PLAYER_COLLISION_DAMAGE_FACTOR, MIN_OBSTACLE_SPAWN_DIST, SQUARE_ROTATION_SPEED } from '../../protocol/constants'
 import { DANGER_MAP, DENSITY_MAP } from './data/map'
 import { toWorld, circleIntersectsTriangle } from '../../protocol/utils'
 
@@ -168,17 +168,18 @@ setInterval(() => {
   // 5) Process each active square
   const toDelete: number[] = []
   
-  for (const square of squares.values()) {
+  for (const sq of squares.values()) {
     if (
-      square.state.x < -WORLD_PADDING || square.state.x > WORLD_WIDTH + WORLD_PADDING ||
-      square.state.y < -WORLD_PADDING || square.state.y > WORLD_HEIGHT + WORLD_PADDING ||
-      square.state.hp <= 0
+      sq.state.x < -WORLD_PADDING || sq.state.x > WORLD_WIDTH + WORLD_PADDING ||
+      sq.state.y < -WORLD_PADDING || sq.state.y > WORLD_HEIGHT + WORLD_PADDING ||
+      sq.state.hp <= 0
     ) {
-      toDelete.push(square.state.id)
+      toDelete.push(sq.state.id)
     } else {
-      square.angle += (Math.random() - 0.5) * 0.2
-      square.state.x += Math.cos(square.angle) * SQUARE_SPEED
-      square.state.y += Math.sin(square.angle) * SQUARE_SPEED
+      sq.pathAngle += (Math.random() - 0.5) * 0.2
+      sq.state.rotation += SQUARE_ROTATION_SPEED
+      sq.state.x += Math.cos(sq.pathAngle) * SQUARE_SPEED
+      sq.state.y += Math.sin(sq.pathAngle) * SQUARE_SPEED
     }
   }
 
@@ -229,8 +230,9 @@ function spawnSquaresOnStartup() {
             y: row * chunkH + Math.random() * chunkH,
             hp: SQUARE_BASE_HP * DANGER_MAP[row * CHUNK_COLS + col],
             maxHp: SQUARE_BASE_HP * DANGER_MAP[row * CHUNK_COLS + col],
+            rotation: Math.random() * Math.PI * 2,
           },
-          angle: Math.random() * Math.PI * 2,
+          pathAngle: Math.random() * Math.PI * 2,
           radius: SQUARE_BASE_RADIUS * DANGER_MAP[row * CHUNK_COLS + col],
         })
       }
@@ -263,8 +265,9 @@ function fillMapSquares() {
             y: randY,
             hp: SQUARE_BASE_HP * DANGER_MAP[row * CHUNK_COLS + col],
             maxHp: SQUARE_BASE_HP * DANGER_MAP[row * CHUNK_COLS + col],
+            rotation: Math.random() * Math.PI * 2,
           },
-          angle: Math.random() * Math.PI * 2,
+          pathAngle: Math.random() * Math.PI * 2,
           radius: SQUARE_BASE_RADIUS * DANGER_MAP[row * CHUNK_COLS + col],
         })
       }
