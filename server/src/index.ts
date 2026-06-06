@@ -1,7 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws'
 import { ServerPlayer, ServerSquare } from './entities'
 import { ClientMessage, WorldStateMessage } from '../../protocol/messages'
-import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, SQUARE_COLLISION_DAMAGE_FACTOR, PLAYER_COLLISION_DAMAGE_FACTOR } from '../../protocol/constants'
+import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, SQUARE_COLLISION_DAMAGE_FACTOR, PLAYER_COLLISION_DAMAGE_FACTOR, MIN_OBSTACLE_SPAWN_DIST } from '../../protocol/constants'
 import { DANGER_MAP, DENSITY_MAP } from './data/map'
 import { toWorld, circleIntersectsTriangle } from '../../protocol/utils'
 
@@ -245,21 +245,21 @@ function fillMapSquares() {
       const existing = chunkToSquares.get(row * CHUNK_COLS + col)!.size
       const toSpawn = Math.max(0, DENSITY_MAP[row * CHUNK_COLS + col] - existing)
       for (let i = 0; i < toSpawn; i++) {
+        const randX = col * chunkW + Math.random() * chunkW
+        const randY = row * chunkH + Math.random() * chunkH
+        if (!isSpawnClearOfPlayers(randX, randY, MIN_OBSTACLE_SPAWN_DIST)) continue
         const id = assignNextSquareId()
         squares.set(id, {
           state: {
             id: id,
-            x: col * chunkW + Math.random() * chunkW,
-            y: row * chunkH + Math.random() * chunkH,
+            x: randX,
+            y: randY,
             hp: SQUARE_BASE_HP * DANGER_MAP[row * CHUNK_COLS + col],
             maxHp: SQUARE_BASE_HP * DANGER_MAP[row * CHUNK_COLS + col],
           },
           angle: Math.random() * Math.PI * 2,
           radius: SQUARE_BASE_RADIUS * DANGER_MAP[row * CHUNK_COLS + col],
         })
-
-        // if spawning on a player, cancel spawn
-        // TODO
       }
     }
   }
@@ -359,4 +359,15 @@ function getSingleTriangleDrillDamage(
     return 15 * drillDmgMultiplier
   }
   return 0
+}
+
+// Returns whether or not spot is available for obstacles to spawn here.
+// *Only accounts for players, not other obstacles
+function isSpawnClearOfPlayers(spawnX: number, spawnY: number, minDist: number): boolean {
+  for (const p of players.values()) {
+    const dx = p.state.x - spawnX
+    const dy = p.state.y - spawnY
+    if (dx * dx + dy * dy < minDist * minDist) return false
+  }
+  return true
 }
