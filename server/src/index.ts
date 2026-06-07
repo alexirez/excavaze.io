@@ -1,7 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws'
 import { ServerPlayer, ServerSquare } from './entities'
 import { ClientMessage, WorldStateMessage } from '../../protocol/messages'
-import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, SQUARE_COLLISION_DAMAGE_FACTOR, PLAYER_COLLISION_DAMAGE_FACTOR, MIN_OBSTACLE_SPAWN_DIST, SQUARE_ROTATION_SPEED } from '../../protocol/constants'
+import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, SQUARE_COLLISION_DAMAGE_FACTOR, PLAYER_COLLISION_DAMAGE_FACTOR, MIN_OBSTACLE_SPAWN_DIST, SQR_BASE_ROT_SPEED, MAX_SQR_ROT_SPEED } from '../../protocol/constants'
 import { DANGER_MAP, DENSITY_MAP } from './data/map'
 import { toWorld, circleIntersectsTriangle } from '../../protocol/utils'
 
@@ -177,7 +177,7 @@ setInterval(() => {
       toDelete.push(sq.state.id)
     } else {
       sq.pathAngle += (Math.random() - 0.5) * 0.2
-      sq.state.rotation += SQUARE_ROTATION_SPEED
+      sq.state.rotation += sq.rotationSpeed
       sq.state.x += Math.cos(sq.pathAngle) * SQUARE_SPEED
       sq.state.y += Math.sin(sq.pathAngle) * SQUARE_SPEED
     }
@@ -234,6 +234,8 @@ function spawnSquaresOnStartup() {
           },
           pathAngle: Math.random() * Math.PI * 2,
           radius: SQUARE_BASE_RADIUS * DANGER_MAP[row * CHUNK_COLS + col],
+          rotationSpeed: Math.max(-MAX_SQR_ROT_SPEED, Math.min(MAX_SQR_ROT_SPEED, 
+            (Math.random() - 0.5) * 2 * SQR_BASE_ROT_SPEED))
         })
       }
     }
@@ -269,6 +271,8 @@ function fillMapSquares() {
           },
           pathAngle: Math.random() * Math.PI * 2,
           radius: SQUARE_BASE_RADIUS * DANGER_MAP[row * CHUNK_COLS + col],
+          rotationSpeed: Math.max(-MAX_SQR_ROT_SPEED, Math.min(MAX_SQR_ROT_SPEED, 
+            (Math.random() - 0.5) * 2 * SQR_BASE_ROT_SPEED))
         })
       }
     }
