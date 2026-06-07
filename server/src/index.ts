@@ -133,10 +133,11 @@ setInterval(() => {
       if (!square) continue
       const dx = player.state.x - square.state.x
       const dy = player.state.y - square.state.y
-      const dist = Math.sqrt(dx * dx + dy * dy)
+      const sqrDist = dx * dx + dy * dy
 
-      if (dist > drillReach + square.radius) continue
+      if (sqrDist > (drillReach + square.radius)**2) continue
 
+      const dist = Math.sqrt(sqrDist)
       square.state.hp -= getDrillDamageOnCircle( // 3. drill + square collisions
         player.state.x, player.state.y, player.state.rotation, player.state.playerRadius, 
         player.state.drillType, player.state.drillLengthMultiplier, player.state.drillDmgMultiplier,
