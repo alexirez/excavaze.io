@@ -26,6 +26,7 @@ console.log(`Server running on ws://localhost:${PORT}`)
 const players = new Map<number, ServerPlayer>()
 const squares = new Map<number, ServerSquare>()
 const nearbySquareIds: number[] = []
+const squaresToDelete: number[] = []
 const chunkToSquares = new Map<number, Set<number>>()
 for (let i = 0; i < CHUNK_ROWS * CHUNK_COLS; i++)
   chunkToSquares.set(i, new Set())
@@ -173,15 +174,14 @@ setInterval(() => {
   }
 
   // 5) Process each active square
-  const toDelete: number[] = []
-  
+  squaresToDelete.length = 0
   for (const sq of squares.values()) {
     if (
       sq.state.x < -WORLD_PADDING || sq.state.x > WORLD_WIDTH + WORLD_PADDING ||
       sq.state.y < -WORLD_PADDING || sq.state.y > WORLD_HEIGHT + WORLD_PADDING ||
       sq.state.hp <= 0
     ) {
-      toDelete.push(sq.state.id)
+      squaresToDelete.push(sq.state.id)
     } else {
       sq.pathAngle += (Math.random() - 0.5) * 0.2
       sq.state.rotation += sq.rotationSpeed
@@ -190,7 +190,7 @@ setInterval(() => {
     }
   }
 
-  for (const id of toDelete) squares.delete(id)
+  for (const id of squaresToDelete) squares.delete(id)
 
   // 6) Recompute squares in each chunk
   for (const set of chunkToSquares.values()) set.clear()
