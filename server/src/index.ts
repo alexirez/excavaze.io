@@ -4,6 +4,7 @@ import { ClientMessage, WorldStateMessage } from '../../protocol/messages'
 import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, SQUARE_COLLISION_DAMAGE_FACTOR, PLAYER_COLLISION_DAMAGE_FACTOR, MIN_OBSTACLE_SPAWN_DIST, SQR_BASE_ROT_SPEED, MAX_SQR_ROT_SPEED } from '../../protocol/constants'
 import { DANGER_MAP, DENSITY_MAP } from './data/map'
 import { circleIntersectsTriangle } from '../../protocol/utils'
+import { PlayerState, SquareState } from '../../protocol/types'
 
 const PORT = 3000
 const CHUNK_COLS = 16
@@ -25,6 +26,8 @@ console.log(`Server running on ws://localhost:${PORT}`)
 
 const players = new Map<number, ServerPlayer>()
 const squares = new Map<number, ServerSquare>()
+const playerStates: PlayerState[] = []
+const squareStates: SquareState[] = []
 const nearbySquareIds: number[] = []
 const squaresToDelete: number[] = []
 const chunkToSquares = new Map<number, Set<number>>()
@@ -205,10 +208,14 @@ setInterval(() => {
   }
 
   // 8) Serialize world state and send to every connected client
+  playerStates.length = 0
+  squareStates.length = 0
+  for (const p of players.values()) playerStates.push(p.state)
+  for (const sq of squares.values()) squareStates.push(sq.state)
   const message: WorldStateMessage = {
     type: 'world_state',
-    players: Array.from(players.values()).map(p => p.state),
-    squares: Array.from(squares.values()).map(p => p.state)
+    players: playerStates,
+    squares: squareStates,
   }
 
   const json = JSON.stringify(message)
