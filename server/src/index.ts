@@ -1,16 +1,17 @@
 import { WebSocketServer, WebSocket } from 'ws'
 import { ServerPlayer, ServerSquare } from './entities'
 import { ClientMessage, WorldStateMessage } from '../../protocol/messages'
-import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, SQUARE_COLLISION_DAMAGE_FACTOR, PLAYER_COLLISION_DAMAGE_FACTOR, MIN_OBSTACLE_SPAWN_DIST } from '../../protocol/constants'
+import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, SQUARE_COLLISION_DAMAGE_FACTOR, PLAYER_COLLISION_DAMAGE_FACTOR, MIN_OBSTACLE_SPAWN_DIST, SQR_BASE_ROT_SPEED, MAX_SQR_ROT_SPEED } from '../../protocol/constants'
 import { DANGER_MAP, DENSITY_MAP } from './data/map'
-import { toWorld, circleIntersectsTriangle } from '../../protocol/utils'
+import { circleIntersectsTriangle } from '../../protocol/utils'
+import { PlayerState, SquareState } from '../../protocol/types'
 
 const PORT = 3000
 const CHUNK_COLS = 16
 const CHUNK_ROWS = 16
 const UNIT_SPEED = 10
 const SQUARE_SPEED = 0.5  // multiplies square drifting speed
-const SQUARE_BASE_RADIUS = 9
+const SQUARE_BASE_BOUNDING_RADIUS = 10 // used for broad phase collision
 
 const chunkHeat = new Float32Array(CHUNK_ROWS * CHUNK_COLS)
 const HEAT_SPAWN_THRESHOLD = 10
@@ -25,6 +26,10 @@ console.log(`Server running on ws://localhost:${PORT}`)
 
 const players = new Map<number, ServerPlayer>()
 const squares = new Map<number, ServerSquare>()
+const playerStates: PlayerState[] = []
+const squareStates: SquareState[] = []
+const nearbySquareIds: number[] = []
+const squaresToDelete: number[] = []
 const chunkToSquares = new Map<number, Set<number>>()
 for (let i = 0; i < CHUNK_ROWS * CHUNK_COLS; i++)
   chunkToSquares.set(i, new Set())
@@ -43,7 +48,7 @@ wss.on('connection', (socket) => {
       rotation: 0,
       hp: PLAYER_BASE_HP,
       maxHp: PLAYER_BASE_HP,
-      playerRadius: id % 2 === 0 ? 25 : 50, // DEBUG: temporary
+      playerRadius: 25,
       drillType: 0,
       drillDmgMultiplier: 1,
       drillLengthMultiplier: 1
@@ -124,7 +129,7 @@ setInterval(() => {
 
   for (const player of players.values()) {
     const chunkIndex = getChunkIndex(player.state.x, player.state.y)
-    const nearbySquareIds = getNearbySquareIds(chunkIndex) // only consider 9 nearest chunks for efficient collision checking
+    getNearbySquareIds(chunkIndex, nearbySquareIds) // only consider 9 nearest chunks for efficient collision checking
     const drillReach = player.state.playerRadius + 40 * player.state.drillLengthMultiplier
 
     for (const id of nearbySquareIds) {
@@ -133,27 +138,33 @@ setInterval(() => {
       if (!square) continue
       const dx = player.state.x - square.state.x
       const dy = player.state.y - square.state.y
-      const dist = Math.sqrt(dx * dx + dy * dy)
+      const sqrDist = dx * dx + dy * dy
 
-      if (dist > drillReach + square.radius) continue
+      if (sqrDist > (drillReach + square.boundingRadius )**2) continue
 
-      square.state.hp -= getDrillDamageOnCircle( // 3. drill + square collisions
-        player.state.x, player.state.y, player.state.rotation, player.state.playerRadius, 
+      const dist = Math.sqrt(sqrDist)
+      const sqSize = 20 + (square.state.maxHp / SQUARE_BASE_HP) * 10
+      const sqHalf = sqSize / 2
+
+      square.state.hp -= getDrillDamageOnRect(
+        player.state.x, player.state.y, player.state.rotation, player.state.playerRadius,
         player.state.drillType, player.state.drillLengthMultiplier, player.state.drillDmgMultiplier,
-        square.state.x, square.state.y, square.radius + 2
+        square.state.x, square.state.y, square.state.rotation, sqHalf, sqHalf
       )
 
-      const radiusSumPlayer = player.state.playerRadius + square.radius // 4. player + square collisions
-      if (dist < radiusSumPlayer) {
-        const overlap = radiusSumPlayer - dist
-        const nx = dx / dist
-        const ny = dy / dist
-
-        player.state.x += nx * overlap
-        player.state.y += ny * overlap
-
+      if (circleIntersectsOrientedRect( // 4. player + square collisions
+        player.state.x, player.state.y, player.state.playerRadius,
+        square.state.x, square.state.y, square.state.rotation, sqHalf, sqHalf
+      )) {
         player.state.hp -= square.state.maxHp * SQUARE_COLLISION_DAMAGE_FACTOR
         square.state.hp -= player.state.maxHp * PLAYER_COLLISION_DAMAGE_FACTOR
+
+        // positional correction — push player out using circle-vs-AABB penetration
+        const nx = dx / dist
+        const ny = dy / dist
+        const overlap = (player.state.playerRadius + sqHalf) - dist
+        player.state.x += nx * overlap
+        player.state.y += ny * overlap
       }
     }
   }
@@ -166,23 +177,23 @@ setInterval(() => {
   }
 
   // 5) Process each active square
-  const toDelete: number[] = []
-  
-  for (const square of squares.values()) {
+  squaresToDelete.length = 0
+  for (const sq of squares.values()) {
     if (
-      square.state.x < -WORLD_PADDING || square.state.x > WORLD_WIDTH + WORLD_PADDING ||
-      square.state.y < -WORLD_PADDING || square.state.y > WORLD_HEIGHT + WORLD_PADDING ||
-      square.state.hp <= 0
+      sq.state.x < -WORLD_PADDING || sq.state.x > WORLD_WIDTH + WORLD_PADDING ||
+      sq.state.y < -WORLD_PADDING || sq.state.y > WORLD_HEIGHT + WORLD_PADDING ||
+      sq.state.hp <= 0
     ) {
-      toDelete.push(square.state.id)
+      squaresToDelete.push(sq.state.id)
     } else {
-      square.angle += (Math.random() - 0.5) * 0.2
-      square.state.x += Math.cos(square.angle) * SQUARE_SPEED
-      square.state.y += Math.sin(square.angle) * SQUARE_SPEED
+      sq.pathAngle += (Math.random() - 0.5) * 0.2
+      sq.state.rotation += sq.rotationSpeed
+      sq.state.x += Math.cos(sq.pathAngle) * SQUARE_SPEED
+      sq.state.y += Math.sin(sq.pathAngle) * SQUARE_SPEED
     }
   }
 
-  for (const id of toDelete) squares.delete(id)
+  for (const id of squaresToDelete) squares.delete(id)
 
   // 6) Recompute squares in each chunk
   for (const set of chunkToSquares.values()) set.clear()
@@ -197,10 +208,14 @@ setInterval(() => {
   }
 
   // 8) Serialize world state and send to every connected client
+  playerStates.length = 0
+  squareStates.length = 0
+  for (const p of players.values()) playerStates.push(p.state)
+  for (const sq of squares.values()) squareStates.push(sq.state)
   const message: WorldStateMessage = {
     type: 'world_state',
-    players: Array.from(players.values()).map(p => p.state),
-    squares: Array.from(squares.values()).map(p => p.state)
+    players: playerStates,
+    squares: squareStates,
   }
 
   const json = JSON.stringify(message)
@@ -229,9 +244,12 @@ function spawnSquaresOnStartup() {
             y: row * chunkH + Math.random() * chunkH,
             hp: SQUARE_BASE_HP * DANGER_MAP[row * CHUNK_COLS + col],
             maxHp: SQUARE_BASE_HP * DANGER_MAP[row * CHUNK_COLS + col],
+            rotation: Math.random() * Math.PI * 2,
           },
-          angle: Math.random() * Math.PI * 2,
-          radius: SQUARE_BASE_RADIUS * DANGER_MAP[row * CHUNK_COLS + col],
+          pathAngle: Math.random() * Math.PI * 2,
+          boundingRadius : SQUARE_BASE_BOUNDING_RADIUS * DANGER_MAP[row * CHUNK_COLS + col],
+          rotationSpeed: Math.max(-MAX_SQR_ROT_SPEED, Math.min(MAX_SQR_ROT_SPEED, 
+            (Math.random() - 0.5) * 2 * SQR_BASE_ROT_SPEED))
         })
       }
     }
@@ -263,9 +281,12 @@ function fillMapSquares() {
             y: randY,
             hp: SQUARE_BASE_HP * DANGER_MAP[row * CHUNK_COLS + col],
             maxHp: SQUARE_BASE_HP * DANGER_MAP[row * CHUNK_COLS + col],
+            rotation: Math.random() * Math.PI * 2,
           },
-          angle: Math.random() * Math.PI * 2,
-          radius: SQUARE_BASE_RADIUS * DANGER_MAP[row * CHUNK_COLS + col],
+          pathAngle: Math.random() * Math.PI * 2,
+          boundingRadius : SQUARE_BASE_BOUNDING_RADIUS * DANGER_MAP[row * CHUNK_COLS + col],
+          rotationSpeed: Math.max(-MAX_SQR_ROT_SPEED, Math.min(MAX_SQR_ROT_SPEED, 
+            (Math.random() - 0.5) * 2 * SQR_BASE_ROT_SPEED))
         })
       }
     }
@@ -278,21 +299,20 @@ function getChunkIndex(x: number, y: number): number {
   return row * CHUNK_COLS + col
 }
 
-function getNearbySquareIds(chunkIndex: number): number[] {
+function getNearbySquareIds(chunkIndex: number, out: number[]): void {
+  out.length = 0
   const col = chunkIndex % CHUNK_COLS
   const row = Math.floor(chunkIndex / CHUNK_COLS)
-  const ids: number[] = []
   for (let dr = -1; dr <= 1; dr++) {
     for (let dc = -1; dc <= 1; dc++) {
       const nc = col + dc
       const nr = row + dr
       if (nc >= 0 && nc < CHUNK_COLS && nr >= 0 && nr < CHUNK_ROWS) {
         const neighbors = chunkToSquares.get(nr * CHUNK_COLS + nc)!
-        for (const id of neighbors) ids.push(id)
+        for (const id of neighbors) out.push(id)
       }
     }
   }
-  return ids
 }
 
 function spawnBots() {
@@ -317,6 +337,76 @@ function getDrillDamageOnCircle(originX: number, originY: number, rotation: numb
   }
 }
 
+function getDrillDamageOnRect(
+  originX: number, originY: number, rotation: number,
+  playerRadius: number, drillType: number, drillLengthMultiplier: number, drillDmgMultiplier: number,
+  rx: number, ry: number, rRotation: number, rHalfW: number, rHalfH: number
+): number {
+  switch (drillType) {
+    case 0: return stackedTrianglesDmgOnRect(originX, originY, rotation, playerRadius, drillLengthMultiplier, drillDmgMultiplier, rx, ry, rRotation, rHalfW, rHalfH)
+    case 1: return singleTriangleDmgOnRect(originX, originY, rotation, playerRadius, drillLengthMultiplier, drillDmgMultiplier, rx, ry, rRotation, rHalfW, rHalfH)
+    default: return 0
+  }
+}
+
+function stackedTrianglesDmgOnRect(
+  originX: number, originY: number, rotation: number,
+  playerRadius: number, drillLengthMultiplier: number, drillDmgMultiplier: number,
+  rx: number, ry: number, rRotation: number, rHalfW: number, rHalfH: number
+): number {
+  const segments = 5
+  const totalLength = 40 * drillLengthMultiplier
+  const segmentLength = totalLength / segments
+  const startX = playerRadius
+  const baseWidth = 25
+  const cos = Math.cos(rotation)
+  const sin = Math.sin(rotation)
+
+  for (let i = 0; i < segments; i++) {
+    const x = startX + i * segmentLength
+    const width = baseWidth * (1 - i / segments)
+    const x0 = x - segmentLength * 0.3
+    const x1 = x + segmentLength
+
+    const halfW = width / 2
+    const ax = originX + x0 * cos - (-halfW) * sin
+    const ay = originY + x0 * sin + (-halfW) * cos
+    const bx = originX + x0 * cos -   halfW  * sin
+    const by = originY + x0 * sin +   halfW  * cos
+    const cx = originX + x1 * cos
+    const cy = originY + x1 * sin
+
+    if (triangleIntersectsOrientedRect(ax, ay, bx, by, cx, cy, rx, ry, rRotation, rHalfW, rHalfH)) {
+      return 15 * drillDmgMultiplier
+    }
+  }
+  return 0
+}
+
+function singleTriangleDmgOnRect(
+  originX: number, originY: number, rotation: number,
+  playerRadius: number, drillLengthMultiplier: number, drillDmgMultiplier: number,
+  rx: number, ry: number, rRotation: number, rHalfW: number, rHalfH: number
+): number {
+  const startX = playerRadius
+  const width = 10
+  const height = 40 * drillLengthMultiplier
+  const cos = Math.cos(rotation)
+  const sin = Math.sin(rotation)
+
+  const ax = originX + startX * cos - (-width) * sin
+  const ay = originY + startX * sin + (-width) * cos
+  const bx = originX + startX * cos -   width  * sin
+  const by = originY + startX * sin +   width  * cos
+  const cx = originX + (startX + height) * cos
+  const cy = originY + (startX + height) * sin
+
+  if (triangleIntersectsOrientedRect(ax, ay, bx, by, cx, cy, rx, ry, rRotation, rHalfW, rHalfH)) {
+    return 15 * drillDmgMultiplier
+  }
+  return 0
+}
+
 function getStackedTrianglesDrillDamage(
   originX: number, originY: number, rotation: number,
   playerRadius: number, drillLengthMultiplier: number, drillDmgMultiplier: number,
@@ -336,9 +426,13 @@ function getStackedTrianglesDrillDamage(
     const x0 = x - segmentLength * 0.3
     const x1 = x + segmentLength
 
-    const [ax, ay] = toWorld(x0, -width / 2, originX, originY, cos, sin)
-    const [bx, by] = toWorld(x0,  width / 2, originX, originY, cos, sin)
-    const [cx, cy] = toWorld(x1,          0, originX, originY, cos, sin)
+    const halfW = width / 2
+    const ax = originX + x0 * cos - (-halfW) * sin
+    const ay = originY + x0 * sin + (-halfW) * cos
+    const bx = originX + x0 * cos -   halfW  * sin
+    const by = originY + x0 * sin +   halfW  * cos
+    const cx = originX + x1 * cos
+    const cy = originY + x1 * sin
 
     if (circleIntersectsTriangle(targetX, targetY, targetRadius, ax, ay, bx, by, cx, cy)) {
       return 15 * drillDmgMultiplier
@@ -358,14 +452,89 @@ function getSingleTriangleDrillDamage(
   const cos = Math.cos(rotation)
   const sin = Math.sin(rotation)
 
-  const [ax, ay] = toWorld(startX,        -width, originX, originY, cos, sin)
-  const [bx, by] = toWorld(startX,         width, originX, originY, cos, sin)
-  const [cx, cy] = toWorld(startX + height,    0, originX, originY, cos, sin)
+  const ax = originX + startX * cos - (-width) * sin
+  const ay = originY + startX * sin + (-width) * cos
+  const bx = originX + startX * cos -   width  * sin
+  const by = originY + startX * sin +   width  * cos
+  const cx = originX + (startX + height) * cos
+  const cy = originY + (startX + height) * sin
 
   if (circleIntersectsTriangle(targetX, targetY, targetRadius, ax, ay, bx, by, cx, cy)) {
     return 15 * drillDmgMultiplier
   }
   return 0
+}
+
+// returns whether or not circle is inside of the rectangle
+function circleIntersectsOrientedRect(
+  cx: number, cy: number, circleRadius: number,  // circle
+  rx: number, ry: number, rRotation: number, rHalfW: number, rHalfH: number  // rect
+): boolean {
+  // transform circle center into rect local space
+  const cos = Math.cos(-rRotation)
+  const sin = Math.sin(-rRotation)
+  const dx = cx - rx
+  const dy = cy - ry
+  const localX = dx * cos - dy * sin
+  const localY = dx * sin + dy * cos
+
+  // find closest point on AABB to circle center
+  const closestX = Math.max(-rHalfW, Math.min(rHalfW, localX))
+  const closestY = Math.max(-rHalfH, Math.min(rHalfH, localY))
+
+  // check distance
+  const distX = localX - closestX
+  const distY = localY - closestY
+  return distX * distX + distY * distY < circleRadius * circleRadius
+}
+
+function triangleIntersectsOrientedRect(
+  ax: number, ay: number,
+  bx: number, by: number,
+  cx: number, cy: number,
+  rx: number, ry: number, rRotation: number, rHalfW: number, rHalfH: number
+): boolean {
+  const cos = Math.cos(-rRotation)
+  const sin = Math.sin(-rRotation)
+
+  // transform triangle into rect local space (inlined, no tuple allocations)
+  let dx = ax - rx, dy = ay - ry
+  const lax = dx * cos - dy * sin, lay = dx * sin + dy * cos
+  dx = bx - rx; dy = by - ry
+  const lbx = dx * cos - dy * sin, lby = dx * sin + dy * cos
+  dx = cx - rx; dy = cy - ry
+  const lcx = dx * cos - dy * sin, lcy = dx * sin + dy * cos
+
+  // test rect axes
+  if (Math.max(lax, lbx, lcx) < -rHalfW || Math.min(lax, lbx, lcx) > rHalfW) return false
+  if (Math.max(lay, lby, lcy) < -rHalfH || Math.min(lay, lby, lcy) > rHalfH) return false
+
+  // test triangle edge normals (unrolled, no array allocations)
+  // edge 0: a->b
+  let nx = -(lby - lay), ny = lbx - lax
+  let t0 = lax*nx+lay*ny, t1 = lbx*nx+lby*ny, t2 = lcx*nx+lcy*ny
+  let triMin = Math.min(t0, t1, t2), triMax = Math.max(t0, t1, t2)
+  let r0 = -rHalfW*nx - rHalfH*ny, r1 = rHalfW*nx - rHalfH*ny
+  let r2 = -rHalfW*nx + rHalfH*ny, r3 = rHalfW*nx + rHalfH*ny
+  if (triMax < Math.min(r0,r1,r2,r3) || Math.max(r0,r1,r2,r3) < triMin) return false
+
+  // edge 1: b->c
+  nx = -(lcy - lby); ny = lcx - lbx
+  t0 = lax*nx+lay*ny; t1 = lbx*nx+lby*ny; t2 = lcx*nx+lcy*ny
+  triMin = Math.min(t0, t1, t2); triMax = Math.max(t0, t1, t2)
+  r0 = -rHalfW*nx - rHalfH*ny; r1 = rHalfW*nx - rHalfH*ny
+  r2 = -rHalfW*nx + rHalfH*ny; r3 = rHalfW*nx + rHalfH*ny
+  if (triMax < Math.min(r0,r1,r2,r3) || Math.max(r0,r1,r2,r3) < triMin) return false
+
+  // edge 2: c->a
+  nx = -(lay - lcy); ny = lax - lcx
+  t0 = lax*nx+lay*ny; t1 = lbx*nx+lby*ny; t2 = lcx*nx+lcy*ny
+  triMin = Math.min(t0, t1, t2); triMax = Math.max(t0, t1, t2)
+  r0 = -rHalfW*nx - rHalfH*ny; r1 = rHalfW*nx - rHalfH*ny
+  r2 = -rHalfW*nx + rHalfH*ny; r3 = rHalfW*nx + rHalfH*ny
+  if (triMax < Math.min(r0,r1,r2,r3) || Math.max(r0,r1,r2,r3) < triMin) return false
+
+  return true
 }
 
 // Returns whether or not spot is available for obstacles to spawn here.

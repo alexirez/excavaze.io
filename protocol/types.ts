@@ -19,4 +19,5 @@ export interface SquareState {
   y: number
   hp: number
   maxHp: number
+  rotation: number
 }

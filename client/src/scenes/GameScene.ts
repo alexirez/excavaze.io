@@ -10,7 +10,6 @@ export class GameScene extends Phaser.Scene {
   private localId: number | null = null
   private latestPlayersState: Map<number, PlayerState> = new Map()
   private latestSquaresState: Map<number, SquareState> = new Map()
-  private squareRotations: Map<number, number> = new Map()
   private squareGraphics!: Phaser.GameObjects.Graphics
   private squareHealthBarGraphics!: Phaser.GameObjects.Graphics
   private playerGraphics!: Phaser.GameObjects.Graphics
@@ -94,6 +93,7 @@ export class GameScene extends Phaser.Scene {
             y: square.y,
             hp: square.hp,
             maxHp: square.maxHp,
+            rotation: square.rotation
           })
         }
       }
@@ -186,26 +186,16 @@ export class GameScene extends Phaser.Scene {
 
     this.squareGraphics.clear()
     for (const [id, sq] of this.latestSquaresState.entries()) {
-      const rotation = this.squareRotations.get(id) ?? 0
       const size = 20 + (sq.maxHp / SQUARE_BASE_HP) * 10
 
       this.squareGraphics.save()
       this.squareGraphics.translateCanvas(sq.x, sq.y)
-      this.squareGraphics.rotateCanvas(rotation)
+      this.squareGraphics.rotateCanvas(sq.rotation)
       this.squareGraphics.fillStyle(0xf5a623)
       this.squareGraphics.fillRect(-size / 2, -size / 2, size, size)
       this.squareGraphics.lineStyle(5 + (sq.maxHp / SQUARE_BASE_HP), 0xc47a0a, 1)
       this.squareGraphics.strokeRect(-size / 2, -size / 2, size, size)
       this.squareGraphics.restore()
-
-      // update rotation for next frame
-      this.squareRotations.set(id, rotation + 0.007)
-    }
-
-    for (const id of this.squareRotations.keys()) {
-      if (!this.latestSquaresState.get(id)) {
-        this.squareRotations.delete(id)
-      }
     }
   }
 }

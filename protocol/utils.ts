@@ -37,10 +37,3 @@ export function circleIntersectsTriangle(
   if (pointToSegmentDistSq(cx, cy, cx2, cy2, ax, ay) <= rSq) return true
   return false
 }
-
-export function toWorld(lx: number, ly: number, originX: number, originY: number, cos: number, sin: number): [number, number] {
-  return [
-    originX + lx * cos - ly * sin,
-    originY + lx * sin + ly * cos,
-  ]
-}
