@@ -135,18 +135,18 @@ setInterval(() => {
       const dy = player.state.y - square.state.y
       const sqrDist = dx * dx + dy * dy
 
-      if (sqrDist > (drillReach + square.radius)**2) continue
+      if (sqrDist > (drillReach + square.boundingRadius )**2) continue
 
       const dist = Math.sqrt(sqrDist)
       square.state.hp -= getDrillDamageOnCircle( // 3. drill + square collisions
         player.state.x, player.state.y, player.state.rotation, player.state.playerRadius, 
         player.state.drillType, player.state.drillLengthMultiplier, player.state.drillDmgMultiplier,
-        square.state.x, square.state.y, square.radius + 2
+        square.state.x, square.state.y, square.boundingRadius  + 2
       )
 
-      const radiusSumPlayer = player.state.playerRadius + square.radius // 4. player + square collisions
-      if (dist < radiusSumPlayer) {
-        const overlap = radiusSumPlayer - dist
+      const bodyRadiusSum = player.state.playerRadius + square.boundingRadius  // 4. player + square collisions
+      if (dist < bodyRadiusSum) {
+        const overlap = bodyRadiusSum - dist
         const nx = dx / dist
         const ny = dy / dist
 
@@ -234,7 +234,7 @@ function spawnSquaresOnStartup() {
             rotation: Math.random() * Math.PI * 2,
           },
           pathAngle: Math.random() * Math.PI * 2,
-          radius: SQUARE_BASE_RADIUS * DANGER_MAP[row * CHUNK_COLS + col],
+          boundingRadius : SQUARE_BASE_RADIUS * DANGER_MAP[row * CHUNK_COLS + col],
           rotationSpeed: Math.max(-MAX_SQR_ROT_SPEED, Math.min(MAX_SQR_ROT_SPEED, 
             (Math.random() - 0.5) * 2 * SQR_BASE_ROT_SPEED))
         })
@@ -271,7 +271,7 @@ function fillMapSquares() {
             rotation: Math.random() * Math.PI * 2,
           },
           pathAngle: Math.random() * Math.PI * 2,
-          radius: SQUARE_BASE_RADIUS * DANGER_MAP[row * CHUNK_COLS + col],
+          boundingRadius : SQUARE_BASE_RADIUS * DANGER_MAP[row * CHUNK_COLS + col],
           rotationSpeed: Math.max(-MAX_SQR_ROT_SPEED, Math.min(MAX_SQR_ROT_SPEED, 
             (Math.random() - 0.5) * 2 * SQR_BASE_ROT_SPEED))
         })
@@ -374,6 +374,29 @@ function getSingleTriangleDrillDamage(
     return 15 * drillDmgMultiplier
   }
   return 0
+}
+
+// returns whether or not circle is inside of the rectangle
+function circleIntersectsOrientedRect(
+  cx: number, cy: number, circleRadius: number,  // circle
+  rx: number, ry: number, rRotation: number, rHalfW: number, rHalfH: number  // rect
+): boolean {
+  // transform circle center into rect local space
+  const cos = Math.cos(-rRotation)
+  const sin = Math.sin(-rRotation)
+  const dx = cx - rx
+  const dy = cy - ry
+  const localX = dx * cos - dy * sin
+  const localY = dx * sin + dy * cos
+
+  // find closest point on AABB to circle center
+  const closestX = Math.max(-rHalfW, Math.min(rHalfW, localX))
+  const closestY = Math.max(-rHalfH, Math.min(rHalfH, localY))
+
+  // check distance
+  const distX = localX - closestX
+  const distY = localY - closestY
+  return distX * distX + distY * distY < circleRadius * circleRadius
 }
 
 // Returns whether or not spot is available for obstacles to spawn here.
