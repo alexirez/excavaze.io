@@ -138,16 +138,16 @@ setInterval(() => {
       if (sqrDist > (drillReach + square.boundingRadius )**2) continue
 
       const dist = Math.sqrt(sqrDist)
-      square.state.hp -= getDrillDamageOnCircle( // 3. drill + square collisions
-        player.state.x, player.state.y, player.state.rotation, player.state.playerRadius, 
-        player.state.drillType, player.state.drillLengthMultiplier, player.state.drillDmgMultiplier,
-        square.state.x, square.state.y, square.boundingRadius  + 2
-      )
-      
-      const sqSize = 20 + (square.state.maxHp / SQUARE_BASE_HP) * 10 // 4. player + square collisions
+      const sqSize = 20 + (square.state.maxHp / SQUARE_BASE_HP) * 10
       const sqHalf = sqSize / 2
 
-      if (circleIntersectsOrientedRect(
+      square.state.hp -= getDrillDamageOnRect(
+        player.state.x, player.state.y, player.state.rotation, player.state.playerRadius,
+        player.state.drillType, player.state.drillLengthMultiplier, player.state.drillDmgMultiplier,
+        square.state.x, square.state.y, square.state.rotation, sqHalf, sqHalf
+      )
+
+      if (circleIntersectsOrientedRect( // 4. player + square collisions
         player.state.x, player.state.y, player.state.playerRadius,
         square.state.x, square.state.y, square.state.rotation, sqHalf, sqHalf
       )) {
@@ -330,6 +330,69 @@ function getDrillDamageOnCircle(originX: number, originY: number, rotation: numb
   }
 }
 
+function getDrillDamageOnRect(
+  originX: number, originY: number, rotation: number,
+  playerRadius: number, drillType: number, drillLengthMultiplier: number, drillDmgMultiplier: number,
+  rx: number, ry: number, rRotation: number, rHalfW: number, rHalfH: number
+): number {
+  switch (drillType) {
+    case 0: return stackedTrianglesDmgOnRect(originX, originY, rotation, playerRadius, drillLengthMultiplier, drillDmgMultiplier, rx, ry, rRotation, rHalfW, rHalfH)
+    case 1: return singleTriangleDmgOnRect(originX, originY, rotation, playerRadius, drillLengthMultiplier, drillDmgMultiplier, rx, ry, rRotation, rHalfW, rHalfH)
+    default: return 0
+  }
+}
+
+function stackedTrianglesDmgOnRect(
+  originX: number, originY: number, rotation: number,
+  playerRadius: number, drillLengthMultiplier: number, drillDmgMultiplier: number,
+  rx: number, ry: number, rRotation: number, rHalfW: number, rHalfH: number
+): number {
+  const segments = 5
+  const totalLength = 40 * drillLengthMultiplier
+  const segmentLength = totalLength / segments
+  const startX = playerRadius
+  const baseWidth = 25
+  const cos = Math.cos(rotation)
+  const sin = Math.sin(rotation)
+
+  for (let i = 0; i < segments; i++) {
+    const x = startX + i * segmentLength
+    const width = baseWidth * (1 - i / segments)
+    const x0 = x - segmentLength * 0.3
+    const x1 = x + segmentLength
+
+    const [ax, ay] = toWorld(x0, -width / 2, originX, originY, cos, sin)
+    const [bx, by] = toWorld(x0,  width / 2, originX, originY, cos, sin)
+    const [cx, cy] = toWorld(x1,          0, originX, originY, cos, sin)
+
+    if (triangleIntersectsOrientedRect(ax, ay, bx, by, cx, cy, rx, ry, rRotation, rHalfW, rHalfH)) {
+      return 15 * drillDmgMultiplier
+    }
+  }
+  return 0
+}
+
+function singleTriangleDmgOnRect(
+  originX: number, originY: number, rotation: number,
+  playerRadius: number, drillLengthMultiplier: number, drillDmgMultiplier: number,
+  rx: number, ry: number, rRotation: number, rHalfW: number, rHalfH: number
+): number {
+  const startX = playerRadius
+  const width = 10
+  const height = 40 * drillLengthMultiplier
+  const cos = Math.cos(rotation)
+  const sin = Math.sin(rotation)
+
+  const [ax, ay] = toWorld(startX,        -width, originX, originY, cos, sin)
+  const [bx, by] = toWorld(startX,         width, originX, originY, cos, sin)
+  const [cx, cy] = toWorld(startX + height,    0, originX, originY, cos, sin)
+
+  if (triangleIntersectsOrientedRect(ax, ay, bx, by, cx, cy, rx, ry, rRotation, rHalfW, rHalfH)) {
+    return 15 * drillDmgMultiplier
+  }
+  return 0
+}
+
 function getStackedTrianglesDrillDamage(
   originX: number, originY: number, rotation: number,
   playerRadius: number, drillLengthMultiplier: number, drillDmgMultiplier: number,
@@ -402,6 +465,64 @@ function circleIntersectsOrientedRect(
   const distX = localX - closestX
   const distY = localY - closestY
   return distX * distX + distY * distY < circleRadius * circleRadius
+}
+
+function triangleIntersectsOrientedRect(
+  ax: number, ay: number,
+  bx: number, by: number,
+  cx: number, cy: number,
+  rx: number, ry: number, rRotation: number, rHalfW: number, rHalfH: number
+): boolean {
+  // transform triangle into rect local space
+  const cos = Math.cos(-rRotation)
+  const sin = Math.sin(-rRotation)
+
+  function toLocal(px: number, py: number): [number, number] {
+    const dx = px - rx
+    const dy = py - ry
+    return [dx * cos - dy * sin, dx * sin + dy * cos]
+  }
+
+  const [lax, lay] = toLocal(ax, ay)
+  const [lbx, lby] = toLocal(bx, by)
+  const [lcx, lcy] = toLocal(cx, cy)
+
+  // test rect axes (x and y — trivial in local space)
+  const triMinX = Math.min(lax, lbx, lcx)
+  const triMaxX = Math.max(lax, lbx, lcx)
+  const triMinY = Math.min(lay, lby, lcy)
+  const triMaxY = Math.max(lay, lby, lcy)
+
+  if (triMaxX < -rHalfW || triMinX > rHalfW) return false
+  if (triMaxY < -rHalfH || triMinY > rHalfH) return false
+
+  // test triangle edge normals
+  const edges = [
+    [lax, lay, lbx, lby],
+    [lbx, lby, lcx, lcy],
+    [lcx, lcy, lax, lay],
+  ] as const
+
+  for (const [ex, ey, ex2, ey2] of edges) {
+    const nx = -(ey2 - ey)
+    const ny = ex2 - ex
+
+    const triProjs = [lax*nx+lay*ny, lbx*nx+lby*ny, lcx*nx+lcy*ny]
+    const triMin = Math.min(...triProjs)
+    const triMax = Math.max(...triProjs)
+
+    const rectCorners = [
+      [-rHalfW, -rHalfH], [rHalfW, -rHalfH],
+      [-rHalfW,  rHalfH], [rHalfW,  rHalfH],
+    ]
+    const rectProjs = rectCorners.map(([cx, cy]) => cx*nx + cy*ny)
+    const rectMin = Math.min(...rectProjs)
+    const rectMax = Math.max(...rectProjs)
+
+    if (triMax < rectMin || rectMax < triMin) return false
+  }
+
+  return true
 }
 
 // Returns whether or not spot is available for obstacles to spawn here.
