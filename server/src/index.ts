@@ -487,54 +487,45 @@ function triangleIntersectsOrientedRect(
   cx: number, cy: number,
   rx: number, ry: number, rRotation: number, rHalfW: number, rHalfH: number
 ): boolean {
-  // transform triangle into rect local space
   const cos = Math.cos(-rRotation)
   const sin = Math.sin(-rRotation)
 
-  function toLocal(px: number, py: number): [number, number] {
-    const dx = px - rx
-    const dy = py - ry
-    return [dx * cos - dy * sin, dx * sin + dy * cos]
-  }
+  // transform triangle into rect local space (inlined, no tuple allocations)
+  let dx = ax - rx, dy = ay - ry
+  const lax = dx * cos - dy * sin, lay = dx * sin + dy * cos
+  dx = bx - rx; dy = by - ry
+  const lbx = dx * cos - dy * sin, lby = dx * sin + dy * cos
+  dx = cx - rx; dy = cy - ry
+  const lcx = dx * cos - dy * sin, lcy = dx * sin + dy * cos
 
-  const [lax, lay] = toLocal(ax, ay)
-  const [lbx, lby] = toLocal(bx, by)
-  const [lcx, lcy] = toLocal(cx, cy)
+  // test rect axes
+  if (Math.max(lax, lbx, lcx) < -rHalfW || Math.min(lax, lbx, lcx) > rHalfW) return false
+  if (Math.max(lay, lby, lcy) < -rHalfH || Math.min(lay, lby, lcy) > rHalfH) return false
 
-  // test rect axes (x and y — trivial in local space)
-  const triMinX = Math.min(lax, lbx, lcx)
-  const triMaxX = Math.max(lax, lbx, lcx)
-  const triMinY = Math.min(lay, lby, lcy)
-  const triMaxY = Math.max(lay, lby, lcy)
+  // test triangle edge normals (unrolled, no array allocations)
+  // edge 0: a->b
+  let nx = -(lby - lay), ny = lbx - lax
+  let t0 = lax*nx+lay*ny, t1 = lbx*nx+lby*ny, t2 = lcx*nx+lcy*ny
+  let triMin = Math.min(t0, t1, t2), triMax = Math.max(t0, t1, t2)
+  let r0 = -rHalfW*nx - rHalfH*ny, r1 = rHalfW*nx - rHalfH*ny
+  let r2 = -rHalfW*nx + rHalfH*ny, r3 = rHalfW*nx + rHalfH*ny
+  if (triMax < Math.min(r0,r1,r2,r3) || Math.max(r0,r1,r2,r3) < triMin) return false
 
-  if (triMaxX < -rHalfW || triMinX > rHalfW) return false
-  if (triMaxY < -rHalfH || triMinY > rHalfH) return false
+  // edge 1: b->c
+  nx = -(lcy - lby); ny = lcx - lbx
+  t0 = lax*nx+lay*ny; t1 = lbx*nx+lby*ny; t2 = lcx*nx+lcy*ny
+  triMin = Math.min(t0, t1, t2); triMax = Math.max(t0, t1, t2)
+  r0 = -rHalfW*nx - rHalfH*ny; r1 = rHalfW*nx - rHalfH*ny
+  r2 = -rHalfW*nx + rHalfH*ny; r3 = rHalfW*nx + rHalfH*ny
+  if (triMax < Math.min(r0,r1,r2,r3) || Math.max(r0,r1,r2,r3) < triMin) return false
 
-  // test triangle edge normals
-  const edges = [
-    [lax, lay, lbx, lby],
-    [lbx, lby, lcx, lcy],
-    [lcx, lcy, lax, lay],
-  ] as const
-
-  for (const [ex, ey, ex2, ey2] of edges) {
-    const nx = -(ey2 - ey)
-    const ny = ex2 - ex
-
-    const triProjs = [lax*nx+lay*ny, lbx*nx+lby*ny, lcx*nx+lcy*ny]
-    const triMin = Math.min(...triProjs)
-    const triMax = Math.max(...triProjs)
-
-    const rectCorners = [
-      [-rHalfW, -rHalfH], [rHalfW, -rHalfH],
-      [-rHalfW,  rHalfH], [rHalfW,  rHalfH],
-    ]
-    const rectProjs = rectCorners.map(([cx, cy]) => cx*nx + cy*ny)
-    const rectMin = Math.min(...rectProjs)
-    const rectMax = Math.max(...rectProjs)
-
-    if (triMax < rectMin || rectMax < triMin) return false
-  }
+  // edge 2: c->a
+  nx = -(lay - lcy); ny = lax - lcx
+  t0 = lax*nx+lay*ny; t1 = lbx*nx+lby*ny; t2 = lcx*nx+lcy*ny
+  triMin = Math.min(t0, t1, t2); triMax = Math.max(t0, t1, t2)
+  r0 = -rHalfW*nx - rHalfH*ny; r1 = rHalfW*nx - rHalfH*ny
+  r2 = -rHalfW*nx + rHalfH*ny; r3 = rHalfW*nx + rHalfH*ny
+  if (triMax < Math.min(r0,r1,r2,r3) || Math.max(r0,r1,r2,r3) < triMin) return false
 
   return true
 }
