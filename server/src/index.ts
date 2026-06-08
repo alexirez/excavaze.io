@@ -10,7 +10,7 @@ const CHUNK_COLS = 16
 const CHUNK_ROWS = 16
 const UNIT_SPEED = 10
 const SQUARE_SPEED = 0.5  // multiplies square drifting speed
-const SQUARE_BASE_RADIUS = 9
+const SQUARE_BASE_BOUNDING_RADIUS = 10 // used for broad phase collision
 
 const chunkHeat = new Float32Array(CHUNK_ROWS * CHUNK_COLS)
 const HEAT_SPAWN_THRESHOLD = 10
@@ -143,18 +143,23 @@ setInterval(() => {
         player.state.drillType, player.state.drillLengthMultiplier, player.state.drillDmgMultiplier,
         square.state.x, square.state.y, square.boundingRadius  + 2
       )
+      
+      const sqSize = 20 + (square.state.maxHp / SQUARE_BASE_HP) * 10 // 4. player + square collisions
+      const sqHalf = sqSize / 2
 
-      const bodyRadiusSum = player.state.playerRadius + square.boundingRadius  // 4. player + square collisions
-      if (dist < bodyRadiusSum) {
-        const overlap = bodyRadiusSum - dist
-        const nx = dx / dist
-        const ny = dy / dist
-
-        player.state.x += nx * overlap
-        player.state.y += ny * overlap
-
+      if (circleIntersectsOrientedRect(
+        player.state.x, player.state.y, player.state.playerRadius,
+        square.state.x, square.state.y, square.state.rotation, sqHalf, sqHalf
+      )) {
         player.state.hp -= square.state.maxHp * SQUARE_COLLISION_DAMAGE_FACTOR
         square.state.hp -= player.state.maxHp * PLAYER_COLLISION_DAMAGE_FACTOR
+
+        // positional correction — push player out using circle-vs-AABB penetration
+        const nx = dx / dist
+        const ny = dy / dist
+        const overlap = (player.state.playerRadius + sqHalf) - dist
+        player.state.x += nx * overlap
+        player.state.y += ny * overlap
       }
     }
   }
@@ -234,7 +239,7 @@ function spawnSquaresOnStartup() {
             rotation: Math.random() * Math.PI * 2,
           },
           pathAngle: Math.random() * Math.PI * 2,
-          boundingRadius : SQUARE_BASE_RADIUS * DANGER_MAP[row * CHUNK_COLS + col],
+          boundingRadius : SQUARE_BASE_BOUNDING_RADIUS * DANGER_MAP[row * CHUNK_COLS + col],
           rotationSpeed: Math.max(-MAX_SQR_ROT_SPEED, Math.min(MAX_SQR_ROT_SPEED, 
             (Math.random() - 0.5) * 2 * SQR_BASE_ROT_SPEED))
         })
@@ -271,7 +276,7 @@ function fillMapSquares() {
             rotation: Math.random() * Math.PI * 2,
           },
           pathAngle: Math.random() * Math.PI * 2,
-          boundingRadius : SQUARE_BASE_RADIUS * DANGER_MAP[row * CHUNK_COLS + col],
+          boundingRadius : SQUARE_BASE_BOUNDING_RADIUS * DANGER_MAP[row * CHUNK_COLS + col],
           rotationSpeed: Math.max(-MAX_SQR_ROT_SPEED, Math.min(MAX_SQR_ROT_SPEED, 
             (Math.random() - 0.5) * 2 * SQR_BASE_ROT_SPEED))
         })
