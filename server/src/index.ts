@@ -3,7 +3,7 @@ import { ServerPlayer, ServerSquare } from './entities'
 import { ClientMessage, WorldStateMessage } from '../../protocol/messages'
 import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, SQUARE_COLLISION_DAMAGE_FACTOR, PLAYER_COLLISION_DAMAGE_FACTOR, MIN_OBSTACLE_SPAWN_DIST, SQR_BASE_ROT_SPEED, MAX_SQR_ROT_SPEED } from '../../protocol/constants'
 import { DANGER_MAP, DENSITY_MAP } from './data/map'
-import { toWorld, circleIntersectsTriangle } from '../../protocol/utils'
+import { circleIntersectsTriangle } from '../../protocol/utils'
 
 const PORT = 3000
 const CHUNK_COLS = 16
@@ -25,6 +25,7 @@ console.log(`Server running on ws://localhost:${PORT}`)
 
 const players = new Map<number, ServerPlayer>()
 const squares = new Map<number, ServerSquare>()
+const nearbySquareIds: number[] = []
 const chunkToSquares = new Map<number, Set<number>>()
 for (let i = 0; i < CHUNK_ROWS * CHUNK_COLS; i++)
   chunkToSquares.set(i, new Set())
@@ -124,7 +125,7 @@ setInterval(() => {
 
   for (const player of players.values()) {
     const chunkIndex = getChunkIndex(player.state.x, player.state.y)
-    const nearbySquareIds = getNearbySquareIds(chunkIndex) // only consider 9 nearest chunks for efficient collision checking
+    getNearbySquareIds(chunkIndex, nearbySquareIds) // only consider 9 nearest chunks for efficient collision checking
     const drillReach = player.state.playerRadius + 40 * player.state.drillLengthMultiplier
 
     for (const id of nearbySquareIds) {
@@ -291,21 +292,20 @@ function getChunkIndex(x: number, y: number): number {
   return row * CHUNK_COLS + col
 }
 
-function getNearbySquareIds(chunkIndex: number): number[] {
+function getNearbySquareIds(chunkIndex: number, out: number[]): void {
+  out.length = 0
   const col = chunkIndex % CHUNK_COLS
   const row = Math.floor(chunkIndex / CHUNK_COLS)
-  const ids: number[] = []
   for (let dr = -1; dr <= 1; dr++) {
     for (let dc = -1; dc <= 1; dc++) {
       const nc = col + dc
       const nr = row + dr
       if (nc >= 0 && nc < CHUNK_COLS && nr >= 0 && nr < CHUNK_ROWS) {
         const neighbors = chunkToSquares.get(nr * CHUNK_COLS + nc)!
-        for (const id of neighbors) ids.push(id)
+        for (const id of neighbors) out.push(id)
       }
     }
   }
-  return ids
 }
 
 function spawnBots() {
@@ -361,9 +361,13 @@ function stackedTrianglesDmgOnRect(
     const x0 = x - segmentLength * 0.3
     const x1 = x + segmentLength
 
-    const [ax, ay] = toWorld(x0, -width / 2, originX, originY, cos, sin)
-    const [bx, by] = toWorld(x0,  width / 2, originX, originY, cos, sin)
-    const [cx, cy] = toWorld(x1,          0, originX, originY, cos, sin)
+    const halfW = width / 2
+    const ax = originX + x0 * cos - (-halfW) * sin
+    const ay = originY + x0 * sin + (-halfW) * cos
+    const bx = originX + x0 * cos -   halfW  * sin
+    const by = originY + x0 * sin +   halfW  * cos
+    const cx = originX + x1 * cos
+    const cy = originY + x1 * sin
 
     if (triangleIntersectsOrientedRect(ax, ay, bx, by, cx, cy, rx, ry, rRotation, rHalfW, rHalfH)) {
       return 15 * drillDmgMultiplier
@@ -383,9 +387,12 @@ function singleTriangleDmgOnRect(
   const cos = Math.cos(rotation)
   const sin = Math.sin(rotation)
 
-  const [ax, ay] = toWorld(startX,        -width, originX, originY, cos, sin)
-  const [bx, by] = toWorld(startX,         width, originX, originY, cos, sin)
-  const [cx, cy] = toWorld(startX + height,    0, originX, originY, cos, sin)
+  const ax = originX + startX * cos - (-width) * sin
+  const ay = originY + startX * sin + (-width) * cos
+  const bx = originX + startX * cos -   width  * sin
+  const by = originY + startX * sin +   width  * cos
+  const cx = originX + (startX + height) * cos
+  const cy = originY + (startX + height) * sin
 
   if (triangleIntersectsOrientedRect(ax, ay, bx, by, cx, cy, rx, ry, rRotation, rHalfW, rHalfH)) {
     return 15 * drillDmgMultiplier
@@ -412,9 +419,13 @@ function getStackedTrianglesDrillDamage(
     const x0 = x - segmentLength * 0.3
     const x1 = x + segmentLength
 
-    const [ax, ay] = toWorld(x0, -width / 2, originX, originY, cos, sin)
-    const [bx, by] = toWorld(x0,  width / 2, originX, originY, cos, sin)
-    const [cx, cy] = toWorld(x1,          0, originX, originY, cos, sin)
+    const halfW = width / 2
+    const ax = originX + x0 * cos - (-halfW) * sin
+    const ay = originY + x0 * sin + (-halfW) * cos
+    const bx = originX + x0 * cos -   halfW  * sin
+    const by = originY + x0 * sin +   halfW  * cos
+    const cx = originX + x1 * cos
+    const cy = originY + x1 * sin
 
     if (circleIntersectsTriangle(targetX, targetY, targetRadius, ax, ay, bx, by, cx, cy)) {
       return 15 * drillDmgMultiplier
@@ -434,9 +445,12 @@ function getSingleTriangleDrillDamage(
   const cos = Math.cos(rotation)
   const sin = Math.sin(rotation)
 
-  const [ax, ay] = toWorld(startX,        -width, originX, originY, cos, sin)
-  const [bx, by] = toWorld(startX,         width, originX, originY, cos, sin)
-  const [cx, cy] = toWorld(startX + height,    0, originX, originY, cos, sin)
+  const ax = originX + startX * cos - (-width) * sin
+  const ay = originY + startX * sin + (-width) * cos
+  const bx = originX + startX * cos -   width  * sin
+  const by = originY + startX * sin +   width  * cos
+  const cx = originX + (startX + height) * cos
+  const cy = originY + (startX + height) * sin
 
   if (circleIntersectsTriangle(targetX, targetY, targetRadius, ax, ay, bx, by, cx, cy)) {
     return 15 * drillDmgMultiplier
