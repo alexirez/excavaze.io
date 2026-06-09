@@ -3,6 +3,7 @@
 export interface PlayerState {
   id: number
   xp: number
+  alive: boolean
   x: number
   y: number
   rotation: number

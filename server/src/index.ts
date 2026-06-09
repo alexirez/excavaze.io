@@ -46,6 +46,7 @@ wss.on('connection', (socket) => {
     state: {
       id,
       xp: 0,
+      alive: true,
       x: 400, 
       y: 300,
       rotation: 0,
@@ -86,16 +87,18 @@ setInterval(() => {
   tick++
 
   // 1) Process each player's input
-  for (const player of players.values()) {
-    player.state.x = Math.max(WORLD_PADDING, Math.min(WORLD_WIDTH - WORLD_PADDING, player.state.x + player.input.dx * UNIT_SPEED))
-    player.state.y = Math.max(WORLD_PADDING, Math.min(WORLD_HEIGHT - WORLD_PADDING, player.state.y + player.input.dy * UNIT_SPEED))
-    player.state.rotation = player.input.rotation
+  for (const p of players.values()) {
+    if (!p.state.alive) continue
+    p.state.x = Math.max(WORLD_PADDING, Math.min(WORLD_WIDTH - WORLD_PADDING, p.state.x + p.input.dx * UNIT_SPEED))
+    p.state.y = Math.max(WORLD_PADDING, Math.min(WORLD_HEIGHT - WORLD_PADDING, p.state.y + p.input.dy * UNIT_SPEED))
+    p.state.rotation = p.input.rotation
   }
 
   // 2) Check for collisions
     for (const [idA, a] of players) { // 1. player to player collisions
+      if (!a.state.alive) continue
       for (const [idB, b] of players) {
-        if (idB <= idA) continue
+        if (!b.state.alive || idB <= idA) continue
         const dx = a.state.x - b.state.x
         const dy = a.state.y - b.state.y
         const dist = Math.sqrt(dx * dx + dy * dy)
@@ -122,8 +125,9 @@ setInterval(() => {
     }
 
       for (const [idA, a] of players) { // 2. player + drill collisions
+        if (!a.state.alive) continue
         for (const [idB, b] of players) {
-          if (idA === idB) continue
+          if (!b.state.alive || idA === idB) continue
           b.state.hp -= getDrillDamageOnCircle(
             a.state.x, a.state.y, a.state.rotation, a.state.playerRadius, 
             a.state.drillType, a.state.drillLengthMultiplier, a.state.drillDmgMultiplier,
@@ -132,17 +136,18 @@ setInterval(() => {
         }
       }
 
-  for (const player of players.values()) {
-    const chunkIndex = getChunkIndex(player.state.x, player.state.y)
+  for (const p of players.values()) {
+    if (!p.state.alive) continue
+    const chunkIndex = getChunkIndex(p.state.x, p.state.y)
     getNearbySquareIds(chunkIndex, nearbySquareIds) // only consider 9 nearest chunks for efficient collision checking
-    const drillReach = player.state.playerRadius + 40 * player.state.drillLengthMultiplier
+    const drillReach = p.state.playerRadius + 40 * p.state.drillLengthMultiplier
 
     for (const id of nearbySquareIds) {
 
       const square = squares.get(id) 
       if (!square) continue
-      const dx = player.state.x - square.state.x
-      const dy = player.state.y - square.state.y
+      const dx = p.state.x - square.state.x
+      const dy = p.state.y - square.state.y
       const sqrDist = dx * dx + dy * dy
 
       if (sqrDist > (drillReach + square.boundingRadius )**2) continue
@@ -152,24 +157,24 @@ setInterval(() => {
       const sqHalf = sqSize / 2
 
       square.state.hp -= getDrillDamageOnRect(
-        player.state.x, player.state.y, player.state.rotation, player.state.playerRadius,
-        player.state.drillType, player.state.drillLengthMultiplier, player.state.drillDmgMultiplier,
+        p.state.x, p.state.y, p.state.rotation, p.state.playerRadius,
+        p.state.drillType, p.state.drillLengthMultiplier, p.state.drillDmgMultiplier,
         square.state.x, square.state.y, square.state.rotation, sqHalf, sqHalf
       )
 
       if (circleIntersectsOrientedRect( // 4. player + square collisions
-        player.state.x, player.state.y, player.state.playerRadius,
+        p.state.x, p.state.y, p.state.playerRadius,
         square.state.x, square.state.y, square.state.rotation, sqHalf, sqHalf
       )) {
-        player.state.hp -= square.state.maxHp * SQUARE_COLLISION_DAMAGE_FACTOR
-        square.state.hp -= player.state.maxHp * PLAYER_COLLISION_DAMAGE_FACTOR
+        p.state.hp -= square.state.maxHp * SQUARE_COLLISION_DAMAGE_FACTOR
+        square.state.hp -= p.state.maxHp * PLAYER_COLLISION_DAMAGE_FACTOR
 
         // positional correction — push player out using circle-vs-AABB penetration
         const nx = dx / dist
         const ny = dy / dist
-        const overlap = (player.state.playerRadius + sqHalf) - dist
-        player.state.x += nx * overlap
-        player.state.y += ny * overlap
+        const overlap = (p.state.playerRadius + sqHalf) - dist
+        p.state.x += nx * overlap
+        p.state.y += ny * overlap
       }
     }
   }
@@ -225,9 +230,9 @@ setInterval(() => {
 
   const json = JSON.stringify(message)
 
-  for (const player of players.values()) {
-    if (player.socket && player.socket.readyState === WebSocket.OPEN) {
-      player.socket.send(json)
+  for (const p of players.values()) {
+    if (p.socket && p.socket.readyState === WebSocket.OPEN) {
+      p.socket.send(json)
     }
   }
 }, TICK_MS)
@@ -555,7 +560,7 @@ function isSpawnClearOfPlayers(spawnX: number, spawnY: number, minDist: number):
 
 function killPlayer(killer: ServerPlayer, victim: ServerPlayer) {
   killer.state.xp += KILL_PLAYER_XP_MULTIPLIER * victim.state.xp + 500 // grant xp to killer
-  players.delete(victim.state.id) // remove victim from active players list
+  victim.state.alive = false // kill victim
   broadcastToAll(JSON.stringify({ // broadcast that victim died
     type: 'player_killed',
     killerId: killer.state.id,
