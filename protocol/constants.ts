@@ -15,3 +15,5 @@ export const MIN_OBSTACLE_SPAWN_DIST = 300
 
 export const SQR_BASE_ROT_SPEED = 0.05
 export const MAX_SQR_ROT_SPEED = 3
+
+export const KILL_PLAYER_XP_MULTIPLIER = 0.4

@@ -1,10 +1,11 @@
 import { WebSocketServer, WebSocket } from 'ws'
 import { ServerPlayer, ServerSquare } from './entities'
-import { ClientMessage, WorldStateMessage } from '../../protocol/messages'
-import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, SQUARE_COLLISION_DAMAGE_FACTOR, PLAYER_COLLISION_DAMAGE_FACTOR, MIN_OBSTACLE_SPAWN_DIST, SQR_BASE_ROT_SPEED, MAX_SQR_ROT_SPEED } from '../../protocol/constants'
+import { ClientMessage, PlayerKilledMessage, WorldStateMessage } from '../../protocol/messages'
+import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, SQUARE_COLLISION_DAMAGE_FACTOR, PLAYER_COLLISION_DAMAGE_FACTOR, MIN_OBSTACLE_SPAWN_DIST, SQR_BASE_ROT_SPEED, MAX_SQR_ROT_SPEED, KILL_PLAYER_XP_MULTIPLIER } from '../../protocol/constants'
 import { DANGER_MAP, DENSITY_MAP } from './data/map'
 import { circleIntersectsTriangle } from '../../protocol/utils'
 import { PlayerState, SquareState } from '../../protocol/types'
+import { kill } from 'node:process'
 
 const PORT = 3000
 const CHUNK_COLS = 16
@@ -38,13 +39,15 @@ spawnSquaresOnStartup()
 
 wss.on('connection', (socket) => {
   const id = nextPlayerId++
+  console.log(`Player ${id} connected`)
 
   players.set(id, {
     socket,
     state: {
-      id, 
+      id,
+      xp: 0,
       x: 400, 
-      y: 300, 
+      y: 300,
       rotation: 0,
       hp: PLAYER_BASE_HP,
       maxHp: PLAYER_BASE_HP,
@@ -57,7 +60,6 @@ wss.on('connection', (socket) => {
   })
   // S->C: Tell this client their assigned id
   socket.send(JSON.stringify({ type: 'welcome', id }))
-  console.log(`Player ${id} connected`)
 
   socket.on('close', () => {
     players.delete(id)
@@ -112,6 +114,9 @@ setInterval(() => {
 
           a.state.hp -= PLAYER_COLLISION_DAMAGE_FACTOR * 10
           b.state.hp -= PLAYER_COLLISION_DAMAGE_FACTOR * 10
+
+          if (b.state.hp <= 0) killPlayer(a, b) // kills player and rewards xp to killer
+          if (a.state.hp <= 0) killPlayer(b, a)
         }
       }
     }
@@ -546,4 +551,22 @@ function isSpawnClearOfPlayers(spawnX: number, spawnY: number, minDist: number):
     if (dx * dx + dy * dy < minDist * minDist) return false
   }
   return true
+}
+
+function killPlayer(killer: ServerPlayer, victim: ServerPlayer) {
+  killer.state.xp += KILL_PLAYER_XP_MULTIPLIER * victim.state.xp + 500 // grant xp to killer
+  players.delete(victim.state.id) // remove victim from active players list
+  broadcastToAll(JSON.stringify({ // broadcast that victim died
+    type: 'player_killed',
+    killerId: killer.state.id,
+    victimId: victim.state.id,
+  } satisfies PlayerKilledMessage))
+}
+
+// helper to broadcast that a player died
+function broadcastToAll(json: string) {
+  for (const player of players.values()) {
+    if (player.socket?.readyState === WebSocket.OPEN)
+      player.socket.send(json)
+  }
 }
