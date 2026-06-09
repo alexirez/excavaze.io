@@ -39,8 +39,8 @@ export interface RequestUpgradeMessage {
 
 export interface PlayerKilledMessage {
   type: 'player_killed'
-  killerId: number
   victimId: number
+  killerName: string
 }
 
 export type ClientMessage = InputMessage | RequestUpgradeMessage

@@ -69,18 +69,21 @@ export class GameScene extends Phaser.Scene {
 
         // replace player list with newest update from server
         this.latestPlayersState.clear()
-        for (const player of msg.players) {
-          this.latestPlayersState.set(player.id, {
-            id: player.id,
-            x: player.x,
-            y: player.y,
-            rotation: player.rotation,
-            hp: player.hp,
-            maxHp: player.maxHp,
-            playerRadius: player.playerRadius,
-            drillType: player.drillType,
-            drillDmgMultiplier: player.drillDmgMultiplier,
-            drillLengthMultiplier: player.drillLengthMultiplier
+        for (const p of msg.players) {
+          this.latestPlayersState.set(p.id, {
+            id: p.id,
+            name: p.name,
+            xp: p.xp,
+            alive: p.alive,
+            x: p.x,
+            y: p.y,
+            rotation: p.rotation,
+            hp: p.hp,
+            maxHp: p.maxHp,
+            playerRadius: p.playerRadius,
+            drillType: p.drillType,
+            drillDmgMultiplier: p.drillDmgMultiplier,
+            drillLengthMultiplier: p.drillLengthMultiplier
           })
         }
 
@@ -96,6 +99,9 @@ export class GameScene extends Phaser.Scene {
             rotation: square.rotation
           })
         }
+      } else if (msg.type === 'player_killed') {
+        if (msg.victimId === this.localId)
+          console.log(`You were killed by ${msg.killerName}`)
       }
     }
 
