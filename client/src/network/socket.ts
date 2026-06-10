@@ -1,4 +1,7 @@
+import { ServerMessage } from '../../../protocol/messages'
+
 let current: WebSocket = null!
+let localId: number | null = null
 
 function connect() {
   current = new WebSocket('ws://localhost:3000')
@@ -7,8 +10,14 @@ function connect() {
     console.log('Disconnected, retrying in 0.5s...')
     setTimeout(connect, 500)
   }
-  current.onmessage = (e) => socket.onmessage?.(e)
+  current.onmessage = (e) => {
+    const msg = JSON.parse(e.data) as ServerMessage
+    if (msg.type === 'welcome') localId = msg.id
+    socket.onmessage?.(e)
+  }
 }
+
+export function getLocalId() { return localId }
 
 const socket = {
   send: (data: string) => current.send(data),

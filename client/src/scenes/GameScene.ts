@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import socket from '../network/socket'
+import socket, { getLocalId } from '../network/socket'
 import { PlayerState, SquareState } from '../../../protocol/types'
 import { ServerMessage } from '../../../protocol/messages'
 import { WORLD_WIDTH, WORLD_HEIGHT, COLOR_BACKGROUND, COLOR_OUTER_BOUNDS, WORLD_PADDING, SQUARE_BASE_HP, PLAYER_BASE_HP } from '../../../protocol/constants'
@@ -62,10 +62,6 @@ export class GameScene extends Phaser.Scene {
       const msg = JSON.parse(event.data) as ServerMessage
       console.log('received:', msg.type)
 
-      if (msg.type === 'welcome') {
-        this.localId = msg.id
-      }
-
       // Store the latest state for rendering in update()
       if (msg.type === 'world_state') {
 
@@ -108,11 +104,13 @@ export class GameScene extends Phaser.Scene {
 
     // Send input to server every tick
     setInterval(() => {
-      if (this.localId === null) return
+      if (getLocalId() === null) return
       const dx = (this.keys.D.isDown ? 1 : 0) - (this.keys.A.isDown ? 1 : 0)
       const dy = (this.keys.S.isDown ? 1 : 0) - (this.keys.W.isDown ? 1 : 0)
       const pointer = this.input.activePointer
-      const localPlayer = this.latestPlayersState.get(this.localId)
+      const localId = getLocalId()
+      if (localId === null) return
+      const localPlayer = this.latestPlayersState.get(localId)
       let rotation = 0
       if (localPlayer != null) {
         rotation = Phaser.Math.Angle.Between(
@@ -131,9 +129,11 @@ export class GameScene extends Phaser.Scene {
   // Only rendering, game logic is on server side
   update() {
     console.log('GameScene update called')
-    if (this.localId === null) return // no id assigned yet -> do nothing
+    if (getLocalId() === null) return // no id assigned yet -> do nothing
 
-    const playerState = this.latestPlayersState.get(this.localId)
+    const localId = getLocalId()
+    if (localId === null) return
+    const playerState = this.latestPlayersState.get(localId)
     this.playerGraphics.clear()
     this.playerHealthBar.clear()
     if (playerState) {
@@ -161,7 +161,7 @@ export class GameScene extends Phaser.Scene {
     // Update enemies
     this.enemyGraphics.clear()
     for (const [id, p] of this.latestPlayersState.entries()) {
-      if (id === this.localId) continue
+      if (id === getLocalId()) continue
 
       this.enemyGraphics.save()
       this.enemyGraphics.translateCanvas(p.x, p.y)
