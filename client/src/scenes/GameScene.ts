@@ -100,11 +100,7 @@ export class GameScene extends Phaser.Scene {
           })
         }
       } else if (msg.type === 'player_killed') {
-        if (msg.victimId === this.localId) {
-          console.log(`You were killed by ${msg.killerName}`)
-        } else {
-          console.log(`Player ${msg.victimId} was killed by ${msg.killerName}`)
-        }
+          console.log(`Player ${msg.victimName} was killed by ${msg.killerName}`)
       }
     }
 

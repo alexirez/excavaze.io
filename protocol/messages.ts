@@ -39,7 +39,7 @@ export interface RequestUpgradeMessage {
 
 export interface PlayerKilledMessage {
   type: 'player_killed'
-  victimId: number
+  victimName: number
   killerName: string
 }
 
