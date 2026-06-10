@@ -106,10 +106,10 @@ export class GameScene extends Phaser.Scene {
 
     // Send input to server every tick
     setInterval(() => {
+      if (this.localId === null) return
       const dx = (this.keys.D.isDown ? 1 : 0) - (this.keys.A.isDown ? 1 : 0)
       const dy = (this.keys.S.isDown ? 1 : 0) - (this.keys.W.isDown ? 1 : 0)
       const pointer = this.input.activePointer
-      if (this.localId === null) return
       const localPlayer = this.latestPlayersState.get(this.localId)
       let rotation = 0
       if (localPlayer != null) {
@@ -131,11 +131,11 @@ export class GameScene extends Phaser.Scene {
     if (this.localId === null) return // no id assigned yet -> do nothing
 
     const playerState = this.latestPlayersState.get(this.localId)
+    this.playerGraphics.clear()
+    this.playerHealthBar.clear()
     if (playerState) {
       this.cameraTarget.x = playerState.x
       this.cameraTarget.y = playerState.y
-
-      this.playerGraphics.clear()
       this.playerGraphics.fillStyle(0x00ff99)
       this.playerGraphics.save()
       this.playerGraphics.translateCanvas(playerState.x, playerState.y)
@@ -158,7 +158,7 @@ export class GameScene extends Phaser.Scene {
     // Update enemies
     this.enemyGraphics.clear()
     for (const [id, p] of this.latestPlayersState.entries()) {
-      if (id === this.localId || playerState === undefined) continue
+      if (id === this.localId) continue
 
       this.enemyGraphics.save()
       this.enemyGraphics.translateCanvas(p.x, p.y)

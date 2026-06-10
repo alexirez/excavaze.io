@@ -566,7 +566,7 @@ function killPlayer(killer: ServerPlayer, victim: ServerPlayer) {
   victim.state.alive = false
   broadcastToAll(JSON.stringify({ // broadcast that victim died
     type: 'player_killed',
-    victimId: victim.state.id,
+    victimName: victim.state.name,
     killerName: killer.state.name,
   } satisfies PlayerKilledMessage))
 }
@@ -575,7 +575,7 @@ function killPlayerBySquare(victim: ServerPlayer) {
   victim.state.alive = false
   broadcastToAll(JSON.stringify({
     type: 'player_killed',
-    victimId: victim.state.id,
+    victimName: victim.state.name,
     killerName: 'a Square',
   } satisfies PlayerKilledMessage))
 }
