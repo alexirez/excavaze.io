@@ -119,8 +119,8 @@ setInterval(() => {
           a.state.hp -= PLAYER_COLLISION_DAMAGE_FACTOR * 10
           b.state.hp -= PLAYER_COLLISION_DAMAGE_FACTOR * 10
 
-          if (b.state.hp <= 0) killPlayer(a, b) // kills player and rewards xp to killer
-          if (a.state.hp <= 0) killPlayer(b, a)
+          if (b.state.hp <= 0) { b.state.alive = false; killPlayer(a, b) } // broadcasts victim death and rewards xp to killer
+          if (a.state.hp <= 0) { a.state.alive = false; killPlayer(b, a) }
         }
       }
     }
@@ -134,7 +134,7 @@ setInterval(() => {
             a.state.drillType, a.state.drillLengthMultiplier, a.state.drillDmgMultiplier,
             b.state.x, b.state.y, b.state.playerRadius
           )
-          if (b.state.hp <= 0) killPlayer(a, b)
+          if (b.state.hp <= 0) { b.state.alive = false; killPlayer(a, b) }
         }
       }
 
@@ -170,7 +170,7 @@ setInterval(() => {
       )) {
         square.state.hp -= p.state.maxHp * PLAYER_COLLISION_DAMAGE_FACTOR
         p.state.hp -= square.state.maxHp * SQUARE_COLLISION_DAMAGE_FACTOR
-        if (p.state.hp <= 0) killPlayerBySquare(p)
+        if (p.state.hp <= 0) { p.state.alive = false; killPlayerBySquare(p) }
 
         // positional correction — push player out using circle-vs-AABB penetration
         const nx = dx / dist
@@ -574,7 +574,6 @@ function killPlayer(killer: ServerPlayer, victim: ServerPlayer) {
 }
 
 function killPlayerBySquare(victim: ServerPlayer) {
-  victim.state.alive = false
   broadcastToAll(JSON.stringify({
     type: 'player_killed',
     victimId: victim.state.id,
