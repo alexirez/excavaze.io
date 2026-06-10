@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import PhaserGame from './core/PhaserGame'
-import { addSocketListener, removeSocketListener } from './network/socket'
+import { addSocketListener, getLocalId, removeSocketListener } from './network/socket'
 import { ServerMessage } from '../../protocol/messages'
 
 interface KillFeedEntry {
   id: number
-  killerName: string
+  victimId: number
+  killerId?: number
+  killerName?: string
   victimName: string
   exiting: boolean
 }
@@ -18,7 +20,16 @@ export default function App() {
       const msg = JSON.parse(event.data) as ServerMessage
       if (msg.type === 'player_killed') {
         const id = Date.now()
-        setKillFeed(prev => [...prev, { id, killerName: msg.killerName, victimName: msg.victimName, exiting: false }])
+        setKillFeed(prev => [...prev, { id, victimId: msg.victimId, killerId: msg.killerId, killerName: msg.killerName, victimName: msg.victimName, exiting: false }])
+        setTimeout(() => {
+          setKillFeed(prev => prev.map(e => e.id === id ? { ...e, exiting: true } : e))
+        }, 4500)
+        setTimeout(() => {
+          setKillFeed(prev => prev.filter(e => e.id !== id))
+        }, 5000)
+      } else if (msg.type === "square_killed_player") {
+        const id = Date.now()
+        setKillFeed(prev => [...prev, {id, victimId: msg.victimId, victimName: msg.victimName, exiting: false }])
         setTimeout(() => {
           setKillFeed(prev => prev.map(e => e.id === id ? { ...e, exiting: true } : e))
         }, 4500)
@@ -45,22 +56,30 @@ export default function App() {
         pointerEvents: 'none',
       }}>
         {killFeed.map(entry => (
-          <div key={entry.id} style={{
-            opacity: entry.exiting ? 0 : 1,
-            transform: entry.exiting ? 'translateX(100px)' : 'translateX(0)',
-            transition: 'opacity 0.5s ease, transform 0.5s ease',
-            background: 'rgba(0,0,0,0.6)',
-            color: 'white',
-            padding: '4px 10px',
-            borderRadius: 4,
-            fontSize: 13,
-            whiteSpace: 'nowrap',
-          }}>
-            <span style={{ color: '#ff6b6b' }}>{entry.killerName}</span>
-            <span style={{ color: '#aaa' }}> killed </span>
-            <span style={{ color: '#00ff99' }}>{entry.victimName}</span>
-          </div>
-        ))}
+        <div key={entry.id} style={{
+          opacity: entry.exiting ? 0 : 1,
+          transform: entry.exiting ? 'translateX(100px)' : 'translateX(0)',
+          transition: 'opacity 0.5s ease, transform 0.5s ease',
+          background: 'rgba(0,0,0,0.6)',
+          color: 'white',
+          padding: '4px 10px',
+          borderRadius: 4,
+          fontSize: 13,
+          whiteSpace: 'nowrap',
+        }}>
+          <span style={{ color: entry.victimId === getLocalId() ? '#00ff99' : '#ff6b6b' }}>
+            {entry.victimName}
+          </span>
+          <span style={{ color: '#aaa' }}> was killed by </span>
+          {entry.killerName ? (
+            <span style={{ color: entry.killerId === getLocalId() ? '#00ff99' : '#ff6b6b' }}>
+              {entry.killerName}
+            </span>
+          ) : (
+            <span style={{ color: '#f5a623' }}>a Square</span>
+          )}
+        </div>
+      ))}
       </div>
     </div>
   )

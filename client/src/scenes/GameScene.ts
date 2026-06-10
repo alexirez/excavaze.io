@@ -97,8 +97,6 @@ export class GameScene extends Phaser.Scene {
             rotation: square.rotation
           })
         }
-      } else if (msg.type === 'player_killed') {
-          console.log(`Player ${msg.victimName} was killed by ${msg.killerName}`)
       }
     }
     addSocketListener(handler)

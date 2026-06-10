@@ -39,9 +39,17 @@ export interface RequestUpgradeMessage {
 
 export interface PlayerKilledMessage {
   type: 'player_killed'
+  killerId: number
+  victimId: number
   victimName: string
   killerName: string
 }
 
+export interface SquareKilledPlayerMessage {
+  type: 'square_killed_player'
+  victimId: number
+  victimName: string
+}
+
 export type ClientMessage = InputMessage | RequestUpgradeMessage
-export type ServerMessage = WelcomeMessage | WorldStateMessage | LevelUpMessage | PlayerKilledMessage
+export type ServerMessage = WelcomeMessage | WorldStateMessage | LevelUpMessage | PlayerKilledMessage | SquareKilledPlayerMessage
