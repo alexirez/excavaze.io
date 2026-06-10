@@ -20,7 +20,8 @@ export class GameScene extends Phaser.Scene {
     super({ key: 'GameScene' })
   }
 
-  create() {    
+  create() {
+    console.log('GameScene create called')
     // background of in-bounds area
     this.add.rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH - WORLD_PADDING * 2.5, WORLD_HEIGHT - WORLD_PADDING * 2.5, COLOR_BACKGROUND).setDepth(-1)
 
@@ -59,6 +60,7 @@ export class GameScene extends Phaser.Scene {
     // Subscribe to messages from the server
     socket.onmessage = (event) => {
       const msg = JSON.parse(event.data) as ServerMessage
+      console.log('received:', msg.type)
 
       if (msg.type === 'welcome') {
         this.localId = msg.id
@@ -128,6 +130,7 @@ export class GameScene extends Phaser.Scene {
 
   // Only rendering, game logic is on server side
   update() {
+    console.log('GameScene update called')
     if (this.localId === null) return // no id assigned yet -> do nothing
 
     const playerState = this.latestPlayersState.get(this.localId)

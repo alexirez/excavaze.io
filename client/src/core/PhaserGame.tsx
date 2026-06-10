@@ -6,17 +6,25 @@ export default function PhaserGame() {
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const game = new Phaser.Game({
+  let game: Phaser.Game
+
+  requestAnimationFrame(() => {
+    game = new Phaser.Game({
       type: Phaser.AUTO,
-      width: window.innerWidth,
-      height: window.innerHeight,
       backgroundColor: '#1a1a2e',
       scene: [GameScene],
       parent: containerRef.current!,
+      scale: {
+        mode: Phaser.Scale.RESIZE,
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+        width: '100%',
+        height: '100%',
+      },
     })
+  })
 
-    return () => game.destroy(true)
-  }, [])
+  return () => game?.destroy(true)
+}, [])
 
-  return <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+  return <div ref={containerRef} style={{ width: '100vw', height: '100vh' }} />
 }
