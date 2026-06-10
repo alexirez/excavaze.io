@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import socket, { getLocalId } from '../network/socket'
+import socket, { addSocketListener, getLocalId } from '../network/socket'
 import { PlayerState, SquareState } from '../../../protocol/types'
 import { ServerMessage } from '../../../protocol/messages'
 import { WORLD_WIDTH, WORLD_HEIGHT, COLOR_BACKGROUND, COLOR_OUTER_BOUNDS, WORLD_PADDING, SQUARE_BASE_HP, PLAYER_BASE_HP } from '../../../protocol/constants'
@@ -58,7 +58,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     // Subscribe to messages from the server
-    socket.onmessage = (event) => {
+    const handler = (event: MessageEvent) => {
       const msg = JSON.parse(event.data) as ServerMessage
       console.log('received:', msg.type)
 
@@ -101,6 +101,7 @@ export class GameScene extends Phaser.Scene {
           console.log(`Player ${msg.victimName} was killed by ${msg.killerName}`)
       }
     }
+    addSocketListener(handler)
 
     // Send input to server every tick
     setInterval(() => {
