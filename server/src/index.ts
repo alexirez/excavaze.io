@@ -12,7 +12,7 @@ const CHUNK_ROWS = 16
 const UNIT_SPEED = 10
 const SQUARE_SPEED = 0.5  // multiplies square drifting speed
 const SQUARE_BASE_BOUNDING_RADIUS = 10 // used for broad phase collision
-const SHIELD_DURATION = 45
+const SHIELD_DURATION = 50
 
 const chunkHeat = new Float32Array(CHUNK_ROWS * CHUNK_COLS)
 const HEAT_SPAWN_THRESHOLD = 10
