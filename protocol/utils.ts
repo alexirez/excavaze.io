@@ -39,11 +39,11 @@ export function circleIntersectsTriangle(
 }
 
 export function currentLevel(xp: number): number {
-  return Math.floor(Math.log(1 + xp * 0.1 / 500) / Math.log(1.1))
+  return Math.floor(Math.log(1 + xp * 0.1 / 200) / Math.log(1.1))
 }
 
 export function xpForLevel(level: number): number {
-  return Math.floor(500 * ((Math.pow(1.1, level) - 1) / 0.1))
+  return Math.floor(200 * ((Math.pow(1.1, level) - 1) / 0.1))
 }
 
 export function xpThisLevel(xp: number): number {

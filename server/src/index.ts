@@ -1,7 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws'
 import { ServerPlayer, ServerSquare } from './entities'
 import { WorldStateMessage, ClientMessage, DeathScreenMessage, PlayerKilledMessage } from '../../protocol/messages'
-import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, SQUARE_COLLISION_DAMAGE_FACTOR, PLAYER_COLLISION_DAMAGE_FACTOR, MIN_OBSTACLE_SPAWN_DIST, SQR_BASE_ROT_SPEED, MAX_SQR_ROT_SPEED, KILL_PLAYER_XP_MULTIPLIER } from '../../protocol/constants'
+import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, SQUARE_COLLISION_DAMAGE_FACTOR, PLAYER_COLLISION_DAMAGE_FACTOR, MIN_OBSTACLE_SPAWN_DIST, SQR_BASE_ROT_SPEED, MAX_SQR_ROT_SPEED, KILL_SQUARE_XP_MULTIPLIER, STEAL_PLAYER_XP_MULTIPLIER, KILL_PLAYER_BASE_XP } from '../../protocol/constants'
 import { DANGER_MAP, DENSITY_MAP } from './data/map'
 import { circleIntersectsTriangle } from '../../protocol/utils'
 import { PlayerState, SquareState } from '../../protocol/types'
@@ -182,12 +182,16 @@ setInterval(() => {
         p.state.drillType, p.state.drillLengthMultiplier, p.state.drillDmgMultiplier,
         square.state.x, square.state.y, square.state.rotation, sqHalf, sqHalf
       )
+      if (square.state.hp <= 0)
+        p.state.xp += KILL_SQUARE_XP_MULTIPLIER * square.state.maxHp
 
       if (circleIntersectsOrientedRect(
         p.state.x, p.state.y, p.state.playerRadius,
         square.state.x, square.state.y, square.state.rotation, sqHalf, sqHalf // 4. player + square collisions
       )) {
         square.state.hp -= p.state.maxHp * PLAYER_COLLISION_DAMAGE_FACTOR
+        if (square.state.hp <= 0)
+          p.state.xp += KILL_SQUARE_XP_MULTIPLIER * square.state.maxHp
         if (!p.state.shieldActive) p.state.hp -= square.state.maxHp * SQUARE_COLLISION_DAMAGE_FACTOR
         if (p.state.hp <= 0) killPlayerBySquare(p)
 
@@ -582,7 +586,7 @@ function isSpawnClearOfPlayers(spawnX: number, spawnY: number, minDist: number):
 function killPlayer(killer: ServerPlayer, victim: ServerPlayer) {
   if (!victim.state.alive) return
   victim.state.alive = false
-  killer.state.xp += KILL_PLAYER_XP_MULTIPLIER * victim.state.xp + 500
+  killer.state.xp += STEAL_PLAYER_XP_MULTIPLIER * victim.state.xp + KILL_PLAYER_BASE_XP
   broadcastToAll(JSON.stringify({ // broadcast that victim died
     type: 'player_killed',
     victimId: victim.state.id,

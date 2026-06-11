@@ -16,4 +16,6 @@ export const MIN_OBSTACLE_SPAWN_DIST = 300
 export const SQR_BASE_ROT_SPEED = 0.05
 export const MAX_SQR_ROT_SPEED = 3
 
-export const KILL_PLAYER_XP_MULTIPLIER = 0.4
+export const STEAL_PLAYER_XP_MULTIPLIER = 0.4 // ratio of victim's xp to keep, in addition to base kill xp
+export const KILL_PLAYER_BASE_XP = 500 // reward this xp for any player kill + steal some of victim's xp
+export const KILL_SQUARE_XP_MULTIPLIER = 0.3
