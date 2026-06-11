@@ -56,6 +56,10 @@ export interface DeathScreenMessage {
   killerName: string
 }
 
-export type ClientMessage = InputMessage | RequestUpgradeMessage
+export interface RespawnMessage {
+  type: 'respawn'
+}
+
+export type ClientMessage = InputMessage | RequestUpgradeMessage | RespawnMessage
 export type ServerMessage = WelcomeMessage | WorldStateMessage | LevelUpMessage | PlayerKilledMessage 
   | SquareKilledPlayerMessage | DeathScreenMessage

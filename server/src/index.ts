@@ -1,11 +1,10 @@
 import { WebSocketServer, WebSocket } from 'ws'
 import { ServerPlayer, ServerSquare } from './entities'
-import { ClientMessage, DeathScreenMessage, PlayerKilledMessage, WorldStateMessage } from '../../protocol/messages'
+import { WorldStateMessage, ClientMessage, DeathScreenMessage, PlayerKilledMessage } from '../../protocol/messages'
 import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, SQUARE_COLLISION_DAMAGE_FACTOR, PLAYER_COLLISION_DAMAGE_FACTOR, MIN_OBSTACLE_SPAWN_DIST, SQR_BASE_ROT_SPEED, MAX_SQR_ROT_SPEED, KILL_PLAYER_XP_MULTIPLIER } from '../../protocol/constants'
 import { DANGER_MAP, DENSITY_MAP } from './data/map'
 import { circleIntersectsTriangle } from '../../protocol/utils'
 import { PlayerState, SquareState } from '../../protocol/types'
-import { kill } from 'node:process'
 
 const PORT = 3000
 const CHUNK_COLS = 16
@@ -77,6 +76,14 @@ wss.on('connection', (socket) => {
           dy: msg.dy,
           rotation: msg.rotation,
         }
+      } else if (msg.type === 'respawn') {
+        // TODO: smart spawning computes x, y
+        const player = players.get(id)!
+        if (player.state.alive) return
+        player.state.alive = true
+        player.state.hp = PLAYER_BASE_HP
+        player.state.x = WORLD_WIDTH / 2
+        player.state.y = WORLD_HEIGHT / 2
       }
     } catch {
       // invalid JSON, ignore
@@ -119,8 +126,8 @@ setInterval(() => {
           a.state.hp -= PLAYER_COLLISION_DAMAGE_FACTOR * 10
           b.state.hp -= PLAYER_COLLISION_DAMAGE_FACTOR * 10
 
-          if (b.state.hp <= 0) { b.state.alive = false; killPlayer(a, b) } // broadcasts victim death and rewards xp to killer
-          if (a.state.hp <= 0) { a.state.alive = false; killPlayer(b, a) }
+          if (b.state.hp <= 0 ) killPlayer(a, b) // broadcasts victim death and rewards xp to killer
+          if (a.state.hp <= 0 ) killPlayer(b, a)
         }
       }
     }
@@ -134,7 +141,7 @@ setInterval(() => {
             a.state.drillType, a.state.drillLengthMultiplier, a.state.drillDmgMultiplier,
             b.state.x, b.state.y, b.state.playerRadius
           )
-          if (b.state.hp <= 0) { b.state.alive = false; killPlayer(a, b) }
+          if (b.state.hp <= 0) killPlayer(a, b)
         }
       }
 
@@ -170,7 +177,7 @@ setInterval(() => {
       )) {
         square.state.hp -= p.state.maxHp * PLAYER_COLLISION_DAMAGE_FACTOR
         p.state.hp -= square.state.maxHp * SQUARE_COLLISION_DAMAGE_FACTOR
-        if (p.state.hp <= 0) { p.state.alive = false; killPlayerBySquare(p) }
+        if (p.state.hp <= 0) killPlayerBySquare(p)
 
         // positional correction — push player out using circle-vs-AABB penetration
         const nx = dx / dist
@@ -562,8 +569,9 @@ function isSpawnClearOfPlayers(spawnX: number, spawnY: number, minDist: number):
 }
 
 function killPlayer(killer: ServerPlayer, victim: ServerPlayer) {
-  killer.state.xp += KILL_PLAYER_XP_MULTIPLIER * victim.state.xp + 500
+  if (!victim.state.alive) return
   victim.state.alive = false
+  killer.state.xp += KILL_PLAYER_XP_MULTIPLIER * victim.state.xp + 500
   broadcastToAll(JSON.stringify({ // broadcast that victim died
     type: 'player_killed',
     victimId: victim.state.id,
@@ -578,6 +586,8 @@ function killPlayer(killer: ServerPlayer, victim: ServerPlayer) {
 }
 
 function killPlayerBySquare(victim: ServerPlayer) {
+  if (!victim.state.alive) return
+  victim.state.alive = false
   broadcastToAll(JSON.stringify({
     type: 'player_killed',
     victimId: victim.state.id,
