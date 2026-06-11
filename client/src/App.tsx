@@ -128,7 +128,8 @@ export default function App() {
           transition: 'opacity 1s ease, transform 1s ease',
           pointerEvents: isDead ? 'auto' : 'none',
         }}>
-          <span style={{ color: '#ff3333', fontSize: 36, fontWeight: 'bold' }}>
+          <span style={{ color: '#ff3333', fontSize: 36, fontWeight: 'bold', display: 'block',
+            textAlign: 'center' }}>
             You Were Killed by <span>{killerName}</span>
           </span>
           <span style={{ color: '#aaa', fontSize: 14, marginTop: 16, textAlign: 'center', padding: '0 24px' }}>
