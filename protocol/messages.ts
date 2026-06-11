@@ -51,5 +51,11 @@ export interface SquareKilledPlayerMessage {
   victimName: string
 }
 
+export interface DeathScreenMessage {
+  type: 'death_screen'
+  killerName: string
+}
+
 export type ClientMessage = InputMessage | RequestUpgradeMessage
-export type ServerMessage = WelcomeMessage | WorldStateMessage | LevelUpMessage | PlayerKilledMessage | SquareKilledPlayerMessage
+export type ServerMessage = WelcomeMessage | WorldStateMessage | LevelUpMessage | PlayerKilledMessage 
+  | SquareKilledPlayerMessage | DeathScreenMessage

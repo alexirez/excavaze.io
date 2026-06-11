@@ -1,6 +1,6 @@
 import { WebSocketServer, WebSocket } from 'ws'
 import { ServerPlayer, ServerSquare } from './entities'
-import { ClientMessage, PlayerKilledMessage, WorldStateMessage } from '../../protocol/messages'
+import { ClientMessage, DeathScreenMessage, PlayerKilledMessage, WorldStateMessage } from '../../protocol/messages'
 import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, SQUARE_COLLISION_DAMAGE_FACTOR, PLAYER_COLLISION_DAMAGE_FACTOR, MIN_OBSTACLE_SPAWN_DIST, SQR_BASE_ROT_SPEED, MAX_SQR_ROT_SPEED, KILL_PLAYER_XP_MULTIPLIER } from '../../protocol/constants'
 import { DANGER_MAP, DENSITY_MAP } from './data/map'
 import { circleIntersectsTriangle } from '../../protocol/utils'
@@ -571,6 +571,10 @@ function killPlayer(killer: ServerPlayer, victim: ServerPlayer) {
     victimName: victim.state.name,
     killerName: killer.state.name,
   } satisfies PlayerKilledMessage))
+  victim.socket?.send(JSON.stringify({
+  type: 'death_screen',
+  killerName: killer.state.name,
+} satisfies DeathScreenMessage))
 }
 
 function killPlayerBySquare(victim: ServerPlayer) {
@@ -581,6 +585,10 @@ function killPlayerBySquare(victim: ServerPlayer) {
     victimName: victim.state.name,
     killerName: 'A Square',
   } satisfies PlayerKilledMessage))
+  victim.socket?.send(JSON.stringify({
+  type: 'death_screen',
+  killerName: 'a Square',
+} satisfies DeathScreenMessage))
 }
 
 // helper to broadcast that a player died
