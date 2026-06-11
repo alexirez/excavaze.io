@@ -176,6 +176,17 @@ export class GameScene extends Phaser.Scene {
       drawDrill(this.enemyGraphics, p, 0xff4444)
 
       this.enemyGraphics.restore()
+
+      // enemy healthbar
+      if (p.hp < p.maxHp) {
+        const ratio = Math.max(0, p.hp / p.maxHp)
+        const bw = 40
+        const bh = 5
+        this.enemyGraphics.fillStyle(0x555555)
+        this.enemyGraphics.fillRect(p.x - bw / 2, p.y - p.playerRadius - 12, bw, bh)
+        this.enemyGraphics.fillStyle(getHealthColor(ratio))
+        this.enemyGraphics.fillRect(p.x - bw / 2, p.y - p.playerRadius - 12, ratio * bw, bh)
+      }
     }
 
     // update objects' healthbars
