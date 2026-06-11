@@ -12,11 +12,20 @@ interface KillFeedEntry {
   exiting: boolean
 }
 
+const DEATH_TIPS = [
+  "Tip: Bigger squares deal more damage but grant more xp.",
+  "Tip: Your drill length can be upgraded to reach enemies from a safer distance.",
+  "Tip: Ramming into other players deals damage to both of you.",
+  "Tip: Some areas are more dense than others.",
+  "Tip: Avoid large players!.",
+]
+
 export default function App() {
   const [killFeed, setKillFeed] = useState<KillFeedEntry[]>([])
   const [isDead, setIsDead] = useState(false)
   const [deathVisible, setDeathVisible] = useState(false)
   const [killerName, setKillerName] = useState('')
+  const [deathTip, setDeathTip] = useState('')
 
   useEffect(() => {
     if (isDead) {
@@ -51,6 +60,7 @@ export default function App() {
       } else if (msg.type === 'death_screen') {
         setIsDead(true)
         setKillerName(msg.killerName)
+        setDeathTip(DEATH_TIPS[Math.floor(Math.random() * DEATH_TIPS.length)])
       }
     }
     addSocketListener(handler)
@@ -118,9 +128,11 @@ export default function App() {
           transition: 'opacity 1s ease, transform 1s ease',
           pointerEvents: isDead ? 'auto' : 'none',
         }}>
-          <span style={{ color: '#e62e2eba', fontSize: 48, fontWeight: 'bold' }}>You Died</span>
-          <span style={{ color: '#aaa', fontSize: 18, marginTop: 12 }}>
-            Killed by <span style={{ color: '#ff6b6b' }}>{killerName}</span>
+          <span style={{ color: '#ff3333', fontSize: 36, fontWeight: 'bold' }}>
+            You Were Killed by <span>{killerName}</span>
+          </span>
+          <span style={{ color: '#aaa', fontSize: 14, marginTop: 16, textAlign: 'center', padding: '0 24px' }}>
+            {deathTip}
           </span>
           <button
             onClick={() => setIsDead(false)}
