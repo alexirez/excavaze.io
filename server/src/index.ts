@@ -12,6 +12,7 @@ const CHUNK_ROWS = 16
 const UNIT_SPEED = 10
 const SQUARE_SPEED = 0.5  // multiplies square drifting speed
 const SQUARE_BASE_BOUNDING_RADIUS = 10 // used for broad phase collision
+const SHIELD_DURATION = 45
 
 const chunkHeat = new Float32Array(CHUNK_ROWS * CHUNK_COLS)
 const HEAT_SPAWN_THRESHOLD = 10
@@ -47,6 +48,7 @@ wss.on('connection', (socket) => {
       name: "Player", // TODO: allow setting name
       xp: 0,
       alive: true,
+      shieldActive: true,
       x: 400, 
       y: 300,
       rotation: 0,
@@ -58,6 +60,7 @@ wss.on('connection', (socket) => {
       drillLengthMultiplier: 1
     },
     input: { dx: 0, dy: 0, rotation: 0 },
+    shieldTicks: SHIELD_DURATION
   })
   // S->C: Tell this client their assigned id
   socket.send(JSON.stringify({ type: 'welcome', id }))
@@ -84,6 +87,8 @@ wss.on('connection', (socket) => {
         player.state.hp = PLAYER_BASE_HP
         player.state.x = WORLD_WIDTH / 2
         player.state.y = WORLD_HEIGHT / 2
+        player.state.shieldActive = true
+        player.shieldTicks = SHIELD_DURATION
       }
     } catch {
       // invalid JSON, ignore
@@ -100,9 +105,16 @@ setInterval(() => {
     p.state.x = Math.max(WORLD_PADDING, Math.min(WORLD_WIDTH - WORLD_PADDING, p.state.x + p.input.dx * UNIT_SPEED))
     p.state.y = Math.max(WORLD_PADDING, Math.min(WORLD_HEIGHT - WORLD_PADDING, p.state.y + p.input.dy * UNIT_SPEED))
     p.state.rotation = p.input.rotation
-  }
 
-  // 2) Check for collisions
+    // 2) Process spawn shield timers
+    if (p.shieldTicks > 0) {
+      p.shieldTicks--
+      if (p.shieldTicks === 0) p.state.shieldActive = false
+    }
+  }
+  
+
+  // 3) Check for collisions
     for (const [idA, a] of players) { // 1. player to player collisions
       if (!a.state.alive) continue
       for (const [idB, b] of players) {
@@ -123,8 +135,8 @@ setInterval(() => {
           b.state.x -= nx * overlap / 2
           b.state.y -= ny * overlap / 2
 
-          a.state.hp -= PLAYER_COLLISION_DAMAGE_FACTOR * 10
-          b.state.hp -= PLAYER_COLLISION_DAMAGE_FACTOR * 10
+          if (!a.state.shieldActive) a.state.hp -= PLAYER_COLLISION_DAMAGE_FACTOR * 10
+          if (!b.state.shieldActive) b.state.hp -= PLAYER_COLLISION_DAMAGE_FACTOR * 10
 
           if (b.state.hp <= 0 ) killPlayer(a, b) // broadcasts victim death and rewards xp to killer
           if (a.state.hp <= 0 ) killPlayer(b, a)
@@ -135,7 +147,7 @@ setInterval(() => {
       for (const [idA, a] of players) { // 2. player + drill collisions
         if (!a.state.alive) continue
         for (const [idB, b] of players) {
-          if (!b.state.alive || idA === idB) continue
+          if (!b.state.alive || idA === idB || b.state.shieldActive) continue
           b.state.hp -= getDrillDamageOnCircle(
             a.state.x, a.state.y, a.state.rotation, a.state.playerRadius, 
             a.state.drillType, a.state.drillLengthMultiplier, a.state.drillDmgMultiplier,
@@ -176,7 +188,7 @@ setInterval(() => {
         square.state.x, square.state.y, square.state.rotation, sqHalf, sqHalf // 4. player + square collisions
       )) {
         square.state.hp -= p.state.maxHp * PLAYER_COLLISION_DAMAGE_FACTOR
-        p.state.hp -= square.state.maxHp * SQUARE_COLLISION_DAMAGE_FACTOR
+        if (!p.state.shieldActive) p.state.hp -= square.state.maxHp * SQUARE_COLLISION_DAMAGE_FACTOR
         if (p.state.hp <= 0) killPlayerBySquare(p)
 
         // positional correction — push player out using circle-vs-AABB penetration
@@ -189,14 +201,14 @@ setInterval(() => {
     }
   }
 
-  // 3) TODO: Process current bots input
+  // 4) TODO: Process current bots input
 
-  // 4) Spawn bots
+  // 5) Spawn bots
   if (tick % 60 === 0) {
     spawnBots()
   }
 
-  // 5) Process each active square
+  // 6) Process each active square
   squaresToDelete.length = 0
   for (const sq of squares.values()) {
     if (
@@ -215,19 +227,19 @@ setInterval(() => {
 
   for (const id of squaresToDelete) squares.delete(id)
 
-  // 6) Recompute squares in each chunk
+  // 7) Recompute squares in each chunk
   for (const set of chunkToSquares.values()) set.clear()
   for (const [id, square] of squares) {
     const index = getChunkIndex(square.state.x, square.state.y)
     chunkToSquares.get(index)?.add(id)
   }
 
-  // 7) Spawn new obstacles to replace old
+  // 8) Spawn new obstacles to replace old
   if (tick % 10 === 0) {
     fillMapSquares()
   }
 
-  // 8) Serialize world state and send to every connected client
+  // 9) Serialize world state and send to every connected client
   playerStates.length = 0
   squareStates.length = 0
   for (const p of players.values()) if (p.state.alive) playerStates.push(p.state)
@@ -247,8 +259,7 @@ setInterval(() => {
   }
 }, TICK_MS)
 
-// Only called on server startup, afterwards use fillMapSquares()
-function spawnSquaresOnStartup() {
+function spawnSquaresOnStartup() { // Only called on server startup, afterwards use fillMapSquares()
   const chunkW = WORLD_WIDTH / CHUNK_COLS
   const chunkH = WORLD_HEIGHT / CHUNK_ROWS
 

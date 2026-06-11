@@ -5,6 +5,7 @@ export interface PlayerState {
   name: string
   xp: number
   alive: boolean
+  shieldActive: boolean
   x: number
   y: number
   rotation: number

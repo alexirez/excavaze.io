@@ -73,6 +73,7 @@ export class GameScene extends Phaser.Scene {
             name: p.name,
             xp: p.xp,
             alive: p.alive,
+            shieldActive: p.shieldActive,
             x: p.x,
             y: p.y,
             rotation: p.rotation,
@@ -138,14 +139,20 @@ export class GameScene extends Phaser.Scene {
     if (playerState) {
       this.cameraTarget.x = playerState.x
       this.cameraTarget.y = playerState.y
-      this.playerGraphics.fillStyle(0x00ff99)
       this.playerGraphics.save()
       this.playerGraphics.translateCanvas(playerState.x, playerState.y)
       this.playerGraphics.rotateCanvas(playerState.rotation)
+      if (playerState.shieldActive) {
+        const alpha = 0.2 + 0.15 * Math.sin(Date.now() / 150)
+        this.playerGraphics.fillStyle(0x2e79ff, alpha)
+        this.playerGraphics.fillCircle(0, 0, playerState.playerRadius * 2.8)
+      }
+      this.playerGraphics.fillStyle(0x00ff99)
       this.playerGraphics.fillCircle(0, 0, playerState.playerRadius - 3)
       this.playerGraphics.lineStyle(2, 0x00aa66, 1)
       this.playerGraphics.strokeCircle(0, 0, playerState.playerRadius)
       drawDrill(this.playerGraphics, playerState, 0x00cc77)
+
       this.playerGraphics.restore()
       
       // update player's healthbar
@@ -165,6 +172,13 @@ export class GameScene extends Phaser.Scene {
       this.enemyGraphics.save()
       this.enemyGraphics.translateCanvas(p.x, p.y)
       this.enemyGraphics.rotateCanvas(p.rotation)
+
+      // spawn shield
+      if (p.shieldActive) {
+        const alpha = 0.2 + 0.15 * Math.sin(Date.now() / 150)
+        this.enemyGraphics.fillStyle(0x2e79ff, alpha)
+        this.enemyGraphics.fillCircle(0, 0, p.playerRadius * 2.8)
+      }
 
       // body
       this.enemyGraphics.fillStyle(0xff6b6b)
