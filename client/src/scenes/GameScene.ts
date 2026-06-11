@@ -3,9 +3,10 @@ import socket, { addSocketListener, getLocalId } from '../network/socket'
 import { PlayerState, SquareState } from '../../../protocol/types'
 import { ServerMessage } from '../../../protocol/messages'
 import { WORLD_WIDTH, WORLD_HEIGHT, COLOR_BACKGROUND, COLOR_OUTER_BOUNDS, WORLD_PADDING, SQUARE_BASE_HP, PLAYER_BASE_HP } from '../../../protocol/constants'
+import { currentLevel, xpForLevel, xpThisLevel, xpForNextLevel } from '../../../protocol/utils'
 
 export class GameScene extends Phaser.Scene {
-  private playerHealthBar!: Phaser.GameObjects.Graphics
+  private playerStatBars!: Phaser.GameObjects.Graphics
   private keys!: Record<string, Phaser.Input.Keyboard.Key>
   private localId: number | null = null
   private latestPlayersState: Map<number, PlayerState> = new Map()
@@ -33,10 +34,10 @@ export class GameScene extends Phaser.Scene {
     this.cameraTarget.setVisible(false)
     this.cameras.main.startFollow(this.cameraTarget)
 
-    // initialize healthbar graphics
-    this.playerHealthBar = this.add.graphics()
-    this.playerHealthBar.setScrollFactor(0)
-    this.playerHealthBar.setDepth(80)
+    // initialize stat bar graphics
+    this.playerStatBars = this.add.graphics()
+    this.playerStatBars.setScrollFactor(0)
+    this.playerStatBars.setDepth(80)
 
     this.squareHealthBarGraphics = this.add.graphics()
     this.squareHealthBarGraphics.setDepth(20)
@@ -135,7 +136,7 @@ export class GameScene extends Phaser.Scene {
     if (localId === null) return
     const playerState = this.latestPlayersState.get(localId)
     this.playerGraphics.clear()
-    this.playerHealthBar.clear()
+    this.playerStatBars.clear()
     if (playerState) {
       this.cameraTarget.x = playerState.x
       this.cameraTarget.y = playerState.y
@@ -156,12 +157,19 @@ export class GameScene extends Phaser.Scene {
       this.playerGraphics.restore()
       
       // update player's healthbar
-      const ratio = Math.max(0, playerState.hp / playerState.maxHp)
-      this.playerHealthBar.clear()
-      this.playerHealthBar.fillStyle(0x555555)
-      this.playerHealthBar.fillRect(20, 20, 200, 12)
-      this.playerHealthBar.fillStyle(getHealthColor(ratio))
-      this.playerHealthBar.fillRect(20, 20, ratio * 200, 12)
+      const healthRatio = Math.max(0, playerState.hp / playerState.maxHp)
+      this.playerStatBars.clear()
+      this.playerStatBars.fillStyle(0x555555)
+      this.playerStatBars.fillRect(20, 20, 200, 12)
+      this.playerStatBars.fillStyle(getHealthColor(healthRatio))
+      this.playerStatBars.fillRect(20, 20, healthRatio * 200, 12)
+
+      // update player's xp bar
+      const xpRatio = Math.max(0, xpThisLevel(playerState.xp) / xpForNextLevel(playerState.xp))
+      this.playerStatBars.fillStyle(0x333333)
+      this.playerStatBars.fillRect(20, 36, 200, 8)
+      this.playerStatBars.fillStyle(0xffdd00)
+      this.playerStatBars.fillRect(20, 36, xpRatio * 200, 8)
     }
 
     // Update enemies
