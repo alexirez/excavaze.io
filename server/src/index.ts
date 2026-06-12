@@ -3,7 +3,7 @@ import { ServerPlayer, ServerSquare } from './entities'
 import { WorldStateMessage, ClientMessage, DeathScreenMessage, PlayerKilledMessage } from '../../protocol/messages'
 import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, SQUARE_COLLISION_DAMAGE_FACTOR, PLAYER_COLLISION_DAMAGE_FACTOR, MIN_OBSTACLE_SPAWN_DIST, SQR_BASE_ROT_SPEED, MAX_SQR_ROT_SPEED, KILL_SQUARE_XP_MULTIPLIER, STEAL_PLAYER_XP_MULTIPLIER, KILL_PLAYER_BASE_XP } from '../../protocol/constants'
 import { DANGER_MAP, DENSITY_MAP } from './data/map'
-import { circleIntersectsTriangle } from '../../protocol/utils'
+import { circleIntersectsTriangle, currentLevel, xpForLevel } from '../../protocol/utils'
 import { PlayerState, SquareState } from '../../protocol/types'
 
 const PORT = 3000
@@ -183,7 +183,8 @@ setInterval(() => {
         square.state.x, square.state.y, square.state.rotation, sqHalf, sqHalf
       )
       if (square.state.hp <= 0)
-        p.state.xp += KILL_SQUARE_XP_MULTIPLIER * square.state.maxHp
+        awardXp(p, KILL_SQUARE_XP_MULTIPLIER * square.state.maxHp)
+
 
       if (circleIntersectsOrientedRect(
         p.state.x, p.state.y, p.state.playerRadius,
@@ -191,7 +192,7 @@ setInterval(() => {
       )) {
         square.state.hp -= p.state.maxHp * PLAYER_COLLISION_DAMAGE_FACTOR
         if (square.state.hp <= 0)
-          p.state.xp += KILL_SQUARE_XP_MULTIPLIER * square.state.maxHp
+          awardXp(p, KILL_SQUARE_XP_MULTIPLIER * square.state.maxHp)
         if (!p.state.shieldActive) p.state.hp -= square.state.maxHp * SQUARE_COLLISION_DAMAGE_FACTOR
         if (p.state.hp <= 0) killPlayerBySquare(p)
 
@@ -586,7 +587,7 @@ function isSpawnClearOfPlayers(spawnX: number, spawnY: number, minDist: number):
 function killPlayer(killer: ServerPlayer, victim: ServerPlayer) {
   if (!victim.state.alive) return
   victim.state.alive = false
-  killer.state.xp += STEAL_PLAYER_XP_MULTIPLIER * victim.state.xp + KILL_PLAYER_BASE_XP
+  awardXp(killer, STEAL_PLAYER_XP_MULTIPLIER * victim.state.xp + KILL_PLAYER_BASE_XP)
   broadcastToAll(JSON.stringify({ // broadcast that victim died
     type: 'player_killed',
     victimId: victim.state.id,
@@ -616,10 +617,17 @@ function killPlayerBySquare(victim: ServerPlayer) {
 } satisfies DeathScreenMessage))
 }
 
-// helper to broadcast that a player died
+// helper to broadcast a message to all connected players
 function broadcastToAll(json: string) {
   for (const p of players.values()) {
     if (p.socket?.readyState === WebSocket.OPEN)
       p.socket.send(json)
   }
+}
+
+function awardXp(player: ServerPlayer, amount: number) { // TODO: make xp cap be based on account progression instead of always level 7 as max
+  if (currentLevel(player.state.xp) >= 7) return
+  player.state.xp += amount
+  if (currentLevel(player.state.xp) >= 7)
+    player.state.xp = xpForLevel(7) - 1
 }

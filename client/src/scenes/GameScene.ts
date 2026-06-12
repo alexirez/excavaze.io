@@ -40,7 +40,7 @@ export class GameScene extends Phaser.Scene {
     this.playerStatBars.setDepth(80)
 
     // add xp label
-    this.xpLabel = this.add.text(20, 35, 'LVL 1', { fontSize: '12px', color: '#ffffff' })
+    this.xpLabel = this.add.text(20, 23, 'LVL 1', { fontSize: '12px', color: '#ffffff' })
       .setScrollFactor(0).setDepth(81)
 
     this.squareHealthBarGraphics = this.add.graphics()
@@ -174,9 +174,9 @@ export class GameScene extends Phaser.Scene {
       // update player's xp bar
       const xpRatio = Math.max(0, xpThisLevel(playerState.xp) / xpForNextLevel(playerState.xp))
       this.playerStatBars.fillStyle(0x333333)
-      this.playerStatBars.fillRect(70, 36, 200, 12)
+      this.playerStatBars.fillRect(70, 24, 200, 12)
       this.playerStatBars.fillStyle(0xffdd00)
-      this.playerStatBars.fillRect(70, 36, xpRatio * 200, 10)
+      this.playerStatBars.fillRect(70, 24, xpRatio * 200, 10)
 
       this.xpLabel.setText(`LVL ${currentLevel(playerState.xp) + 1}`) // update LVL label
     }
