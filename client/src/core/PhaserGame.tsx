@@ -2,14 +2,15 @@ import React, { useEffect, useRef } from 'react'
 import Phaser from 'phaser'
 import { GameScene } from '../scenes/GameScene'
 
+export let phaserGame: Phaser.Game | null = null
+
 export default function PhaserGame() {
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-  let game: Phaser.Game
 
   requestAnimationFrame(() => {
-    game = new Phaser.Game({
+    phaserGame = new Phaser.Game({
       type: Phaser.AUTO,
       backgroundColor: '#1a1a2e',
       scene: [GameScene],
@@ -23,7 +24,7 @@ export default function PhaserGame() {
     })
   })
 
-  return () => game?.destroy(true)
+  return () => phaserGame?.destroy(true)
 }, [])
 
   return <div ref={containerRef} style={{ width: '100vw', height: '100vh' }} />

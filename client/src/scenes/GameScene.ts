@@ -102,6 +102,8 @@ export class GameScene extends Phaser.Scene {
             rotation: square.rotation
           })
         }
+      } else if (msg.type === 'death_screen') {
+        this.xpLabel.setVisible(false)
       }
     }
     addSocketListener(handler)
@@ -176,7 +178,7 @@ export class GameScene extends Phaser.Scene {
       this.playerStatBars.fillStyle(0xffdd00)
       this.playerStatBars.fillRect(70, 36, xpRatio * 200, 10)
 
-      this.xpLabel.setText(`LVL ${currentLevel(playerState.xp)}`) // update LVL label
+      this.xpLabel.setText(`LVL ${currentLevel(playerState.xp) + 1}`) // update LVL label
     }
 
     // Update enemies
@@ -244,6 +246,16 @@ export class GameScene extends Phaser.Scene {
       this.squareGraphics.strokeRect(-size / 2, -size / 2, size, size)
       this.squareGraphics.restore()
     }
+  }
+
+  showHud() {
+    this.xpLabel.setVisible(true)
+    this.playerStatBars.setVisible(true)
+  }
+
+  hideHud() {
+    this.xpLabel.setVisible(false)
+    this.playerStatBars.setVisible(false)
   }
 }
 

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import PhaserGame from './core/PhaserGame'
 import socket, { addSocketListener, getLocalId, removeSocketListener } from './network/socket'
 import { RespawnMessage, ServerMessage } from '../../protocol/messages'
+import { phaserGame } from './core/PhaserGame'
+import { GameScene } from './scenes/GameScene'
 
 interface KillFeedEntry {
   id: number
@@ -139,6 +141,8 @@ export default function App() {
             onClick={() => {
               socket.send(JSON.stringify({ type: 'respawn' } satisfies RespawnMessage))
               setIsDead(false)
+              const scene = phaserGame?.scene.getScene('GameScene') as GameScene
+              scene?.showHud()
               setKillFeed([])
             }}
             style={{
