@@ -153,20 +153,23 @@ export class GameScene extends Phaser.Scene {
 
       this.playerGraphics.restore()
       
-      // update player's healthbar
-      const healthRatio = Math.max(0, playerState.hp / playerState.maxHp)
-      this.playerStatBars.clear()
-      this.playerStatBars.fillStyle(0x555555)
-      this.playerStatBars.fillRect(20, 20, 200, 12)
-      this.playerStatBars.fillStyle(getHealthColor(healthRatio))
-      this.playerStatBars.fillRect(20, 20, healthRatio * 200, 12)
+      // player healthbar
+      if (playerState.hp < playerState.maxHp) {
+        const ratio = Math.max(0, playerState.hp / playerState.maxHp)
+        const bw = 40
+        const bh = 5
+        this.playerGraphics.fillStyle(0x555555)
+        this.playerGraphics.fillRect(playerState.x - bw / 2, playerState.y - playerState.playerRadius - 12, bw, bh)
+        this.playerGraphics.fillStyle(getHealthColor(ratio))
+        this.playerGraphics.fillRect(playerState.x - bw / 2, playerState.y - playerState.playerRadius - 12, ratio * bw, bh)
+      }
 
       // update player's xp bar
       const xpRatio = Math.max(0, xpThisLevel(playerState.xp) / xpForNextLevel(playerState.xp))
       this.playerStatBars.fillStyle(0x333333)
-      this.playerStatBars.fillRect(20, 36, 200, 8)
+      this.playerStatBars.fillRect(20, 36, 200, 12)
       this.playerStatBars.fillStyle(0xffdd00)
-      this.playerStatBars.fillRect(20, 36, xpRatio * 200, 8)
+      this.playerStatBars.fillRect(20, 36, xpRatio * 200, 10)
     }
 
     // Update enemies
