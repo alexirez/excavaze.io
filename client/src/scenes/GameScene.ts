@@ -7,7 +7,9 @@ import { currentLevel, xpForLevel, xpThisLevel, xpForNextLevel } from '../../../
 
 export class GameScene extends Phaser.Scene {
   private playerStatBars!: Phaser.GameObjects.Graphics
-  private xpLabel!: Phaser.GameObjects.Text
+  private xpLabel!: Phaser.GameObjects.Text // shows current level
+  private xpMaxLabel!: Phaser.GameObjects.Text // says MAX after xp bar. only shows when at max level
+  private xpMaxBg!: Phaser.GameObjects.Graphics // background rounded rectangles for labels to be more visible
   private keys!: Record<string, Phaser.Input.Keyboard.Key>
   private localId: number | null = null
   private latestPlayersState: Map<number, PlayerState> = new Map()
@@ -39,9 +41,15 @@ export class GameScene extends Phaser.Scene {
     this.playerStatBars.setScrollFactor(0)
     this.playerStatBars.setDepth(80)
 
-    // add xp label
-    this.xpLabel = this.add.text(20, 23, 'LVL 1', { fontSize: '12px', color: '#ffffff' })
+    // add xp labels
+    this.xpLabel = this.add.text(18, 23, 'LVL 1', { fontSize: '12px', color: '#ffffff' })
       .setScrollFactor(0).setDepth(81)
+    this.xpMaxLabel = this.add.text(280, 23, 'MAX', { fontSize: '12px', color: '#ffdd00' })
+      .setScrollFactor(0).setDepth(81).setVisible(false)
+    this.xpMaxBg = this.add.graphics().setScrollFactor(0).setDepth(80)
+    this.xpMaxBg.fillStyle(0x444444)
+    this.xpMaxBg.fillRoundedRect(273, 21, 36, 18, 4)
+    this.xpMaxBg.setVisible(false)
 
     this.squareHealthBarGraphics = this.add.graphics()
     this.squareHealthBarGraphics.setDepth(20)
@@ -103,7 +111,7 @@ export class GameScene extends Phaser.Scene {
           })
         }
       } else if (msg.type === 'death_screen') {
-        this.xpLabel.setVisible(false)
+        this.hideHud()
       }
     }
     addSocketListener(handler)
@@ -179,6 +187,7 @@ export class GameScene extends Phaser.Scene {
       this.playerStatBars.fillRect(70, 24, xpRatio * 200, 10)
 
       this.xpLabel.setText(`LVL ${currentLevel(playerState.xp) + 1}`) // update LVL label
+      if (currentLevel(playerState.xp) >= 7-1) { this.xpMaxBg.setVisible(true); this.xpMaxLabel.setVisible(true) } // TODO: replace hardcoded max level with DB account level cap
     }
 
     // Update enemies
@@ -256,6 +265,8 @@ export class GameScene extends Phaser.Scene {
   hideHud() {
     this.xpLabel.setVisible(false)
     this.playerStatBars.setVisible(false)
+    this.xpMaxLabel.setVisible(false)
+    this.xpMaxBg.setVisible(false)
   }
 }
 
