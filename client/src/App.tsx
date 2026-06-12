@@ -20,6 +20,7 @@ const DEATH_TIPS = [
   "Tip: Ramming into other players deals damage to both of you.",
   "Tip: Some areas are more dense than others.",
   "Tip: Avoid large players!.",
+  "Tip: Your player level in battle is limited based on the Max Level upgrade. Purchase upgrades to get stronger!"
 ]
 
 export default function App() {
