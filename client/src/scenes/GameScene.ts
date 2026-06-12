@@ -7,6 +7,7 @@ import { currentLevel, xpForLevel, xpThisLevel, xpForNextLevel } from '../../../
 
 export class GameScene extends Phaser.Scene {
   private playerStatBars!: Phaser.GameObjects.Graphics
+  private xpLabel!: Phaser.GameObjects.Text
   private keys!: Record<string, Phaser.Input.Keyboard.Key>
   private localId: number | null = null
   private latestPlayersState: Map<number, PlayerState> = new Map()
@@ -37,6 +38,10 @@ export class GameScene extends Phaser.Scene {
     this.playerStatBars = this.add.graphics()
     this.playerStatBars.setScrollFactor(0)
     this.playerStatBars.setDepth(80)
+
+    // add xp label
+    this.xpLabel = this.add.text(20, 35, 'LVL 1', { fontSize: '12px', color: '#ffffff' })
+      .setScrollFactor(0).setDepth(81)
 
     this.squareHealthBarGraphics = this.add.graphics()
     this.squareHealthBarGraphics.setDepth(20)
@@ -167,9 +172,11 @@ export class GameScene extends Phaser.Scene {
       // update player's xp bar
       const xpRatio = Math.max(0, xpThisLevel(playerState.xp) / xpForNextLevel(playerState.xp))
       this.playerStatBars.fillStyle(0x333333)
-      this.playerStatBars.fillRect(20, 36, 200, 12)
+      this.playerStatBars.fillRect(70, 36, 200, 12)
       this.playerStatBars.fillStyle(0xffdd00)
-      this.playerStatBars.fillRect(20, 36, xpRatio * 200, 10)
+      this.playerStatBars.fillRect(70, 36, xpRatio * 200, 10)
+
+      this.xpLabel.setText(`LVL ${currentLevel(playerState.xp)}`) // update LVL label
     }
 
     // Update enemies
