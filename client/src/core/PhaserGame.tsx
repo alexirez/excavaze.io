@@ -18,14 +18,16 @@ export default function PhaserGame() {
       scale: {
         mode: Phaser.Scale.RESIZE,
         autoCenter: Phaser.Scale.CENTER_BOTH,
-        width: '100%',
-        height: '100%',
       },
+    })
+
+    phaserGame.events.once('ready', () => {
+      phaserGame?.scale.refresh()
     })
   })
 
   return () => phaserGame?.destroy(true)
 }, [])
 
-  return <div ref={containerRef} style={{ width: '100vw', height: '100vh' }} />
+  return <div ref={containerRef} style={{ width: '100vw', height: '100vh', position: 'fixed', top: 0, left: 0 }} />
 }

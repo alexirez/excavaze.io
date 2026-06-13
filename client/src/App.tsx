@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react'
-import PhaserGame from './core/PhaserGame'
+import PhaserGame, { phaserGame } from './core/PhaserGame'
 import socket, { addSocketListener, getLocalId, removeSocketListener } from './network/socket'
 import { RespawnMessage, ServerMessage } from '../../protocol/messages'
-import { phaserGame } from './core/PhaserGame'
 import { GameScene } from './scenes/GameScene'
-import { currentLevel } from '../../protocol/utils'
 
 interface KillFeedEntry {
   id: number
@@ -110,7 +108,7 @@ export default function App() {
       <div style={{
         position: 'absolute',
         top: 20,
-        right: 20,
+        right: 230,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'flex-end',
