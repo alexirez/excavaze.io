@@ -24,6 +24,12 @@ const DEATH_TIPS = [
   "Tip: Your player level in battle is limited based on the Max Level upgrade. Purchase upgrades to get stronger!"
 ]
 
+function formatXp(xp: number): string {
+  if (xp >= 1_000_000) return `${(xp / 1_000_000).toFixed(1)}m`
+  if (xp >= 1_000) return `${(xp / 1_000).toFixed(1)}k`
+  return `${xp}`
+}
+
 export default function App() {
   const [killFeed, setKillFeed] = useState<KillFeedEntry[]>([])
   const [isDead, setIsDead] = useState(false)
@@ -139,16 +145,22 @@ export default function App() {
         }} />
 
         {/* entries */}
-        <div style={{ position: 'relative', padding: '8px 16px', display: 'flex', flexDirection: 'column', gap: 4, minWidth: 180 }}>
+        <div style={{ position: 'relative', padding: '8px 16px', display: 'flex', flexDirection: 'column', gap: 5, minWidth: 190 }}>
           {Array.from({ length: 10 }).map((_, i) => {
             const p = leaderboard[i]
             return (
               <div key={i} style={{
                 color: p ? (p.id === getLocalId() ? '#ffdd00' : 'white') : '#555555',
-                fontSize: 14,
+                fontSize: 15,
                 whiteSpace: 'nowrap',
+                display: 'flex',
+                gap: 6,
               }}>
-                {i + 1}. {p ? `${p.name} — LVL ${currentLevel(p.xp) + 1}` : '-'}
+                <span style={{ width: 18, textAlign: 'right', flexShrink: 0 }}>{i + 1}.</span>
+                <span style={{ flex: 1 }}>{p ? p.name : '·'}</span>
+                <span style={{ textAlign: 'right', flexShrink: 0, color: p?.id === getLocalId() ? '#ffdd00' : '#aaaaaa' }}>
+                  {p ? `${formatXp(p.xp)}` : ''}
+                </span>
               </div>
             )
           })}
