@@ -25,8 +25,9 @@ const DEATH_TIPS = [
 ]
 
 function formatXp(xp: number): string {
-  if (xp >= 1_000_000) return `${(xp / 1_000_000).toFixed(1)}m`
-  if (xp >= 1_000) return `${(xp / 1_000).toFixed(1)}k`
+  if (xp >= 1_000_000) return `${(xp / 1_000_000).toFixed(3)}m`
+  if (xp >= 10_000) return `${(xp / 1_000).toFixed(1)}k`
+  if (xp >= 1_000) return `${(xp / 1_000).toFixed(2)}k`
   return `${xp}`
 }
 
