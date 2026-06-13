@@ -110,8 +110,6 @@ export class GameScene extends Phaser.Scene {
             rotation: square.rotation
           })
         }
-      } else if (msg.type === 'death_screen') {
-        this.hideHud()
       }
     }
     addSocketListener(handler)
@@ -150,6 +148,7 @@ export class GameScene extends Phaser.Scene {
     this.playerGraphics.clear()
     this.playerStatBars.clear()
     if (playerState) {
+      this.showHud()
       this.cameraTarget.x = playerState.x
       this.cameraTarget.y = playerState.y
       this.playerGraphics.save()
@@ -188,6 +187,8 @@ export class GameScene extends Phaser.Scene {
 
       this.xpLabel.setText(`LVL ${currentLevel(playerState.xp) + 1}`) // update LVL label
       if (currentLevel(playerState.xp) >= 7-1) { this.xpMaxBg.setVisible(true); this.xpMaxLabel.setVisible(true) } // TODO: replace hardcoded max level with DB account level cap
+    } else {
+      this.hideHud()
     }
 
     // Update enemies
