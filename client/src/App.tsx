@@ -119,30 +119,40 @@ export default function App() {
         ))}
       </div>
 
+      {/* leaderboard */}
       <div style={{
         position: 'absolute',
         top: 20,
         right: 20,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 4,
         pointerEvents: 'none',
         transform: isDead ? 'translateX(200px)' : 'translateX(0)',
         opacity: isDead ? 0 : 1,
         transition: isDead ? 'transform 0.4s ease, opacity 0.4s ease' : 'none',
       }}>
-        {leaderboard.map((p, i) => (
-          <div key={p.id} style={{
-            background: 'rgba(0,0,0,0.6)',
-            color: p.id === getLocalId() ? '#00ff99' : 'white',
-            padding: '3px 10px',
-            borderRadius: 4,
-            fontSize: 13,
-            whiteSpace: 'nowrap',
-          }}>
-            {i + 1}. {p.name} — LVL {currentLevel(p.xp) + 1}
-          </div>
-        ))}
+        {/* background rectangle */}
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'rgba(0,0,0,0.6)',
+          borderRadius: 16,
+          padding: '8px 16px',
+        }} />
+
+        {/* entries */}
+        <div style={{ position: 'relative', padding: '8px 16px', display: 'flex', flexDirection: 'column', gap: 4, minWidth: 180 }}>
+          {Array.from({ length: 10 }).map((_, i) => {
+            const p = leaderboard[i]
+            return (
+              <div key={i} style={{
+                color: p ? (p.id === getLocalId() ? '#ffdd00' : 'white') : '#555555',
+                fontSize: 14,
+                whiteSpace: 'nowrap',
+              }}>
+                {i + 1}. {p ? `${p.name} — LVL ${currentLevel(p.xp) + 1}` : '-'}
+              </div>
+            )
+          })}
+        </div>
       </div>
 
       {/* death screen */}
