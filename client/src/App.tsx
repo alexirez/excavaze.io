@@ -4,6 +4,7 @@ import socket, { addSocketListener, getLocalId, removeSocketListener } from './n
 import { RespawnMessage, ServerMessage } from '../../protocol/messages'
 import { phaserGame } from './core/PhaserGame'
 import { GameScene } from './scenes/GameScene'
+import { currentLevel } from '../../protocol/utils'
 
 interface KillFeedEntry {
   id: number
@@ -29,6 +30,7 @@ export default function App() {
   const [deathVisible, setDeathVisible] = useState(false)
   const [killerName, setKillerName] = useState('')
   const [deathTip, setDeathTip] = useState('')
+  const [leaderboard, setLeaderboard] = useState<{ id: number, name: string, xp: number }[]>([])
 
   useEffect(() => {
     if (isDead) {
@@ -42,7 +44,12 @@ export default function App() {
     const handler = (event: MessageEvent) => {
       const msg = JSON.parse(event.data) as ServerMessage
 
-      if (msg.type === 'player_killed') {
+      if (msg.type === 'world_state') {
+        const sorted = [...msg.players]
+          .sort((a, b) => b.xp - a.xp)
+          .slice(0, 5)
+        setLeaderboard(sorted)
+      } else if (msg.type === 'player_killed') {
         const id = Date.now()
         setKillFeed(prev => [...prev, { id, victimId: msg.victimId, killerId: msg.killerId, killerName: msg.killerName, victimName: msg.victimName, exiting: false }])
         setTimeout(() => {
@@ -108,6 +115,32 @@ export default function App() {
             ) : (
               <span style={{ color: '#f5a623' }}>a Square</span>
             )}
+          </div>
+        ))}
+      </div>
+
+      <div style={{
+        position: 'absolute',
+        top: 20,
+        right: 20,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 4,
+        pointerEvents: 'none',
+        transform: isDead ? 'translateX(200px)' : 'translateX(0)',
+        opacity: isDead ? 0 : 1,
+        transition: isDead ? 'transform 0.4s ease, opacity 0.4s ease' : 'none',
+      }}>
+        {leaderboard.map((p, i) => (
+          <div key={p.id} style={{
+            background: 'rgba(0,0,0,0.6)',
+            color: p.id === getLocalId() ? '#00ff99' : 'white',
+            padding: '3px 10px',
+            borderRadius: 4,
+            fontSize: 13,
+            whiteSpace: 'nowrap',
+          }}>
+            {i + 1}. {p.name} — LVL {currentLevel(p.xp) + 1}
           </div>
         ))}
       </div>
