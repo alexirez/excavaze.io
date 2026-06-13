@@ -5,6 +5,7 @@ export interface ServerPlayer {
   socket: NodeWebSocket | null
   state: PlayerState
   input: { dx: number; dy: number; rotation: number }
+  shieldTicks: number
 }
 
 export interface ServerSquare {

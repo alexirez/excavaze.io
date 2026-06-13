@@ -37,3 +37,19 @@ export function circleIntersectsTriangle(
   if (pointToSegmentDistSq(cx, cy, cx2, cy2, ax, ay) <= rSq) return true
   return false
 }
+
+export function currentLevel(xp: number): number {
+  return Math.floor(Math.log(1 + xp * 0.1 / 200) / Math.log(1.1))
+}
+
+export function xpForLevel(level: number): number {
+  return Math.floor(200 * ((Math.pow(1.1, level) - 1) / 0.1))
+}
+
+export function xpThisLevel(xp: number): number {
+  return xp - xpForLevel(currentLevel(xp))
+}
+
+export function xpForNextLevel(xp: number): number {
+  return xpForLevel(currentLevel(xp) + 1) - xpForLevel(currentLevel(xp))
+}

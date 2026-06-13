@@ -2,6 +2,10 @@
 // Created and owned by the server, sent to all clients.
 export interface PlayerState {
   id: number
+  name: string
+  xp: number
+  alive: boolean
+  shieldActive: boolean
   x: number
   y: number
   rotation: number

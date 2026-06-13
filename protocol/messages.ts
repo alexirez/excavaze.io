@@ -21,5 +21,46 @@ export interface WelcomeMessage {
   id: number
 }
 
-export type ClientMessage = InputMessage
-export type ServerMessage = WelcomeMessage | WorldStateMessage
+export interface LevelUpMessage {
+  type: 'level_up'
+  options: UpgradeOption[]
+}
+
+export interface UpgradeOption {
+  id: string  // 'drill_damage', 'drill_length', 'player_radius', etc
+  label: string
+  description: string
+}
+
+export interface RequestUpgradeMessage {
+  type: 'request_upgrade'
+  optionId: string
+}
+
+export interface PlayerKilledMessage {
+  type: 'player_killed'
+  killerId: number
+  victimId: number
+  victimName: string
+  killerName: string
+}
+
+export interface SquareKilledPlayerMessage {
+  type: 'square_killed_player'
+  victimId: number
+  victimName: string
+}
+
+export interface DeathScreenMessage {
+  type: 'death_screen'
+  killerName: string
+  cause: 'player' | 'drill' | 'square'
+}
+
+export interface RespawnMessage {
+  type: 'respawn'
+}
+
+export type ClientMessage = InputMessage | RequestUpgradeMessage | RespawnMessage
+export type ServerMessage = WelcomeMessage | WorldStateMessage | LevelUpMessage | PlayerKilledMessage 
+  | SquareKilledPlayerMessage | DeathScreenMessage

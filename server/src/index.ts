@@ -1,9 +1,9 @@
 import { WebSocketServer, WebSocket } from 'ws'
 import { ServerPlayer, ServerSquare } from './entities'
-import { ClientMessage, WorldStateMessage } from '../../protocol/messages'
-import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, SQUARE_COLLISION_DAMAGE_FACTOR, PLAYER_COLLISION_DAMAGE_FACTOR, MIN_OBSTACLE_SPAWN_DIST, SQR_BASE_ROT_SPEED, MAX_SQR_ROT_SPEED } from '../../protocol/constants'
+import { WorldStateMessage, ClientMessage, DeathScreenMessage, PlayerKilledMessage } from '../../protocol/messages'
+import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, SQUARE_COLLISION_DAMAGE_FACTOR, PLAYER_COLLISION_DAMAGE_FACTOR, MIN_OBSTACLE_SPAWN_DIST, SQR_BASE_ROT_SPEED, MAX_SQR_ROT_SPEED, KILL_SQUARE_XP_MULTIPLIER, STEAL_PLAYER_XP_MULTIPLIER, KILL_PLAYER_BASE_XP } from '../../protocol/constants'
 import { DANGER_MAP, DENSITY_MAP } from './data/map'
-import { circleIntersectsTriangle } from '../../protocol/utils'
+import { circleIntersectsTriangle, currentLevel, xpForLevel } from '../../protocol/utils'
 import { PlayerState, SquareState } from '../../protocol/types'
 
 const PORT = 3000
@@ -12,6 +12,7 @@ const CHUNK_ROWS = 16
 const UNIT_SPEED = 10
 const SQUARE_SPEED = 0.5  // multiplies square drifting speed
 const SQUARE_BASE_BOUNDING_RADIUS = 10 // used for broad phase collision
+const SHIELD_DURATION = 50
 
 const chunkHeat = new Float32Array(CHUNK_ROWS * CHUNK_COLS)
 const HEAT_SPAWN_THRESHOLD = 10
@@ -38,13 +39,18 @@ spawnSquaresOnStartup()
 
 wss.on('connection', (socket) => {
   const id = nextPlayerId++
+  console.log(`Player ${id} connected`)
 
   players.set(id, {
     socket,
     state: {
-      id, 
+      id,
+      name: "Player", // TODO: allow setting name
+      xp: 0,
+      alive: true,
+      shieldActive: true,
       x: 400, 
-      y: 300, 
+      y: 300,
       rotation: 0,
       hp: PLAYER_BASE_HP,
       maxHp: PLAYER_BASE_HP,
@@ -54,10 +60,10 @@ wss.on('connection', (socket) => {
       drillLengthMultiplier: 1
     },
     input: { dx: 0, dy: 0, rotation: 0 },
+    shieldTicks: SHIELD_DURATION
   })
   // S->C: Tell this client their assigned id
   socket.send(JSON.stringify({ type: 'welcome', id }))
-  console.log(`Player ${id} connected`)
 
   socket.on('close', () => {
     players.delete(id)
@@ -73,6 +79,16 @@ wss.on('connection', (socket) => {
           dy: msg.dy,
           rotation: msg.rotation,
         }
+      } else if (msg.type === 'respawn') {
+        // TODO: smart spawning computes x, y
+        const player = players.get(id)!
+        if (player.state.alive) return
+        player.state.alive = true
+        player.state.hp = PLAYER_BASE_HP
+        player.state.x = WORLD_WIDTH / 2
+        player.state.y = WORLD_HEIGHT / 2
+        player.state.shieldActive = true
+        player.shieldTicks = SHIELD_DURATION
       }
     } catch {
       // invalid JSON, ignore
@@ -84,16 +100,25 @@ setInterval(() => {
   tick++
 
   // 1) Process each player's input
-  for (const player of players.values()) {
-    player.state.x = Math.max(WORLD_PADDING, Math.min(WORLD_WIDTH - WORLD_PADDING, player.state.x + player.input.dx * UNIT_SPEED))
-    player.state.y = Math.max(WORLD_PADDING, Math.min(WORLD_HEIGHT - WORLD_PADDING, player.state.y + player.input.dy * UNIT_SPEED))
-    player.state.rotation = player.input.rotation
-  }
+  for (const p of players.values()) {
+    if (!p.state.alive) continue
+    p.state.x = Math.max(WORLD_PADDING, Math.min(WORLD_WIDTH - WORLD_PADDING, p.state.x + p.input.dx * UNIT_SPEED))
+    p.state.y = Math.max(WORLD_PADDING, Math.min(WORLD_HEIGHT - WORLD_PADDING, p.state.y + p.input.dy * UNIT_SPEED))
+    p.state.rotation = p.input.rotation
 
-  // 2) Check for collisions
+    // 2) Process spawn shield timers
+    if (p.shieldTicks > 0) {
+      p.shieldTicks--
+      if (p.shieldTicks === 0) p.state.shieldActive = false
+    }
+  }
+  
+
+  // 3) Check for collisions
     for (const [idA, a] of players) { // 1. player to player collisions
+      if (!a.state.alive) continue
       for (const [idB, b] of players) {
-        if (idB <= idA) continue
+        if (!b.state.alive || idB <= idA) continue
         const dx = a.state.x - b.state.x
         const dy = a.state.y - b.state.y
         const dist = Math.sqrt(dx * dx + dy * dy)
@@ -110,73 +135,85 @@ setInterval(() => {
           b.state.x -= nx * overlap / 2
           b.state.y -= ny * overlap / 2
 
-          a.state.hp -= PLAYER_COLLISION_DAMAGE_FACTOR * 10
-          b.state.hp -= PLAYER_COLLISION_DAMAGE_FACTOR * 10
+          if (!a.state.shieldActive) a.state.hp -= PLAYER_COLLISION_DAMAGE_FACTOR * 10
+          if (!b.state.shieldActive) b.state.hp -= PLAYER_COLLISION_DAMAGE_FACTOR * 10
+
+          if (b.state.hp <= 0 ) killPlayer(a, b, 'player') // broadcasts victim death and rewards xp to killer
+          if (a.state.hp <= 0 ) killPlayer(b, a, 'player')
         }
       }
     }
 
       for (const [idA, a] of players) { // 2. player + drill collisions
+        if (!a.state.alive) continue
         for (const [idB, b] of players) {
-          if (idA === idB) continue
+          if (!b.state.alive || idA === idB || b.state.shieldActive) continue
           b.state.hp -= getDrillDamageOnCircle(
             a.state.x, a.state.y, a.state.rotation, a.state.playerRadius, 
             a.state.drillType, a.state.drillLengthMultiplier, a.state.drillDmgMultiplier,
             b.state.x, b.state.y, b.state.playerRadius
           )
+          if (b.state.hp <= 0) killPlayer(a, b, 'drill')
         }
       }
 
-  for (const player of players.values()) {
-    const chunkIndex = getChunkIndex(player.state.x, player.state.y)
+  for (const p of players.values()) {
+    if (!p.state.alive) continue
+    const chunkIndex = getChunkIndex(p.state.x, p.state.y)
     getNearbySquareIds(chunkIndex, nearbySquareIds) // only consider 9 nearest chunks for efficient collision checking
-    const drillReach = player.state.playerRadius + 40 * player.state.drillLengthMultiplier
+    const drillReach = p.state.playerRadius + 40 * p.state.drillLengthMultiplier
 
     for (const id of nearbySquareIds) {
 
       const square = squares.get(id) 
       if (!square) continue
-      const dx = player.state.x - square.state.x
-      const dy = player.state.y - square.state.y
+      const dx = p.state.x - square.state.x
+      const dy = p.state.y - square.state.y
       const sqrDist = dx * dx + dy * dy
 
       if (sqrDist > (drillReach + square.boundingRadius )**2) continue
 
       const dist = Math.sqrt(sqrDist)
-      const sqSize = 20 + (square.state.maxHp / SQUARE_BASE_HP) * 10
+      const sqSize = 20 + (square.state.maxHp / SQUARE_BASE_HP) * 10 // 3. drill + square collisions
       const sqHalf = sqSize / 2
 
       square.state.hp -= getDrillDamageOnRect(
-        player.state.x, player.state.y, player.state.rotation, player.state.playerRadius,
-        player.state.drillType, player.state.drillLengthMultiplier, player.state.drillDmgMultiplier,
+        p.state.x, p.state.y, p.state.rotation, p.state.playerRadius,
+        p.state.drillType, p.state.drillLengthMultiplier, p.state.drillDmgMultiplier,
         square.state.x, square.state.y, square.state.rotation, sqHalf, sqHalf
       )
+      if (square.state.hp <= 0)
+        awardXp(p, KILL_SQUARE_XP_MULTIPLIER * square.state.maxHp)
 
-      if (circleIntersectsOrientedRect( // 4. player + square collisions
-        player.state.x, player.state.y, player.state.playerRadius,
-        square.state.x, square.state.y, square.state.rotation, sqHalf, sqHalf
+
+      if (circleIntersectsOrientedRect(
+        p.state.x, p.state.y, p.state.playerRadius,
+        square.state.x, square.state.y, square.state.rotation, sqHalf, sqHalf // 4. player + square collisions
       )) {
-        player.state.hp -= square.state.maxHp * SQUARE_COLLISION_DAMAGE_FACTOR
-        square.state.hp -= player.state.maxHp * PLAYER_COLLISION_DAMAGE_FACTOR
+        square.state.hp -= p.state.maxHp * PLAYER_COLLISION_DAMAGE_FACTOR
+        if (square.state.hp <= 0)
+          awardXp(p, KILL_SQUARE_XP_MULTIPLIER * square.state.maxHp)
+        if (!p.state.shieldActive) p.state.hp -= square.state.maxHp * SQUARE_COLLISION_DAMAGE_FACTOR
+        if (p.state.hp <= 0) killPlayerBySquare(p)
 
         // positional correction — push player out using circle-vs-AABB penetration
         const nx = dx / dist
         const ny = dy / dist
-        const overlap = (player.state.playerRadius + sqHalf) - dist
-        player.state.x += nx * overlap
-        player.state.y += ny * overlap
+        const overlap = (p.state.playerRadius + sqHalf) - dist
+        p.state.x += nx * overlap
+        p.state.y += ny * overlap
       }
     }
   }
 
-  // 3) TODO: Process current bots input
+  // 4) TODO: Process current bots input
 
-  // 4) Spawn bots
+  // 5) Spawn bots
   if (tick % 60 === 0) {
     spawnBots()
   }
 
-  // 5) Process each active square
+  // 6) Process each active square
   squaresToDelete.length = 0
   for (const sq of squares.values()) {
     if (
@@ -195,22 +232,22 @@ setInterval(() => {
 
   for (const id of squaresToDelete) squares.delete(id)
 
-  // 6) Recompute squares in each chunk
+  // 7) Recompute squares in each chunk
   for (const set of chunkToSquares.values()) set.clear()
   for (const [id, square] of squares) {
     const index = getChunkIndex(square.state.x, square.state.y)
     chunkToSquares.get(index)?.add(id)
   }
 
-  // 7) Spawn new obstacles to replace old
+  // 8) Spawn new obstacles to replace old
   if (tick % 10 === 0) {
     fillMapSquares()
   }
 
-  // 8) Serialize world state and send to every connected client
+  // 9) Serialize world state and send to every connected client
   playerStates.length = 0
   squareStates.length = 0
-  for (const p of players.values()) playerStates.push(p.state)
+  for (const p of players.values()) if (p.state.alive) playerStates.push(p.state)
   for (const sq of squares.values()) squareStates.push(sq.state)
   const message: WorldStateMessage = {
     type: 'world_state',
@@ -220,15 +257,14 @@ setInterval(() => {
 
   const json = JSON.stringify(message)
 
-  for (const player of players.values()) {
-    if (player.socket && player.socket.readyState === WebSocket.OPEN) {
-      player.socket.send(json)
+  for (const p of players.values()) {
+    if (p.socket && p.socket.readyState === WebSocket.OPEN) {
+      p.socket.send(json)
     }
   }
 }, TICK_MS)
 
-// Only called on server startup, afterwards use fillMapSquares()
-function spawnSquaresOnStartup() {
+function spawnSquaresOnStartup() { // Only called on server startup, afterwards use fillMapSquares()
   const chunkW = WORLD_WIDTH / CHUNK_COLS
   const chunkH = WORLD_HEIGHT / CHUNK_ROWS
 
@@ -546,4 +582,54 @@ function isSpawnClearOfPlayers(spawnX: number, spawnY: number, minDist: number):
     if (dx * dx + dy * dy < minDist * minDist) return false
   }
   return true
+}
+
+function killPlayer(killer: ServerPlayer, victim: ServerPlayer, cause: 'player' | 'drill') {
+  if (!victim.state.alive) return
+  victim.state.alive = false
+  awardXp(killer, STEAL_PLAYER_XP_MULTIPLIER * victim.state.xp + KILL_PLAYER_BASE_XP)
+  broadcastToAll(JSON.stringify({ // broadcast that victim died
+    type: 'player_killed',
+    victimId: victim.state.id,
+    killerId: killer.state.id,
+    victimName: victim.state.name,
+    killerName: killer.state.name,
+  } satisfies PlayerKilledMessage))
+  victim.socket?.send(JSON.stringify({
+  type: 'death_screen',
+  killerName: killer.state.name,
+  cause: cause
+} satisfies DeathScreenMessage))
+}
+
+function killPlayerBySquare(victim: ServerPlayer) {
+  if (!victim.state.alive) return
+  victim.state.alive = false
+  broadcastToAll(JSON.stringify({
+    type: 'player_killed',
+    victimId: victim.state.id,
+    killerId: -1,
+    victimName: victim.state.name,
+    killerName: 'A Square',
+  } satisfies PlayerKilledMessage))
+  victim.socket?.send(JSON.stringify({
+  type: 'death_screen',
+  killerName: 'a Square',
+  cause: 'square'
+} satisfies DeathScreenMessage))
+}
+
+// helper to broadcast a message to all connected players
+function broadcastToAll(json: string) {
+  for (const p of players.values()) {
+    if (p.socket?.readyState === WebSocket.OPEN)
+      p.socket.send(json)
+  }
+}
+
+function awardXp(player: ServerPlayer, amount: number) { // TODO: make xp cap be based on account progression instead of always level 7 as max
+  if (currentLevel(player.state.xp) >= 7) return
+  player.state.xp += amount
+  if (currentLevel(player.state.xp) >= 7)
+    player.state.xp = xpForLevel(7) - 1
 }
