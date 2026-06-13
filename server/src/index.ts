@@ -138,8 +138,8 @@ setInterval(() => {
           if (!a.state.shieldActive) a.state.hp -= PLAYER_COLLISION_DAMAGE_FACTOR * 10
           if (!b.state.shieldActive) b.state.hp -= PLAYER_COLLISION_DAMAGE_FACTOR * 10
 
-          if (b.state.hp <= 0 ) killPlayer(a, b) // broadcasts victim death and rewards xp to killer
-          if (a.state.hp <= 0 ) killPlayer(b, a)
+          if (b.state.hp <= 0 ) killPlayer(a, b, 'player') // broadcasts victim death and rewards xp to killer
+          if (a.state.hp <= 0 ) killPlayer(b, a, 'player')
         }
       }
     }
@@ -153,7 +153,7 @@ setInterval(() => {
             a.state.drillType, a.state.drillLengthMultiplier, a.state.drillDmgMultiplier,
             b.state.x, b.state.y, b.state.playerRadius
           )
-          if (b.state.hp <= 0) killPlayer(a, b)
+          if (b.state.hp <= 0) killPlayer(a, b, 'drill')
         }
       }
 
@@ -584,7 +584,7 @@ function isSpawnClearOfPlayers(spawnX: number, spawnY: number, minDist: number):
   return true
 }
 
-function killPlayer(killer: ServerPlayer, victim: ServerPlayer) {
+function killPlayer(killer: ServerPlayer, victim: ServerPlayer, cause: 'player' | 'drill') {
   if (!victim.state.alive) return
   victim.state.alive = false
   awardXp(killer, STEAL_PLAYER_XP_MULTIPLIER * victim.state.xp + KILL_PLAYER_BASE_XP)
@@ -598,6 +598,7 @@ function killPlayer(killer: ServerPlayer, victim: ServerPlayer) {
   victim.socket?.send(JSON.stringify({
   type: 'death_screen',
   killerName: killer.state.name,
+  cause: cause
 } satisfies DeathScreenMessage))
 }
 
@@ -614,6 +615,7 @@ function killPlayerBySquare(victim: ServerPlayer) {
   victim.socket?.send(JSON.stringify({
   type: 'death_screen',
   killerName: 'a Square',
+  cause: 'square'
 } satisfies DeathScreenMessage))
 }
 

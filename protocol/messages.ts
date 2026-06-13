@@ -54,6 +54,7 @@ export interface SquareKilledPlayerMessage {
 export interface DeathScreenMessage {
   type: 'death_screen'
   killerName: string
+  cause: 'player' | 'drill' | 'square'
 }
 
 export interface RespawnMessage {
