@@ -704,6 +704,7 @@ function spawnBots() {
 
 function spawnBot(x: number, y: number) {
   const dangerLevel = DANGER_MAP[getChunkIndex(x, y)]
+  const strengthMultiplier = dangerLevel * Math.random()
   const id = nextPlayerId++
   players.set(id, {
     socket: null,
@@ -716,9 +717,9 @@ function spawnBot(x: number, y: number) {
       x,
       y,
       rotation: 0,
-      hp: PLAYER_BASE_HP * dangerLevel,
-      maxHp: PLAYER_BASE_HP * dangerLevel,
-      playerRadius: 20 + 12 * (dangerLevel * Math.random()),
+      hp: PLAYER_BASE_HP * (1 + strengthMultiplier),
+      maxHp: PLAYER_BASE_HP * (1 + strengthMultiplier),
+      playerRadius: 20 + 12 * (strengthMultiplier),
       drillType: 0,
       drillDmgMultiplier: 0.7 + (dangerLevel - 1) * 0.1,
       drillLengthMultiplier: 0.7 + (dangerLevel * Math.min(Math.random(), 0.2)) * 0.5
