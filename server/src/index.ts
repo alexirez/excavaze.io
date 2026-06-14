@@ -209,8 +209,8 @@ setInterval(() => {
   // 4) TODO: Process current bots input
 
   // 5) Spawn bots
-  if (tick % 60 === 0) {
-    spawnBots()
+  if (tick % 50 === 0) {
+    //spawnBots()
   }
 
   // 6) Process each active square
@@ -349,10 +349,6 @@ function getNearbySquareIds(chunkIndex: number, out: number[]): void {
       }
     }
   }
-}
-
-function spawnBots() {
-  // TODO
 }
 
 function assignNextSquareId() {
@@ -632,4 +628,55 @@ function awardXp(player: ServerPlayer, amount: number) { // TODO: make xp cap be
   player.state.xp += amount
   if (currentLevel(player.state.xp) >= 7)
     player.state.xp = xpForLevel(7) - 1
+}
+
+const BOT_SPAWN_RADIUS = 300
+
+function spawnBotForPlayer(player: PlayerState) {
+  let bestX = WORLD_WIDTH / 2, bestY = WORLD_HEIGHT / 2, bestScore = -1
+
+  for (let i = 0; i < 8; i++) {
+    const dx = (Math.random() - 0.5) * 2 * BOT_SPAWN_RADIUS
+    const dy = (Math.random() < 0.5 ? 1 : -1) * (BOT_SPAWN_RADIUS - Math.abs(dx))
+    const x = Math.max(WORLD_PADDING, Math.min(WORLD_WIDTH - WORLD_PADDING, player.x + dx))
+    const y = Math.max(WORLD_PADDING, Math.min(WORLD_HEIGHT - WORLD_PADDING, player.y + dy))
+    const score = spawnPointScore(x, y, true)
+    if (score > bestScore) { bestX = x; bestY = y; bestScore = score }
+  }
+
+  // TODO: spawn bot at bestX, bestY
+}
+
+function pickPlayerSpawnPoint(): { x: number, y: number } {
+  let bestX = WORLD_WIDTH / 2, bestY = WORLD_HEIGHT / 2, bestScore = -1
+
+  for (let i = 0; i < 30; i++) {
+    const x = WORLD_PADDING + Math.random() * (WORLD_WIDTH - WORLD_PADDING * 2)
+    const y = WORLD_PADDING + Math.random() * (WORLD_HEIGHT - WORLD_PADDING * 2)
+    const score = spawnPointScore(x, y, false)
+    if (score > bestScore) { bestX = x, bestY = y, bestScore = score }
+  }
+
+  return { x: bestX, y: bestY }
+}
+
+function spawnPointScore(x: number, y: number, isBot: boolean): number {
+  const idealDist = 500
+  const nearest = Math.sqrt(nearestPlayerDist(x, y))
+  const distScore = Math.max(0, 1 - Math.abs(nearest - idealDist) / idealDist)
+  const danger = DANGER_MAP[getChunkIndex(x, y)] + 0.001 // avoid division by zero
+
+  if (isBot) return distScore * danger
+  return distScore / danger
+}
+
+
+function nearestPlayerDist(x: number, y: number): number {
+  let minSqDist = Infinity
+  for (const p of players.values()) {
+    const dx = p.state.x - x
+    const dy = p.state.y - y
+    minSqDist = Math.min(minSqDist, dx * dx + dy * dy)
+  }
+  return minSqDist
 }
