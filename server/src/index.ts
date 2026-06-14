@@ -644,7 +644,7 @@ function spawnBotForPlayer(player: PlayerState) {
     if (score > bestScore) { bestX = x; bestY = y; bestScore = score }
   }
 
-  // TODO: spawn bot at bestX, bestY
+  spawnBot(bestX, bestY)
 }
 
 function pickPlayerSpawnPoint(): { x: number, y: number } {
@@ -679,4 +679,53 @@ function nearestPlayerDist(x: number, y: number): number {
     minSqDist = Math.min(minSqDist, dx * dx + dy * dy)
   }
   return minSqDist
+}
+
+function spawnBot(x: number, y: number) {
+  const dangerLevel = DANGER_MAP[getChunkIndex(x, y)]
+  const id = nextPlayerId++
+  players.set(id, {
+    socket: null,
+    state: {
+      id,
+      name: generateBotName(),
+      xp: 0,
+      alive: true,
+      shieldActive: true,
+      x,
+      y,
+      rotation: Math.random() * Math.PI * 2,
+      hp: PLAYER_BASE_HP * dangerLevel,
+      maxHp: PLAYER_BASE_HP * dangerLevel,
+      playerRadius: 25 * (dangerLevel * Math.random() + 1),
+      drillType: 0,
+      drillDmgMultiplier: 0.7 * dangerLevel,
+      drillLengthMultiplier: 0.7 * dangerLevel
+    },
+    input: { dx: 0, dy: 0, rotation: 0 },
+    shieldTicks: SHIELD_DURATION
+  })
+}
+
+const BOT_NAMES = [
+  'Boreworm', 'YOURENDHASCOME', 'RealPlayer', 'Cavefish', 'Rockbreaker',
+  'Deepdelver', 'Ironmaw', 'Dustcloud', 'Cobalt', 'Gravel', 'Unnamed',
+  'MasterOfTheMines', 'Pitlord', 'Bedrock', 'Quarryman',
+  'NotABot', 'TrulyHuman', 'JustPassingThrough',
+  'WhyAmIHere', 'SendHelp', 'OopsAllDrill', 'DrillOrBeGrilled',
+  'YesIAmReal', 'DefinitelyNotAI', 'Muscleman'
+]
+
+const BOT_NAME_PREFIXES = [
+  'Digger', 'Mole', 'Tunneler', 'Drillbit', 'Excavator', 'Driller', 
+  'Player', 'Pro', 'ProPlayer', 'Drill', 'Caveman', 'Rock', 'Iron', 
+  'Dust', 'Gopher', 'Pebble', 'Boulder', 'Crater'
+]
+
+function generateBotName(): string {
+  if (Math.random() < 0.2)
+    return BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)]
+  const prefix = BOT_NAME_PREFIXES[Math.floor(Math.random() * BOT_NAME_PREFIXES.length)]
+  const digits = Math.floor(1000 + Math.random() * 9000) // always 4 digits
+  return `${prefix}${digits}`
 }
