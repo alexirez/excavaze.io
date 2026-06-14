@@ -44,7 +44,7 @@ function formatXp(xp: number): string {
   if (xp >= 1_000_000) return `${(xp / 1_000_000).toFixed(3)}m`
   if (xp >= 10_000) return `${(xp / 1_000).toFixed(1)}k`
   if (xp >= 1_000) return `${(xp / 1_000).toFixed(2)}k`
-  return `${xp}`
+  return `${xp.toFixed(0)}`
 }
 
 export default function App() {
@@ -127,12 +127,12 @@ export default function App() {
             fontSize: 13,
             whiteSpace: 'nowrap',
           }}>
-            <span style={{ color: entry.victimId === getLocalId() ? '#00ff99' : '#ff6b6b' }}>
+            <span style={{ color: entry.victimId === getLocalId() ? '#ffdd00' : '#ff6b6b' }}>
               {entry.victimName}
             </span>
             <span style={{ color: '#aaa' }}> was killed by </span>
             {entry.killerName ? (
-              <span style={{ color: entry.killerId === getLocalId() ? '#00ff99' : '#ff6b6b' }}>
+              <span style={{ color: entry.killerId === getLocalId() ? '#ffdd00' : '#ff6b6b' }}>
                 {entry.killerName}
               </span>
             ) : (
