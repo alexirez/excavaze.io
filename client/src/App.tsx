@@ -70,7 +70,7 @@ export default function App() {
       if (msg.type === 'world_state') {
         const sorted = [...msg.players]
           .sort((a, b) => b.xp - a.xp)
-          .slice(0, 5)
+          .slice(0, 10)
         setLeaderboard(sorted)
       } else if (msg.type === 'player_killed') {
         const id = Date.now()
