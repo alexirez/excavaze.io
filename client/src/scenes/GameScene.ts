@@ -210,7 +210,7 @@ export class GameScene extends Phaser.Scene {
       // body
       this.enemyGraphics.fillStyle(0xff6b6b)
       this.enemyGraphics.fillCircle(0, 0, p.playerRadius)
-      this.enemyGraphics.lineStyle(6 + (p.maxHp - PLAYER_BASE_HP), 0xcc4444, 1)
+      this.enemyGraphics.lineStyle(6 + (p.playerRadius * 0.1), 0xcc4444, 1)
       this.enemyGraphics.strokeCircle(0, 0, p.playerRadius - 2)
 
       // weapon — starts at edge of circle

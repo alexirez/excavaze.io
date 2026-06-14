@@ -7,6 +7,7 @@ import { circleIntersectsTriangle, currentLevel, xpForLevel } from '../../protoc
 import { PlayerState, SquareState } from '../../protocol/types'
 
 const PORT = 3000
+const MAX_PLAYER_COUNT = 20
 const CHUNK_COLS = 16
 const CHUNK_ROWS = 16
 const UNIT_SPEED = 10
@@ -210,7 +211,7 @@ setInterval(() => {
 
   // 5) Spawn bots
   if (tick % 50 === 0) {
-    //spawnBots()
+    spawnBots()
   }
 
   // 6) Process each active square
@@ -681,6 +682,24 @@ function nearestPlayerDist(x: number, y: number): number {
   return minSqDist
 }
 
+function spawnBots() {
+  const botBudget = MAX_PLAYER_COUNT - 10
+  const currentBots = [...players.values()].filter(p => p.socket === null).length
+  if (currentBots >= botBudget) return
+
+  // find the real player most deserving of a bot
+  let bestPlayer: PlayerState | null = null
+  let bestScore = -1
+  for (const p of players.values()) {
+    if (p.socket === null || !p.state.alive) continue
+    const score = currentLevel(p.state.xp) // simple for now, expand later
+    if (score > bestScore) { bestScore = score; bestPlayer = p.state }
+  }
+
+  if (bestPlayer) spawnBotForPlayer(bestPlayer)
+}
+
+
 function spawnBot(x: number, y: number) {
   const dangerLevel = DANGER_MAP[getChunkIndex(x, y)]
   const id = nextPlayerId++
@@ -694,15 +713,15 @@ function spawnBot(x: number, y: number) {
       shieldActive: true,
       x,
       y,
-      rotation: Math.random() * Math.PI * 2,
+      rotation: 0,
       hp: PLAYER_BASE_HP * dangerLevel,
       maxHp: PLAYER_BASE_HP * dangerLevel,
-      playerRadius: 25 * (dangerLevel * Math.random() + 1),
+      playerRadius: 20 + 25 * (dangerLevel * Math.random()),
       drillType: 0,
-      drillDmgMultiplier: 0.7 * dangerLevel,
-      drillLengthMultiplier: 0.7 * dangerLevel
+      drillDmgMultiplier: 0.7 + (dangerLevel - 1) * 0.1,
+      drillLengthMultiplier: 0.7 + (dangerLevel * Math.random()) * 0.6
     },
-    input: { dx: 0, dy: 0, rotation: 0 },
+    input: { dx: 0, dy: 0, rotation: Math.random() * Math.PI * 2 },
     shieldTicks: SHIELD_DURATION
   })
 }
