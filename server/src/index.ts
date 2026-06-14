@@ -593,10 +593,11 @@ function killPlayer(killer: ServerPlayer, victim: ServerPlayer, cause: 'player' 
     killerName: killer.state.name,
   } satisfies PlayerKilledMessage))
   victim.socket?.send(JSON.stringify({
-  type: 'death_screen',
-  killerName: killer.state.name,
-  cause: cause
-} satisfies DeathScreenMessage))
+    type: 'death_screen',
+    killerName: killer.state.name,
+    cause: cause
+  } satisfies DeathScreenMessage))
+  if (victim.socket === null) players.delete(victim.state.id) // bots are removed immediately
 }
 
 function killPlayerBySquare(victim: ServerPlayer) {
@@ -610,10 +611,11 @@ function killPlayerBySquare(victim: ServerPlayer) {
     killerName: 'A Square',
   } satisfies PlayerKilledMessage))
   victim.socket?.send(JSON.stringify({
-  type: 'death_screen',
-  killerName: 'a Square',
-  cause: 'square'
-} satisfies DeathScreenMessage))
+    type: 'death_screen',
+    killerName: 'a Square',
+    cause: 'square'
+  } satisfies DeathScreenMessage))
+  if (victim.socket === null) players.delete(victim.state.id) // bots are removed immediately
 }
 
 // helper to broadcast a message to all connected players
@@ -716,10 +718,10 @@ function spawnBot(x: number, y: number) {
       rotation: 0,
       hp: PLAYER_BASE_HP * dangerLevel,
       maxHp: PLAYER_BASE_HP * dangerLevel,
-      playerRadius: 20 + 25 * (dangerLevel * Math.random()),
+      playerRadius: 20 + 12 * (dangerLevel * Math.random()),
       drillType: 0,
       drillDmgMultiplier: 0.7 + (dangerLevel - 1) * 0.1,
-      drillLengthMultiplier: 0.7 + (dangerLevel * Math.random()) * 0.6
+      drillLengthMultiplier: 0.7 + (dangerLevel * Math.min(Math.random(), 0.2)) * 0.5
     },
     input: { dx: 0, dy: 0, rotation: Math.random() * Math.PI * 2 },
     shieldTicks: SHIELD_DURATION
