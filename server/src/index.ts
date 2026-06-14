@@ -195,7 +195,7 @@ setInterval(() => {
         if (square.state.hp <= 0)
           awardXp(p, KILL_SQUARE_XP_MULTIPLIER * square.state.maxHp)
         if (!p.state.shieldActive) p.state.hp -= square.state.maxHp * SQUARE_COLLISION_DAMAGE_FACTOR
-        if (p.state.hp <= 0) killPlayerBySquare(p)
+        if (p.state.hp <= 0) { killPlayerBySquare(p) }
 
         // positional correction — push player out using circle-vs-AABB penetration
         const nx = dx / dist
@@ -684,7 +684,7 @@ function nearestPlayerDist(x: number, y: number): number {
 
 function spawnBots() {
   const botBudget = MAX_PLAYER_COUNT - 10
-  const currentBots = [...players.values()].filter(p => p.socket === null).length
+  const currentBots = players.size
   if (currentBots >= botBudget) return
 
   // find the real player most deserving of a bot
