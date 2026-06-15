@@ -6,6 +6,7 @@ export interface ServerPlayer {
   state: PlayerState
   input: { dx: number; dy: number; rotation: number }
   shieldTicks: number
+  lastCollisionTime: number
 }
 
 export interface ServerSquare {

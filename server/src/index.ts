@@ -1,7 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws'
 import { ServerPlayer, ServerSquare } from './entities'
 import { WorldStateMessage, ClientMessage, DeathScreenMessage, PlayerKilledMessage } from '../../protocol/messages'
-import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, SQUARE_COLLISION_DAMAGE_FACTOR, PLAYER_COLLISION_DAMAGE_FACTOR, MIN_OBSTACLE_SPAWN_DIST, SQR_BASE_ROT_SPEED, MAX_SQR_ROT_SPEED, KILL_SQUARE_XP_MULTIPLIER, STEAL_PLAYER_XP_MULTIPLIER, KILL_PLAYER_BASE_XP } from '../../protocol/constants'
+import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, PLAYER_COLLISION_DAMAGE, MIN_OBSTACLE_SPAWN_DIST, SQR_BASE_ROT_SPEED, MAX_SQR_ROT_SPEED, KILL_SQUARE_XP_MULTIPLIER, STEAL_PLAYER_XP_MULTIPLIER, KILL_PLAYER_BASE_XP, SQR_COLLISION_BASE_DMG, SQR_COLLISION_DMG_FACTOR, COLLISION_COOLDOWN } from '../../protocol/constants'
 import { DANGER_MAP, DENSITY_MAP } from './data/map'
 import { circleIntersectsTriangle, currentLevel, xpForLevel } from '../../protocol/utils'
 import { PlayerState, SquareState } from '../../protocol/types'
@@ -62,7 +62,8 @@ wss.on('connection', (socket) => {
       drillLengthMultiplier: 1
     },
     input: { dx: 0, dy: 0, rotation: 0 },
-    shieldTicks: SHIELD_DURATION
+    shieldTicks: SHIELD_DURATION,
+    lastCollisionTime: 0
   })
   // S->C: Tell this client their assigned id
   socket.send(JSON.stringify({ type: 'welcome', id }))
@@ -85,10 +86,11 @@ wss.on('connection', (socket) => {
         // TODO: smart spawning computes x, y
         const player = players.get(id)!
         if (player.state.alive) return
+        const { x, y } = pickPlayerSpawnPoint()
         player.state.alive = true
         player.state.hp = PLAYER_BASE_HP
-        player.state.x = WORLD_WIDTH / 2
-        player.state.y = WORLD_HEIGHT / 2
+        player.state.x = x
+        player.state.y = y
         player.state.shieldActive = true
         player.shieldTicks = SHIELD_DURATION
       }
@@ -127,19 +129,14 @@ setInterval(() => {
         const radiusSum = a.state.playerRadius + b.state.playerRadius
 
         if (dist < radiusSum && dist > 0.001) {
-          const overlap = radiusSum - dist
-          const nx = dx / dist
-          const ny = dy / dist
-
-          // positional correction — push player out of collided player
-          a.state.x += nx * overlap / 2
-          a.state.y += ny * overlap / 2
-          b.state.x -= nx * overlap / 2
-          b.state.y -= ny * overlap / 2
-
-          if (!a.state.shieldActive) a.state.hp -= PLAYER_COLLISION_DAMAGE_FACTOR * 10
-          if (!b.state.shieldActive) b.state.hp -= PLAYER_COLLISION_DAMAGE_FACTOR * 10
-
+          if (!a.state.shieldActive && Date.now() - a.lastCollisionTime >= COLLISION_COOLDOWN) {
+            a.state.hp -= PLAYER_COLLISION_DAMAGE
+            a.lastCollisionTime = Date.now()
+          }
+          if (!b.state.shieldActive && Date.now() - b.lastCollisionTime >= COLLISION_COOLDOWN) {
+            b.state.hp -= PLAYER_COLLISION_DAMAGE
+            b.lastCollisionTime = Date.now()
+          }
           if (b.state.hp <= 0 ) killPlayer(a, b, 'player') // broadcasts victim death and rewards xp to killer
           if (a.state.hp <= 0 ) killPlayer(b, a, 'player')
         }
@@ -192,18 +189,14 @@ setInterval(() => {
         p.state.x, p.state.y, p.state.playerRadius,
         square.state.x, square.state.y, square.state.rotation, sqHalf, sqHalf // 4. player + square collisions
       )) {
-        square.state.hp -= p.state.maxHp * PLAYER_COLLISION_DAMAGE_FACTOR
+        square.state.hp -= PLAYER_COLLISION_DAMAGE
         if (square.state.hp <= 0)
           awardXp(p, KILL_SQUARE_XP_MULTIPLIER * square.state.maxHp)
-        if (!p.state.shieldActive) p.state.hp -= square.state.maxHp * SQUARE_COLLISION_DAMAGE_FACTOR
-        if (p.state.hp <= 0) { killPlayerBySquare(p) }
-
-        // positional correction — push player out using circle-vs-AABB penetration
-        const nx = dx / dist
-        const ny = dy / dist
-        const overlap = (p.state.playerRadius + sqHalf) - dist
-        p.state.x += nx * overlap
-        p.state.y += ny * overlap
+        if (!p.state.shieldActive && Date.now() - p.lastCollisionTime > COLLISION_COOLDOWN) {
+          p.state.hp -= SQR_COLLISION_BASE_DMG + square.state.maxHp * SQR_COLLISION_DMG_FACTOR
+          p.lastCollisionTime = Date.now()
+        }
+        if (p.state.hp <= 0) killPlayerBySquare(p)
       }
     }
   }
@@ -726,7 +719,8 @@ function spawnBot(x: number, y: number) {
       drillLengthMultiplier: 0.7 + (dangerLevel * Math.min(Math.random(), 0.2)) * 0.5
     },
     input: { dx: 0, dy: 0, rotation: Math.random() * Math.PI * 2 },
-    shieldTicks: SHIELD_DURATION
+    shieldTicks: SHIELD_DURATION,
+    lastCollisionTime: 0,
   })
 }
 
