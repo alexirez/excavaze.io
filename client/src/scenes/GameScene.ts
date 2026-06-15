@@ -10,6 +10,7 @@ export class GameScene extends Phaser.Scene {
   private xpLabel!: Phaser.GameObjects.Text // shows current level
   private xpMaxLabel!: Phaser.GameObjects.Text // says MAX after xp bar. only shows when at max level
   private xpMaxBg!: Phaser.GameObjects.Graphics // background rounded rectangles for labels to be more visible
+  private enemyNameLabels: Map<number, Phaser.GameObjects.Text> = new Map()
   private keys!: Record<string, Phaser.Input.Keyboard.Key>
   private localId: number | null = null
   private latestPlayersState: Map<number, PlayerState> = new Map()
@@ -227,6 +228,25 @@ export class GameScene extends Phaser.Scene {
         this.enemyGraphics.fillRect(p.x - bw / 2, p.y - p.playerRadius - 12, bw, bh)
         this.enemyGraphics.fillStyle(getHealthColor(ratio))
         this.enemyGraphics.fillRect(p.x - bw / 2, p.y - p.playerRadius - 12, ratio * bw, bh)
+      }
+
+      // enemy name label
+      if (!this.enemyNameLabels.has(id)) { // create label if it doesn't exist yet
+        this.enemyNameLabels.set(id, this.add.text(0, 0, p.name, {
+          fontSize: '11px',
+          color: '#ffffff',
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          padding: { x: 4, y: 2 }
+        }).setDepth(60).setOrigin(0.5, 0))
+      }
+      this.enemyNameLabels.get(id)!.setPosition(p.x, p.y + p.playerRadius + 12)
+    }
+
+    // remove labels for players that disconnected
+    for (const [id, label] of this.enemyNameLabels) {
+      if (!this.latestPlayersState.has(id) || id === getLocalId()) {
+        label.destroy()
+        this.enemyNameLabels.delete(id)
       }
     }
 
