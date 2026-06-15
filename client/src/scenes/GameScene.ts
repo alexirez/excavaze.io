@@ -233,11 +233,12 @@ export class GameScene extends Phaser.Scene {
       // enemy name label
       if (!this.enemyNameLabels.has(id)) { // create label if it doesn't exist yet
         this.enemyNameLabels.set(id, this.add.text(0, 0, p.name, {
-          fontSize: '11px',
+          fontSize: '24px',
+          fontFamily: 'Share Tech',
           color: '#ffffff',
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          padding: { x: 4, y: 2 }
-        }).setDepth(60).setOrigin(0.5, 0))
+          padding: { x: 4, y: 2 },
+          resolution: window.devicePixelRatio
+        }).setDepth(80).setOrigin(0.5, 0))
       }
       this.enemyNameLabels.get(id)!.setPosition(p.x, p.y + p.playerRadius + 12)
     }
