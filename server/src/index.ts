@@ -639,8 +639,8 @@ function spawnBotForPlayer(player: PlayerState) {
   let bestX = WORLD_WIDTH / 2, bestY = WORLD_HEIGHT / 2, bestScore = -1
 
   for (let i = 0; i < 30; i++) {
-    const dx = (Math.random() - 0.5) * 2 * BOT_SPAWN_RADIUS
-    const dy = (Math.random() < 0.5 ? 1 : -1) * (BOT_SPAWN_RADIUS - Math.abs(dx))
+    const dx = (i/15 - 0.5) * 2 * BOT_SPAWN_RADIUS
+    const dy = (i % 2 === 0 ? 1 : -1) * (BOT_SPAWN_RADIUS - Math.abs(dx))
     const x = Math.max(WORLD_PADDING, Math.min(WORLD_WIDTH - WORLD_PADDING, player.x + dx))
     const y = Math.max(WORLD_PADDING, Math.min(WORLD_HEIGHT - WORLD_PADDING, player.y + dy))
     const score = spawnPointScore(x, y, true)
