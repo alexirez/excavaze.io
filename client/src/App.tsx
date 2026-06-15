@@ -147,6 +147,7 @@ export default function App() {
         position: 'absolute',
         top: 20,
         right: 20,
+        fontFamily: "'Share Tech', sans-serif",
         pointerEvents: 'none',
         transform: isDead ? 'translateX(200px)' : 'translateX(0)',
         opacity: isDead ? 0 : 1,
