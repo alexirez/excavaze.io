@@ -40,6 +40,7 @@ spawnSquaresOnStartup()
 
 wss.on('connection', (socket) => {
   const id = nextPlayerId++
+  const { x, y } = pickPlayerSpawnPoint()
   console.log(`Player ${id} connected`)
 
   players.set(id, {
@@ -50,8 +51,8 @@ wss.on('connection', (socket) => {
       xp: 0,
       alive: true,
       shieldActive: true,
-      x: 400, 
-      y: 300,
+      x: x, 
+      y: y,
       rotation: 0,
       hp: PLAYER_BASE_HP,
       maxHp: PLAYER_BASE_HP,
@@ -686,8 +687,8 @@ function nearestPlayerDist(x: number, y: number): number {
 
 function spawnBots() {
   const botBudget = MAX_PLAYER_COUNT - 10
-  const currentBots = players.size
-  if (currentBots >= botBudget) return
+  const currentPlayers = players.size
+  if (currentPlayers >= botBudget) return
 
   // find the real player most deserving of a bot
   let bestPlayer: PlayerState | null = null
