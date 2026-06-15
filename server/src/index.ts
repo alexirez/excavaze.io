@@ -633,12 +633,12 @@ function awardXp(player: ServerPlayer, amount: number) { // TODO: make xp cap be
     player.state.xp = xpForLevel(7) - 1
 }
 
-const BOT_SPAWN_RADIUS = 300
+const BOT_SPAWN_RADIUS = 1200
 
 function spawnBotForPlayer(player: PlayerState) {
   let bestX = WORLD_WIDTH / 2, bestY = WORLD_HEIGHT / 2, bestScore = -1
 
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < 30; i++) {
     const dx = (Math.random() - 0.5) * 2 * BOT_SPAWN_RADIUS
     const dy = (Math.random() < 0.5 ? 1 : -1) * (BOT_SPAWN_RADIUS - Math.abs(dx))
     const x = Math.max(WORLD_PADDING, Math.min(WORLD_WIDTH - WORLD_PADDING, player.x + dx))
@@ -664,7 +664,7 @@ function pickPlayerSpawnPoint(): { x: number, y: number } {
 }
 
 function spawnPointScore(x: number, y: number, isBot: boolean): number {
-  const idealDist = 500
+  const idealDist = 1200
   const nearest = Math.sqrt(nearestPlayerDist(x, y))
   const distScore = Math.max(0, 1 - Math.abs(nearest - idealDist) / idealDist)
   const danger = DANGER_MAP[getChunkIndex(x, y)] + 0.001 // avoid division by zero
@@ -745,9 +745,14 @@ const BOT_NAME_PREFIXES = [
 ]
 
 function generateBotName(): string {
-  if (Math.random() < 0.2)
-    return BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)]
+  const usedNames = new Set([...players.values()].map(p => p.state.name))
+  const availableFullNames = BOT_NAMES.filter(n => !usedNames.has(n))
+
+  if (Math.random() < 0.8 && availableFullNames.length > 0)
+    return availableFullNames[Math.floor(Math.random() * availableFullNames.length)]
   const prefix = BOT_NAME_PREFIXES[Math.floor(Math.random() * BOT_NAME_PREFIXES.length)]
-  const digits = Math.floor(1000 + Math.random() * 9000) // always 4 digits
+  let digits = Math.floor(1000 + Math.random() * 9000) // always 4 digits
+  const name = `${prefix}${digits}`
+  while (usedNames.has(name)) digits++
   return `${prefix}${digits}`
 }
