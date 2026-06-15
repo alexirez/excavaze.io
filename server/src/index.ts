@@ -576,7 +576,7 @@ function isSpawnClearOfPlayers(spawnX: number, spawnY: number, minDist: number):
   for (const p of players.values()) {
     const dx = p.state.x - spawnX
     const dy = p.state.y - spawnY
-    if (dx * dx + dy * dy < minDist * minDist) return false
+    if (dx * dx + dy * dy < (minDist + p.state.playerRadius)**2) return false
   }
   return true
 }
