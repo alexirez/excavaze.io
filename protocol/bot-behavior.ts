@@ -77,7 +77,7 @@ export function computeBotInput(bot: ServerPlayer, nearbyPlayers: PlayerState[],
   y += avoid.y * 1.8
 
   const len = Math.sqrt(x * x + y * y)
-  const MOMENTUM = 0.7 // 0 = no smoothing, 1 = never changes
+  const MOMENTUM = 0.4 // 0 = no smoothing, 1 = never changes
   bot.input.dx = bot.input.dx * MOMENTUM + (len > 0 ? x / len : 0) * (1 - MOMENTUM)
   bot.input.dy = bot.input.dy * MOMENTUM + (len > 0 ? y / len : 0) * (1 - MOMENTUM)
 }
