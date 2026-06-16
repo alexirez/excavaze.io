@@ -45,12 +45,13 @@ export function computeBotInput(bot: ServerPlayer, nearbyPlayers: PlayerState[],
   let threat: PlayerState | null = null
   let target: PlayerState | null = null
   let biggestThreatRadius = bot.state.playerRadius * 1.3
-  let weakestTargetHp = Infinity
+  let bestScore = -1
 
   for (const p of nearbyPlayers) {
     if (p.id === bot.state.id) continue
     if (p.playerRadius > biggestThreatRadius) { biggestThreatRadius = p.playerRadius; threat = p }
-    if (p.hp < weakestTargetHp) { weakestTargetHp = p.hp; target = p }
+    const currentScore = targetScore(bot, p)
+    if (currentScore > bestScore) { bestScore = currentScore; target = p }
   }
 
   if (threat) {
@@ -80,4 +81,12 @@ export function computeBotInput(bot: ServerPlayer, nearbyPlayers: PlayerState[],
   const MOMENTUM = 0.4 // 0 = no smoothing, 1 = never changes
   bot.input.dx = bot.input.dx * MOMENTUM + (len > 0 ? x / len : 0) * (1 - MOMENTUM)
   bot.input.dy = bot.input.dy * MOMENTUM + (len > 0 ? y / len : 0) * (1 - MOMENTUM)
+}
+
+function targetScore(bot: ServerPlayer, p: PlayerState): number {
+  const hpDeficit = bot.state.hp - p.hp
+  const dmgDeficit = bot.state.drillDmgMultiplier - p.drillDmgMultiplier
+  const dx = bot.state.x - p.x; const dy = bot.state.y - p.y
+  const sqrDist = dx * dx + dy * dy
+  return (hpDeficit > 0 ? hpDeficit : 0) * Math.max(0.1, 1 + dmgDeficit) / (sqrDist + 0.001)
 }
