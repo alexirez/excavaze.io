@@ -10,11 +10,6 @@ function seek(from: PlayerState, to: PlayerState): { x: number, y: number } {
   return { x: dx / len, y: dy / len }
 }
 
-function flee(from: PlayerState, threat: PlayerState): { x: number, y: number } {
-  const s = seek(from, threat)
-  return { x: -s.x, y: -s.y }
-}
-
 function wander(bot: ServerPlayer): { x: number, y: number } {
   bot.wanderAngle += (Math.random() - 0.5) * 0.3
   return { x: Math.cos(bot.wanderAngle), y: Math.sin(bot.wanderAngle) }
@@ -25,9 +20,9 @@ function computeObstacleAvoidance(bot: PlayerState, nearbySquareIds: number[], s
   for (const id of nearbySquareIds) {
     const sq = squares.get(id)
     if (!sq) continue
-    const dx = bot.x - sq.state.x
-    const dy = bot.y - sq.state.y
-    const dist = Math.sqrt(dx * dx + dy * dy)
+    const dx = (bot.x - sq.state.x) - bot.playerRadius
+    const dy = (bot.y - sq.state.y) - bot.playerRadius
+    const dist = Math.sqrt(dx * dx + dy * dy) - bot.playerRadius
     if (dist > BOT_OBSTACLE_AVOIDANCE_DIST || dist < 0.001) continue
     const strength = Math.pow(1 - dist / BOT_OBSTACLE_AVOIDANCE_DIST, 16)
     fx += (dx / dist) * strength
@@ -42,22 +37,14 @@ export function computeBotInput(bot: ServerPlayer, nearbyPlayers: PlayerState[],
   let x = 0, y = 0
 
   // find biggest nearby threat and weakest nearby target
-  let threat: PlayerState | null = null
   let target: PlayerState | null = null
   let biggestThreatRadius = bot.state.playerRadius * 1.3
   let bestScore = -1
 
   for (const p of nearbyPlayers) {
     if (p.id === bot.state.id) continue
-    if (p.playerRadius > biggestThreatRadius) { biggestThreatRadius = p.playerRadius; threat = p }
     const currentScore = targetScore(bot, p)
     if (currentScore > bestScore) { bestScore = currentScore; target = p }
-  }
-
-  if (threat) {
-    const f = flee(bot.state, threat)
-    x += f.x * 1.5
-    y += f.y * 1.5
   }
 
   if (target) {
