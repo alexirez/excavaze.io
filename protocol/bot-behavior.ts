@@ -29,7 +29,7 @@ function computeObstacleAvoidance(bot: PlayerState, nearbySquareIds: number[], s
     const dy = bot.y - sq.state.y
     const dist = Math.sqrt(dx * dx + dy * dy)
     if (dist > BOT_OBSTACLE_AVOIDANCE_DIST || dist < 0.001) continue
-    const strength = Math.pow(1 - dist / BOT_OBSTACLE_AVOIDANCE_DIST, 3)
+    const strength = Math.pow(1 - dist / BOT_OBSTACLE_AVOIDANCE_DIST, 9)
     fx += (dx / dist) * strength
     fy += (dy / dist) * strength
   }
@@ -73,8 +73,8 @@ export function computeBotInput(bot: ServerPlayer, nearbyPlayers: PlayerState[],
   y += w.y * 0.3
 
   const avoid = computeObstacleAvoidance(bot.state, nearbySquareIds, squares)
-  x += avoid.x * 2.5
-  y += avoid.y * 2.5
+  x += avoid.x * 1.8
+  y += avoid.y * 1.8
 
   const len = Math.sqrt(x * x + y * y)
   bot.input.dx = len > 0 ? x / len : 0

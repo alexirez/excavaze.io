@@ -205,18 +205,20 @@ setInterval(() => {
   }
 
   // 4) Process current bots input
-  for (const p of players.values()) {
-    if (p.socket !== null || !p.state.alive) continue
-    nearbyPlayers.length = 0
-    for (const [id, other] of players) {
-      if (!other.state.alive) continue
-      const dx = other.state.x - p.state.x
-      const dy = other.state.y - p.state.y
-      if (dx * dx + dy * dy < 800 * 800) nearbyPlayers.push(other.state)
+  if (tick % 3 === 0) {
+    for (const p of players.values()) {
+      if (p.socket !== null || !p.state.alive) continue
+      nearbyPlayers.length = 0
+      for (const [id, other] of players) {
+        if (!other.state.alive) continue
+        const dx = other.state.x - p.state.x
+        const dy = other.state.y - p.state.y
+        if (dx * dx + dy * dy < 800 * 800) nearbyPlayers.push(other.state)
+      }
+      const chunkIndex = getChunkIndex(p.state.x, p.state.y)
+      getNearbySquareIds(chunkIndex, nearbySquareIds)
+      computeBotInput(p, nearbyPlayers, nearbySquareIds, squares)
     }
-    const chunkIndex = getChunkIndex(p.state.x, p.state.y)
-    getNearbySquareIds(chunkIndex, nearbySquareIds)
-    computeBotInput(p, nearbyPlayers, nearbySquareIds, squares)
   }
 
   // 5) Spawn bots
