@@ -7,6 +7,7 @@ export interface ServerPlayer {
   input: { dx: number; dy: number; rotation: number }
   shieldTicks: number
   lastCollisionTime: number
+  wanderAngle: number
 }
 
 export interface ServerSquare {

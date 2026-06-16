@@ -5,6 +5,7 @@ import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUA
 import { DANGER_MAP, DENSITY_MAP } from './data/map'
 import { circleIntersectsTriangle, currentLevel, xpForLevel } from '../../protocol/utils'
 import { PlayerState, SquareState } from '../../protocol/types'
+import { computeBotInput } from '../../protocol/bot-behavior'
 
 const PORT = 3000
 const MAX_PLAYER_COUNT = 20
@@ -30,6 +31,7 @@ const players = new Map<number, ServerPlayer>()
 const squares = new Map<number, ServerSquare>()
 const playerStates: PlayerState[] = []
 const squareStates: SquareState[] = []
+const nearbyPlayers: PlayerState[] = []
 const nearbySquareIds: number[] = []
 const squaresToDelete: number[] = []
 const chunkToSquares = new Map<number, Set<number>>()
@@ -63,7 +65,8 @@ wss.on('connection', (socket) => {
     },
     input: { dx: 0, dy: 0, rotation: 0 },
     shieldTicks: SHIELD_DURATION,
-    lastCollisionTime: 0
+    lastCollisionTime: 0,
+    wanderAngle: Math.random() * Math.PI * 2
   })
   // S->C: Tell this client their assigned id
   socket.send(JSON.stringify({ type: 'welcome', id }))
@@ -201,7 +204,20 @@ setInterval(() => {
     }
   }
 
-  // 4) TODO: Process current bots input
+  // 4) Process current bots input
+  for (const p of players.values()) {
+    if (p.socket !== null || !p.state.alive) continue
+    nearbyPlayers.length = 0
+    for (const [id, other] of players) {
+      if (!other.state.alive) continue
+      const dx = other.state.x - p.state.x
+      const dy = other.state.y - p.state.y
+      if (dx * dx + dy * dy < 800 * 800) nearbyPlayers.push(other.state)
+    }
+    const chunkIndex = getChunkIndex(p.state.x, p.state.y)
+    getNearbySquareIds(chunkIndex, nearbySquareIds)
+    computeBotInput(p, nearbyPlayers, nearbySquareIds, squares)
+  }
 
   // 5) Spawn bots
   if (tick % 50 === 0) {
@@ -721,6 +737,7 @@ function spawnBot(x: number, y: number) {
     input: { dx: 0, dy: 0, rotation: Math.random() * Math.PI * 2 },
     shieldTicks: SHIELD_DURATION,
     lastCollisionTime: 0,
+    wanderAngle: Math.random() * Math.PI * 2
   })
 }
 
