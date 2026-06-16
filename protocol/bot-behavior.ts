@@ -61,8 +61,8 @@ export function computeBotInput(bot: ServerPlayer, nearbyPlayers: PlayerState[],
 
   if (target) {
     const s = seek(bot.state, target)
-    x += s.x * 0.8
-    y += s.y * 0.8
+    x += s.x * 0.5
+    y += s.y * 0.5
     bot.input.rotation = Math.atan2(target.y - bot.state.y, target.x - bot.state.x)
   } else {
     bot.input.rotation = bot.wanderAngle
@@ -73,8 +73,8 @@ export function computeBotInput(bot: ServerPlayer, nearbyPlayers: PlayerState[],
   y += w.y * 0.3
 
   const avoid = computeObstacleAvoidance(bot.state, nearbySquareIds, squares)
-  x += avoid.x * 1.2
-  y += avoid.y * 1.2
+  x += avoid.x * 2.5
+  y += avoid.y * 2.5
 
   const len = Math.sqrt(x * x + y * y)
   bot.input.dx = len > 0 ? x / len : 0
