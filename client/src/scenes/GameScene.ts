@@ -3,7 +3,7 @@ import socket, { addSocketListener, getLocalId } from '../network/socket'
 import { PlayerState, SquareState } from '../../../protocol/types'
 import { ServerMessage } from '../../../protocol/messages'
 import { WORLD_WIDTH, WORLD_HEIGHT, COLOR_BACKGROUND, COLOR_OUTER_BOUNDS, WORLD_PADDING, SQUARE_BASE_HP, PLAYER_BASE_HP } from '../../../protocol/constants'
-import { currentLevel, xpForLevel, xpThisLevel, xpForNextLevel } from '../../../protocol/utils'
+import { currentLevel, xpThisLevel, xpForNextLevel } from '../../../protocol/utils'
 
 export class GameScene extends Phaser.Scene {
   private playerStatBars!: Phaser.GameObjects.Graphics
@@ -92,6 +92,7 @@ export class GameScene extends Phaser.Scene {
             rotation: p.rotation,
             hp: p.hp,
             maxHp: p.maxHp,
+            hpRegenPerSec: p.hpRegenPerSec,
             playerRadius: p.playerRadius,
             drillType: p.drillType,
             drillDmgMultiplier: p.drillDmgMultiplier,

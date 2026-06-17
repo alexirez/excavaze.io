@@ -58,6 +58,7 @@ wss.on('connection', (socket) => {
       rotation: 0,
       hp: PLAYER_BASE_HP,
       maxHp: PLAYER_BASE_HP,
+      hpRegenPerSec: 0,
       playerRadius: 25,
       drillType: 0,
       drillDmgMultiplier: 1,
@@ -114,11 +115,12 @@ setInterval(() => {
     p.state.y = Math.max(WORLD_PADDING, Math.min(WORLD_HEIGHT - WORLD_PADDING, p.state.y + p.input.dy * p.moveSpeed))
     p.state.rotation = p.input.rotation
 
-    // 2) Process spawn shield timers
+    // 2) Process spawn shield timers + hp regen
     if (p.shieldTicks > 0) {
       p.shieldTicks--
       if (p.shieldTicks === 0) p.state.shieldActive = false
     }
+    p.state.hp = Math.min(p.state.hp + p.state.hpRegenPerSec, p.state.maxHp)
   }
   
 
@@ -731,6 +733,7 @@ function spawnBot(x: number, y: number) {
       rotation: 0,
       hp: PLAYER_BASE_HP * (1 + strengthMultiplier),
       maxHp: PLAYER_BASE_HP * (1 + strengthMultiplier),
+      hpRegenPerSec: 0,
       playerRadius: playerRadius,
       drillType: 0,
       drillDmgMultiplier: 0.7 + (dangerLevel - 1) * 0.1,
