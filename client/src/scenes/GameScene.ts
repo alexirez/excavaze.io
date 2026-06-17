@@ -93,6 +93,7 @@ export class GameScene extends Phaser.Scene {
             hp: p.hp,
             maxHp: p.maxHp,
             hpRegenPerSec: p.hpRegenPerSec,
+            moveSpeedMultiplier: p.moveSpeedMultiplier,
             playerRadius: p.playerRadius,
             drillType: p.drillType,
             drillDmgMultiplier: p.drillDmgMultiplier,

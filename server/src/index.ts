@@ -59,6 +59,7 @@ wss.on('connection', (socket) => {
       hp: PLAYER_BASE_HP,
       maxHp: PLAYER_BASE_HP,
       hpRegenPerSec: 0,
+      moveSpeedMultiplier: UNIT_SPEED,
       playerRadius: 25,
       drillType: 0,
       drillDmgMultiplier: 1,
@@ -68,7 +69,6 @@ wss.on('connection', (socket) => {
     shieldTicks: SHIELD_DURATION,
     lastCollisionTime: 0,
     wanderAngle: Math.random() * Math.PI * 2,
-    moveSpeed: UNIT_SPEED
   })
   // S->C: Tell this client their assigned id
   socket.send(JSON.stringify({ type: 'welcome', id }))
@@ -111,8 +111,8 @@ setInterval(() => {
   // 1) Process player/bots input
   for (const p of players.values()) {
     if (!p.state.alive) continue
-    p.state.x = Math.max(WORLD_PADDING, Math.min(WORLD_WIDTH - WORLD_PADDING, p.state.x + p.input.dx * p.moveSpeed))
-    p.state.y = Math.max(WORLD_PADDING, Math.min(WORLD_HEIGHT - WORLD_PADDING, p.state.y + p.input.dy * p.moveSpeed))
+    p.state.x = Math.max(WORLD_PADDING, Math.min(WORLD_WIDTH - WORLD_PADDING, p.state.x + p.input.dx * p.state.moveSpeedMultiplier))
+    p.state.y = Math.max(WORLD_PADDING, Math.min(WORLD_HEIGHT - WORLD_PADDING, p.state.y + p.input.dy * p.state.moveSpeedMultiplier))
     p.state.rotation = p.input.rotation
 
     // 2) Process spawn shield timers + hp regen
@@ -734,6 +734,7 @@ function spawnBot(x: number, y: number) {
       hp: PLAYER_BASE_HP * (1 + strengthMultiplier),
       maxHp: PLAYER_BASE_HP * (1 + strengthMultiplier),
       hpRegenPerSec: 0,
+      moveSpeedMultiplier: UNIT_SPEED * Math.sqrt(PLAYER_BASE_RADIUS / playerRadius),
       playerRadius: playerRadius,
       drillType: 0,
       drillDmgMultiplier: 0.7 + (dangerLevel - 1) * 0.1,
@@ -743,7 +744,6 @@ function spawnBot(x: number, y: number) {
     shieldTicks: SHIELD_DURATION,
     lastCollisionTime: 0,
     wanderAngle: Math.random() * Math.PI * 2,
-    moveSpeed: UNIT_SPEED * Math.sqrt(PLAYER_BASE_RADIUS / playerRadius)
   })
 }
 

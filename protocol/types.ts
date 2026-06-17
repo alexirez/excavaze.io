@@ -12,6 +12,7 @@ export interface PlayerState {
   hp: number
   maxHp: number
   hpRegenPerSec: number
+  moveSpeedMultiplier: number
   playerRadius: number
   drillType: number
   drillDmgMultiplier: number
