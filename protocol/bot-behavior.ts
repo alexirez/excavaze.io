@@ -80,8 +80,8 @@ export function computeBotInput(bot: ServerPlayer, nearbyPlayers: PlayerState[],
 
   if (target) {
     const s = seek(bot.state, target)
-    x += s.x * 1.0
-    y += s.y * 1.0
+    x += s.x * 1.4
+    y += s.y * 1.4
     bot.input.rotation = Math.atan2(target.y - bot.state.y, target.x - bot.state.x)
   } else {
     bot.input.rotation = bot.wanderAngle
@@ -105,6 +105,6 @@ function targetScore(bot: ServerPlayer, p: PlayerState): number {
   const hpDeficit = bot.state.hp - p.hp
   const dmgDeficit = bot.state.drillDmgMultiplier - p.drillDmgMultiplier
   const dx = bot.state.x - p.x; const dy = bot.state.y - p.y
-  const sqrDist = dx * dx + dy * dy
-  return (hpDeficit > 0 ? hpDeficit : 0) * Math.max(0.1, 1 + dmgDeficit) / (sqrDist + 0.001)
+  const posDelta = dx * dy
+  return (hpDeficit > 0 ? hpDeficit : 0) * Math.max(0.1, 1 + dmgDeficit) / (posDelta**3 + 0.001)
 }
