@@ -1,6 +1,6 @@
 import { ServerPlayer, ServerSquare } from '../server/src/entities'
 import { PlayerState, SquareState } from './types'
-import { BOT_OBSTACLE_AVOIDANCE_DIST } from './constants'
+import { BOT_OBSTACLE_AVOIDANCE_DIST, SQUARE_BASE_HP } from './constants'
 
 function seek(from: PlayerState, to: PlayerState): { x: number, y: number } {
   const dx = to.x - from.x
@@ -16,18 +16,49 @@ function wander(bot: ServerPlayer): { x: number, y: number } {
 }
 
 function computeObstacleAvoidance(bot: PlayerState, nearbySquareIds: number[], squares: Map<number, ServerSquare>): { x: number, y: number } {
-  let fx = 0, fy = 0
+  // first pass: collect all force vectors
+  const forces: { x: number, y: number }[] = []
+
   for (const id of nearbySquareIds) {
     const sq = squares.get(id)
     if (!sq) continue
-    const dx = (bot.x - sq.state.x) - bot.playerRadius
-    const dy = (bot.y - sq.state.y) - bot.playerRadius
-    const dist = Math.sqrt(dx * dx + dy * dy) - bot.playerRadius
-    if (dist > BOT_OBSTACLE_AVOIDANCE_DIST || dist < 0.001) continue
-    const strength = Math.pow(1 - dist / BOT_OBSTACLE_AVOIDANCE_DIST, 16)
-    fx += (dx / dist) * strength
-    fy += (dy / dist) * strength
+    const sqHalf = (20 + (sq.state.maxHp / SQUARE_BASE_HP) * 10) / 2
+    const avoidDist = BOT_OBSTACLE_AVOIDANCE_DIST + bot.playerRadius + sqHalf
+    const dx = bot.x - sq.state.x
+    const dy = bot.y - sq.state.y
+    const dist = Math.sqrt(dx * dx + dy * dy) - bot.playerRadius - sqHalf
+    if (dist > avoidDist || dist < 0.001) continue
+    const s = Math.max(0, 1 - dist / avoidDist)
+    const strength = Math.pow(s, 16)
+    forces.push({ x: (dx / (dist + bot.playerRadius + sqHalf)) * strength, y: (dy / (dist + bot.playerRadius + sqHalf)) * strength })
   }
+
+  if (forces.length === 0) return { x: 0, y: 0 }
+
+  // second pass: accumulate with similarity penalty
+  let fx = forces[0].x, fy = forces[0].y
+
+  for (let i = 1; i < forces.length; i++) {
+    const f = forces[i]
+    const fLen = Math.sqrt(f.x * f.x + f.y * f.y)
+    if (fLen < 0.001) continue
+
+    // normalize current accumulated vector
+    const accLen = Math.sqrt(fx * fx + fy * fy)
+    if (accLen < 0.001) { fx += f.x; fy += f.y; continue }
+
+    // dot product — how similar is this force to what we already have?
+    const dot = (fx / accLen) * (f.x / fLen) + (fy / accLen) * (f.y / fLen)
+    
+    // similarity is in [-1, 1]. 1 = same direction, -1 = opposite
+    // scale contribution down when similar, keep when different
+    const similarity = Math.max(0, dot) // only penalize when pushing same way
+    const scale = 1.001 - similarity
+
+    fx += f.x * scale
+    fy += f.y * scale
+  }
+
   const len = Math.sqrt(fx * fx + fy * fy)
   if (len < 0.001) return { x: 0, y: 0 }
   return { x: fx / len, y: fy / len }
@@ -38,7 +69,6 @@ export function computeBotInput(bot: ServerPlayer, nearbyPlayers: PlayerState[],
 
   // find biggest nearby threat and weakest nearby target
   let target: PlayerState | null = null
-  let biggestThreatRadius = bot.state.playerRadius * 1.3
   let bestScore = -1
 
   for (const p of nearbyPlayers) {
@@ -49,8 +79,8 @@ export function computeBotInput(bot: ServerPlayer, nearbyPlayers: PlayerState[],
 
   if (target) {
     const s = seek(bot.state, target)
-    x += s.x * 0.5
-    y += s.y * 0.5
+    x += s.x * 1.0
+    y += s.y * 1.0
     bot.input.rotation = Math.atan2(target.y - bot.state.y, target.x - bot.state.x)
   } else {
     bot.input.rotation = bot.wanderAngle
@@ -61,8 +91,8 @@ export function computeBotInput(bot: ServerPlayer, nearbyPlayers: PlayerState[],
   y += w.y * 0.3
 
   const avoid = computeObstacleAvoidance(bot.state, nearbySquareIds, squares)
-  x += avoid.x * 1.8
-  y += avoid.y * 1.8
+  x += avoid.x * 1.2
+  y += avoid.y * 1.2
 
   const len = Math.sqrt(x * x + y * y)
   const MOMENTUM = 0.4 // 0 = no smoothing, 1 = never changes
