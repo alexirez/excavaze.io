@@ -1,3 +1,4 @@
+import { PLAYER_BASE_RADIUS } from "./constants"
 import { PlayerState } from "./types"
 
 export interface PerkDef {
@@ -5,7 +6,7 @@ export interface PerkDef {
     desc: string
     rarity: Rarity
     requiredPlayerLevel: number
-    apply: (state: PlayerState, level: number) => void
+    apply: (state: PlayerState) => void
 }
 
 const RARITY_CONFIG = {
@@ -23,8 +24,96 @@ export const PERK_TREE: Record<string, PerkDef> = {
         desc: 'Drill DMG +10%',
         rarity: 'common',
         requiredPlayerLevel: 0,
-        apply: (state, level) => { state.drillDmgMultiplier += 0.1 }
-    }
+        apply: (state) => { state.drillDmgMultiplier += 0.1 }
+    },
+
+    'drill_dmg_2': {
+        title: 'Drill DMG++',
+        desc: 'Drill damage +20%',
+        rarity: 'rare',
+        requiredPlayerLevel: 3,
+        apply: (state) => { state.drillDmgMultiplier += 0.2 },
+    },
+
+    'drill_length': {
+        title: 'Drill Length+',
+        desc: 'Drill reach +15%',
+        rarity: 'common',
+        requiredPlayerLevel: 0,
+        apply: (state) => { state.drillLengthMultiplier += 0.15 },
+    },
+
+    'drill_length_2': {
+        title: 'Extended Bit',
+        desc: 'Additional drill length +25%',
+        rarity: 'rare',
+        requiredPlayerLevel: 3,
+        apply: (state) => { state.drillLengthMultiplier += 0.25 },
+    },
+
+    'move_speed': {
+        title: 'Swift Soldier',
+        desc: 'Movement speed +10%',
+        rarity: 'common',
+        requiredPlayerLevel: 0,
+        apply: (state) => { state.moveSpeedMultiplier += 0.1 },
+    },
+
+    'move_speed_2': {
+        title: 'Speedrunner',
+        desc: "Additional +30% movement\n-20% max HP",
+        rarity: 'rare',
+        requiredPlayerLevel: 4,
+        apply: (state) => { state.moveSpeedMultiplier += 0.30; state.maxHp -= 0.20 },
+    },
+
+    'hp_buff': {
+        title: 'Tough Guy',
+        desc: 'Max HP +20\nPlayer size +20%',
+        rarity: 'common',
+        requiredPlayerLevel: 1,
+        apply: (state) => { state.maxHp += 20; state.playerRadius += PLAYER_BASE_RADIUS*0.20 },
+    },
+
+    'hp_buff_2': {
+        title: 'Bastion',
+        desc: 'Max HP +60\nPlayer size +40%',
+        rarity: 'rare',
+        requiredPlayerLevel: 8,
+        apply: (state) => { state.maxHp += 60; state.playerRadius += PLAYER_BASE_RADIUS*0.40 },
+    },
+
+    'hp_regen': {
+        title: 'Survivor',
+        desc: 'Regenerate 1 HP per second',
+        rarity: 'rare',
+        requiredPlayerLevel: 4,
+        apply: (state) => { state.hpRegenPerSec += 1 },
+    },
+
+    'hp_regen_2': {
+        title: 'Nanobots',
+        desc: 'Additional +2 hp regen/sec',
+        rarity: 'epic',
+        requiredPlayerLevel: 10,
+        apply: (state) => { state.hpRegenPerSec += 2 },
+    },
+
+    'sawblade': {
+        title: 'Sawblade',
+        desc: 'Long range\nVery high damage',
+        rarity: 'epic',
+        requiredPlayerLevel: 10,
+        apply: (state) => { state.drillType = 1; state.drillDmgMultiplier += 0.40 },
+    },
+
+    'deathblade': {
+        title: 'Deathblade',
+        desc: 'Giant saw blade\nLower drill DMG\nVery large damage area',
+        rarity: 'legendary',
+        requiredPlayerLevel: 20,
+        apply: (state) => { state.drillType = 2; state.drillDmgMultiplier -= 0.75 },
+    },
 }
 
 export const PERK_TRANSITIONS: Record<string, string[]> = {
@@ -33,4 +122,6 @@ export const PERK_TRANSITIONS: Record<string, string[]> = {
   'drill_length': ['drill_length_2', 'sawblade'],
   'hp_buff':      ['hp_buff_2', 'hp_regen'],
   'hp_regen':     ['hp_regen_2'],
+  'move_speed':   ['move_speed_2'],
+  'sawblade':     ['deathblade'] // NOTE: deathblade subtracts 75% dmg so it must only be reachable via sawblade
 }
