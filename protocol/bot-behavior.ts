@@ -2,6 +2,8 @@ import { ServerPlayer, ServerSquare } from '../server/src/entities'
 import { PlayerState, SquareState } from './types'
 import { BOT_OBSTACLE_AVOIDANCE_DIST, SQUARE_BASE_HP } from './constants'
 
+const _forces: { x: number, y: number }[] = []
+
 function seek(from: PlayerState, to: PlayerState): { x: number, y: number } {
   const dx = to.x - from.x
   const dy = to.y - from.y
@@ -17,8 +19,7 @@ function wander(bot: ServerPlayer): { x: number, y: number } {
 
 function computeObstacleAvoidance(bot: PlayerState, nearbySquareIds: number[], squares: Map<number, ServerSquare>): { x: number, y: number } {
   // first pass: collect all force vectors
-  const forces: { x: number, y: number }[] = []
-
+  _forces.length = 0
   for (const id of nearbySquareIds) {
     const sq = squares.get(id)
     if (!sq) continue
@@ -30,16 +31,16 @@ function computeObstacleAvoidance(bot: PlayerState, nearbySquareIds: number[], s
     if (dist > avoidDist || dist < 0.001) continue
     const s = Math.max(0, 1 - dist / avoidDist)
     const strength = Math.pow(s, 16)
-    forces.push({ x: (dx / (dist + bot.playerRadius + sqHalf)) * strength, y: (dy / (dist + bot.playerRadius + sqHalf)) * strength })
+    _forces.push({ x: (dx / (dist + bot.playerRadius + sqHalf)) * strength, y: (dy / (dist + bot.playerRadius + sqHalf)) * strength })
   }
 
-  if (forces.length === 0) return { x: 0, y: 0 }
+  if (_forces.length === 0) return { x: 0, y: 0 }
 
   // second pass: accumulate with similarity penalty
-  let fx = forces[0].x, fy = forces[0].y
+  let fx = _forces[0].x, fy = _forces[0].y
 
-  for (let i = 1; i < forces.length; i++) {
-    const f = forces[i]
+  for (let i = 1; i < _forces.length; i++) {
+    const f = _forces[i]
     const fLen = Math.sqrt(f.x * f.x + f.y * f.y)
     if (fLen < 0.001) continue
 
