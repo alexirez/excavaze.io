@@ -10,6 +10,7 @@ export class GameScene extends Phaser.Scene {
   private xpLabel!: Phaser.GameObjects.Text // shows current level
   private xpMaxLabel!: Phaser.GameObjects.Text // says MAX after xp bar. only shows when at max level
   private xpMaxBg!: Phaser.GameObjects.Graphics // background rounded rectangles for labels to be more visible
+  private enemyNameLabels: Map<number, Phaser.GameObjects.Text> = new Map()
   private keys!: Record<string, Phaser.Input.Keyboard.Key>
   private localId: number | null = null
   private latestPlayersState: Map<number, PlayerState> = new Map()
@@ -210,7 +211,7 @@ export class GameScene extends Phaser.Scene {
       // body
       this.enemyGraphics.fillStyle(0xff6b6b)
       this.enemyGraphics.fillCircle(0, 0, p.playerRadius)
-      this.enemyGraphics.lineStyle(6 + (p.maxHp - PLAYER_BASE_HP), 0xcc4444, 1)
+      this.enemyGraphics.lineStyle(6 + (p.playerRadius * 0.1), 0xcc4444, 1)
       this.enemyGraphics.strokeCircle(0, 0, p.playerRadius - 2)
 
       // weapon — starts at edge of circle
@@ -227,6 +228,26 @@ export class GameScene extends Phaser.Scene {
         this.enemyGraphics.fillRect(p.x - bw / 2, p.y - p.playerRadius - 12, bw, bh)
         this.enemyGraphics.fillStyle(getHealthColor(ratio))
         this.enemyGraphics.fillRect(p.x - bw / 2, p.y - p.playerRadius - 12, ratio * bw, bh)
+      }
+
+      // enemy name label
+      if (!this.enemyNameLabels.has(id)) { // create label if it doesn't exist yet
+        this.enemyNameLabels.set(id, this.add.text(0, 0, p.name, {
+          fontSize: '24px',
+          fontFamily: 'Share Tech',
+          color: '#ffffff',
+          padding: { x: 4, y: 2 },
+          resolution: window.devicePixelRatio
+        }).setDepth(80).setOrigin(0.5, 0))
+      }
+      this.enemyNameLabels.get(id)!.setPosition(p.x, p.y + p.playerRadius + 12)
+    }
+
+    // remove labels for players that disconnected
+    for (const [id, label] of this.enemyNameLabels) {
+      if (!this.latestPlayersState.has(id) || id === getLocalId()) {
+        label.destroy()
+        this.enemyNameLabels.delete(id)
       }
     }
 

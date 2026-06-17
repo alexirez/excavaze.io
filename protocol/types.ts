@@ -10,11 +10,11 @@ export interface PlayerState {
   y: number
   rotation: number
   hp: number
-  maxHp: number,
+  maxHp: number
   playerRadius: number
-  drillType: number,
-  drillDmgMultiplier: number,
-  drillLengthMultiplier: number,
+  drillType: number
+  drillDmgMultiplier: number
+  drillLengthMultiplier: number
 }
 
 export interface SquareState {

@@ -1,12 +1,14 @@
 import { WebSocketServer, WebSocket } from 'ws'
 import { ServerPlayer, ServerSquare } from './entities'
 import { WorldStateMessage, ClientMessage, DeathScreenMessage, PlayerKilledMessage } from '../../protocol/messages'
-import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, SQUARE_COLLISION_DAMAGE_FACTOR, PLAYER_COLLISION_DAMAGE_FACTOR, MIN_OBSTACLE_SPAWN_DIST, SQR_BASE_ROT_SPEED, MAX_SQR_ROT_SPEED, KILL_SQUARE_XP_MULTIPLIER, STEAL_PLAYER_XP_MULTIPLIER, KILL_PLAYER_BASE_XP } from '../../protocol/constants'
+import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, PLAYER_COLLISION_DAMAGE, MIN_OBSTACLE_SPAWN_DIST, SQR_BASE_ROT_SPEED, MAX_SQR_ROT_SPEED, KILL_SQUARE_XP_MULTIPLIER, STEAL_PLAYER_XP_MULTIPLIER, KILL_PLAYER_BASE_XP, SQR_COLLISION_BASE_DMG, SQR_COLLISION_DMG_FACTOR, COLLISION_COOLDOWN, PLAYER_BASE_RADIUS } from '../../protocol/constants'
 import { DANGER_MAP, DENSITY_MAP } from './data/map'
 import { circleIntersectsTriangle, currentLevel, xpForLevel } from '../../protocol/utils'
 import { PlayerState, SquareState } from '../../protocol/types'
+import { computeBotInput } from '../../protocol/bot-behavior'
 
 const PORT = 3000
+const MAX_PLAYER_COUNT = 20
 const CHUNK_COLS = 16
 const CHUNK_ROWS = 16
 const UNIT_SPEED = 10
@@ -29,6 +31,7 @@ const players = new Map<number, ServerPlayer>()
 const squares = new Map<number, ServerSquare>()
 const playerStates: PlayerState[] = []
 const squareStates: SquareState[] = []
+const nearbyPlayers: PlayerState[] = []
 const nearbySquareIds: number[] = []
 const squaresToDelete: number[] = []
 const chunkToSquares = new Map<number, Set<number>>()
@@ -39,6 +42,7 @@ spawnSquaresOnStartup()
 
 wss.on('connection', (socket) => {
   const id = nextPlayerId++
+  const { x, y } = pickPlayerSpawnPoint()
   console.log(`Player ${id} connected`)
 
   players.set(id, {
@@ -49,8 +53,8 @@ wss.on('connection', (socket) => {
       xp: 0,
       alive: true,
       shieldActive: true,
-      x: 400, 
-      y: 300,
+      x: x, 
+      y: y,
       rotation: 0,
       hp: PLAYER_BASE_HP,
       maxHp: PLAYER_BASE_HP,
@@ -60,7 +64,10 @@ wss.on('connection', (socket) => {
       drillLengthMultiplier: 1
     },
     input: { dx: 0, dy: 0, rotation: 0 },
-    shieldTicks: SHIELD_DURATION
+    shieldTicks: SHIELD_DURATION,
+    lastCollisionTime: 0,
+    wanderAngle: Math.random() * Math.PI * 2,
+    moveSpeed: UNIT_SPEED
   })
   // S->C: Tell this client their assigned id
   socket.send(JSON.stringify({ type: 'welcome', id }))
@@ -83,10 +90,11 @@ wss.on('connection', (socket) => {
         // TODO: smart spawning computes x, y
         const player = players.get(id)!
         if (player.state.alive) return
+        const { x, y } = pickPlayerSpawnPoint()
         player.state.alive = true
         player.state.hp = PLAYER_BASE_HP
-        player.state.x = WORLD_WIDTH / 2
-        player.state.y = WORLD_HEIGHT / 2
+        player.state.x = x
+        player.state.y = y
         player.state.shieldActive = true
         player.shieldTicks = SHIELD_DURATION
       }
@@ -99,11 +107,11 @@ wss.on('connection', (socket) => {
 setInterval(() => {
   tick++
 
-  // 1) Process each player's input
+  // 1) Process player/bots input
   for (const p of players.values()) {
     if (!p.state.alive) continue
-    p.state.x = Math.max(WORLD_PADDING, Math.min(WORLD_WIDTH - WORLD_PADDING, p.state.x + p.input.dx * UNIT_SPEED))
-    p.state.y = Math.max(WORLD_PADDING, Math.min(WORLD_HEIGHT - WORLD_PADDING, p.state.y + p.input.dy * UNIT_SPEED))
+    p.state.x = Math.max(WORLD_PADDING, Math.min(WORLD_WIDTH - WORLD_PADDING, p.state.x + p.input.dx * p.moveSpeed))
+    p.state.y = Math.max(WORLD_PADDING, Math.min(WORLD_HEIGHT - WORLD_PADDING, p.state.y + p.input.dy * p.moveSpeed))
     p.state.rotation = p.input.rotation
 
     // 2) Process spawn shield timers
@@ -125,19 +133,14 @@ setInterval(() => {
         const radiusSum = a.state.playerRadius + b.state.playerRadius
 
         if (dist < radiusSum && dist > 0.001) {
-          const overlap = radiusSum - dist
-          const nx = dx / dist
-          const ny = dy / dist
-
-          // positional correction — push player out of collided player
-          a.state.x += nx * overlap / 2
-          a.state.y += ny * overlap / 2
-          b.state.x -= nx * overlap / 2
-          b.state.y -= ny * overlap / 2
-
-          if (!a.state.shieldActive) a.state.hp -= PLAYER_COLLISION_DAMAGE_FACTOR * 10
-          if (!b.state.shieldActive) b.state.hp -= PLAYER_COLLISION_DAMAGE_FACTOR * 10
-
+          if (!a.state.shieldActive && Date.now() - a.lastCollisionTime >= COLLISION_COOLDOWN) {
+            a.state.hp -= PLAYER_COLLISION_DAMAGE
+            a.lastCollisionTime = Date.now()
+          }
+          if (!b.state.shieldActive && Date.now() - b.lastCollisionTime >= COLLISION_COOLDOWN) {
+            b.state.hp -= PLAYER_COLLISION_DAMAGE
+            b.lastCollisionTime = Date.now()
+          }
           if (b.state.hp <= 0 ) killPlayer(a, b, 'player') // broadcasts victim death and rewards xp to killer
           if (a.state.hp <= 0 ) killPlayer(b, a, 'player')
         }
@@ -190,26 +193,37 @@ setInterval(() => {
         p.state.x, p.state.y, p.state.playerRadius,
         square.state.x, square.state.y, square.state.rotation, sqHalf, sqHalf // 4. player + square collisions
       )) {
-        square.state.hp -= p.state.maxHp * PLAYER_COLLISION_DAMAGE_FACTOR
+        square.state.hp -= PLAYER_COLLISION_DAMAGE
         if (square.state.hp <= 0)
           awardXp(p, KILL_SQUARE_XP_MULTIPLIER * square.state.maxHp)
-        if (!p.state.shieldActive) p.state.hp -= square.state.maxHp * SQUARE_COLLISION_DAMAGE_FACTOR
+        if (!p.state.shieldActive && Date.now() - p.lastCollisionTime > COLLISION_COOLDOWN) {
+          p.state.hp -= SQR_COLLISION_BASE_DMG + square.state.maxHp * SQR_COLLISION_DMG_FACTOR
+          p.lastCollisionTime = Date.now()
+        }
         if (p.state.hp <= 0) killPlayerBySquare(p)
-
-        // positional correction — push player out using circle-vs-AABB penetration
-        const nx = dx / dist
-        const ny = dy / dist
-        const overlap = (p.state.playerRadius + sqHalf) - dist
-        p.state.x += nx * overlap
-        p.state.y += ny * overlap
       }
     }
   }
 
-  // 4) TODO: Process current bots input
+  // 4) Prepare bots' input for next tick
+  if (tick % 3 === 0) {
+    for (const p of players.values()) {
+      if (p.socket !== null || !p.state.alive) continue
+      nearbyPlayers.length = 0
+      for (const [id, other] of players) {
+        if (!other.state.alive) continue
+        const dx = other.state.x - p.state.x
+        const dy = other.state.y - p.state.y
+        if (dx * dx + dy * dy < 800 * 800) nearbyPlayers.push(other.state)
+      }
+      const chunkIndex = getChunkIndex(p.state.x, p.state.y)
+      getNearbySquareIds(chunkIndex, nearbySquareIds)
+      computeBotInput(p, nearbyPlayers, nearbySquareIds, squares)
+    }
+  }
 
   // 5) Spawn bots
-  if (tick % 60 === 0) {
+  if (tick % 50 === 0) {
     spawnBots()
   }
 
@@ -349,10 +363,6 @@ function getNearbySquareIds(chunkIndex: number, out: number[]): void {
       }
     }
   }
-}
-
-function spawnBots() {
-  // TODO
 }
 
 function assignNextSquareId() {
@@ -579,7 +589,7 @@ function isSpawnClearOfPlayers(spawnX: number, spawnY: number, minDist: number):
   for (const p of players.values()) {
     const dx = p.state.x - spawnX
     const dy = p.state.y - spawnY
-    if (dx * dx + dy * dy < minDist * minDist) return false
+    if (dx * dx + dy * dy < (minDist + p.state.playerRadius)**2) return false
   }
   return true
 }
@@ -596,10 +606,11 @@ function killPlayer(killer: ServerPlayer, victim: ServerPlayer, cause: 'player' 
     killerName: killer.state.name,
   } satisfies PlayerKilledMessage))
   victim.socket?.send(JSON.stringify({
-  type: 'death_screen',
-  killerName: killer.state.name,
-  cause: cause
-} satisfies DeathScreenMessage))
+    type: 'death_screen',
+    killerName: killer.state.name,
+    cause: cause
+  } satisfies DeathScreenMessage))
+  if (victim.socket === null) players.delete(victim.state.id) // bots are removed immediately
 }
 
 function killPlayerBySquare(victim: ServerPlayer) {
@@ -613,10 +624,11 @@ function killPlayerBySquare(victim: ServerPlayer) {
     killerName: 'A Square',
   } satisfies PlayerKilledMessage))
   victim.socket?.send(JSON.stringify({
-  type: 'death_screen',
-  killerName: 'a Square',
-  cause: 'square'
-} satisfies DeathScreenMessage))
+    type: 'death_screen',
+    killerName: 'a Square',
+    cause: 'square'
+  } satisfies DeathScreenMessage))
+  if (victim.socket === null) players.delete(victim.state.id) // bots are removed immediately
 }
 
 // helper to broadcast a message to all connected players
@@ -632,4 +644,130 @@ function awardXp(player: ServerPlayer, amount: number) { // TODO: make xp cap be
   player.state.xp += amount
   if (currentLevel(player.state.xp) >= 7)
     player.state.xp = xpForLevel(7) - 1
+}
+
+const BOT_SPAWN_RADIUS = 1200
+
+function spawnBotForPlayer(player: PlayerState) {
+  let bestX = WORLD_WIDTH / 2, bestY = WORLD_HEIGHT / 2, bestScore = -1
+
+  for (let i = 0; i < 30; i++) {
+    const dx = (i/15 - 0.5) * 2 * BOT_SPAWN_RADIUS
+    const dy = (i % 2 === 0 ? 1 : -1) * (BOT_SPAWN_RADIUS - Math.abs(dx))
+    const x = Math.max(WORLD_PADDING, Math.min(WORLD_WIDTH - WORLD_PADDING, player.x + dx))
+    const y = Math.max(WORLD_PADDING, Math.min(WORLD_HEIGHT - WORLD_PADDING, player.y + dy))
+    const score = spawnPointScore(x, y, true)
+    if (score > bestScore) { bestX = x; bestY = y; bestScore = score }
+  }
+
+  spawnBot(bestX, bestY)
+}
+
+function pickPlayerSpawnPoint(): { x: number, y: number } {
+  let bestX = WORLD_WIDTH / 2, bestY = WORLD_HEIGHT / 2, bestScore = -1
+
+  for (let i = 0; i < 30; i++) {
+    const x = WORLD_PADDING + Math.random() * (WORLD_WIDTH - WORLD_PADDING * 2)
+    const y = WORLD_PADDING + Math.random() * (WORLD_HEIGHT - WORLD_PADDING * 2)
+    const score = spawnPointScore(x, y, false)
+    if (score > bestScore) { bestX = x, bestY = y, bestScore = score }
+  }
+
+  return { x: bestX, y: bestY }
+}
+
+function spawnPointScore(x: number, y: number, isBot: boolean): number {
+  const idealDist = 1200
+  const nearest = Math.sqrt(nearestPlayerDist(x, y))
+  const distScore = Math.max(0, 1 - Math.abs(nearest - idealDist) / idealDist)
+  const danger = DANGER_MAP[getChunkIndex(x, y)] + 0.001 // avoid division by zero
+
+  if (isBot) return distScore * danger
+  return distScore / danger
+}
+
+function nearestPlayerDist(x: number, y: number): number {
+  let minSqDist = Infinity
+  for (const p of players.values()) {
+    const dx = p.state.x - x
+    const dy = p.state.y - y
+    minSqDist = Math.min(minSqDist, dx * dx + dy * dy)
+  }
+  return minSqDist
+}
+
+function spawnBots() {
+  const botBudget = MAX_PLAYER_COUNT - 10
+  const currentPlayers = players.size
+  if (currentPlayers >= botBudget) return
+
+  // find the real player most deserving of a bot
+  let bestPlayer: PlayerState | null = null
+  let bestScore = -1
+  for (const p of players.values()) {
+    if (p.socket === null || !p.state.alive) continue
+    const score = currentLevel(p.state.xp) // simple for now, expand later
+    if (score > bestScore) { bestScore = score; bestPlayer = p.state }
+  }
+
+  if (bestPlayer) spawnBotForPlayer(bestPlayer)
+}
+
+function spawnBot(x: number, y: number) {
+  const dangerLevel = DANGER_MAP[getChunkIndex(x, y)]
+  const strengthMultiplier = dangerLevel * Math.random()
+  const playerRadius = 20 + 12 * (strengthMultiplier)
+  const id = nextPlayerId++
+  players.set(id, {
+    socket: null,
+    state: {
+      id,
+      name: generateBotName(),
+      xp: 0,
+      alive: true,
+      shieldActive: true,
+      x,
+      y,
+      rotation: 0,
+      hp: PLAYER_BASE_HP * (1 + strengthMultiplier),
+      maxHp: PLAYER_BASE_HP * (1 + strengthMultiplier),
+      playerRadius: playerRadius,
+      drillType: 0,
+      drillDmgMultiplier: 0.7 + (dangerLevel - 1) * 0.1,
+      drillLengthMultiplier: 0.7 + (dangerLevel * Math.min(Math.random(), 0.2)) * 0.5
+    },
+    input: { dx: 0, dy: 0, rotation: Math.random() * Math.PI * 2 },
+    shieldTicks: SHIELD_DURATION,
+    lastCollisionTime: 0,
+    wanderAngle: Math.random() * Math.PI * 2,
+    moveSpeed: UNIT_SPEED * Math.sqrt(PLAYER_BASE_RADIUS / playerRadius)
+  })
+}
+
+const BOT_NAMES = [
+  'Boreworm', 'YOURENDHASCOME', 'RealPlayer', 'Cavefish', 'Rockbreaker',
+  'Deepdelver', 'Ironmaw', 'Dustcloud', 'Cobalt', 'Gravel', 'Unnamed',
+  'MasterOfTheMines', 'Pitlord', 'Bedrock', 'Quarryman',
+  'NotABot', 'TrulyHuman', 'JustPassingThrough',
+  'WhyAmIHere', 'SendHelp', 'OopsAllDrill', 'DrillOrBeGrilled',
+  'YesIAmReal', 'DefinitelyNotAI', 'Muscleman'
+]
+
+const BOT_NAME_PREFIXES = [
+  'Digger', 'Mole', 'Tunneler', 'Drillbit', 'Excavator', 'Driller', 
+  'Player', 'Pro', 'ProPlayer', 'Drill', 'Caveman', 'Rock', 'Iron', 
+  'Dust', 'Gopher', 'Pebble', 'Boulder', 'Crater'
+]
+
+function generateBotName(): string {
+  const usedNames = new Set([...players.values()].map(p => p.state.name))
+  const availableFullNames = BOT_NAMES.filter(n => !usedNames.has(n))
+
+  if (Math.random() < 0.8 && availableFullNames.length > 0)
+    return availableFullNames[Math.floor(Math.random() * availableFullNames.length)]
+  const prefix = BOT_NAME_PREFIXES[Math.floor(Math.random() * BOT_NAME_PREFIXES.length)]
+  let digits = Math.floor(1000 + Math.random() * 9000) // always 4 digits
+  const name = `${prefix}${digits}`
+  while (usedNames.has(name)) digits++
+  return `${prefix}${digits}`
 }
