@@ -1,7 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws'
 import { ServerPlayer, ServerSquare } from './entities'
 import { WorldStateMessage, ClientMessage, DeathScreenMessage, PlayerKilledMessage } from '../../protocol/messages'
-import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, PLAYER_COLLISION_DAMAGE, MIN_OBSTACLE_SPAWN_DIST, SQR_BASE_ROT_SPEED, MAX_SQR_ROT_SPEED, KILL_SQUARE_XP_MULTIPLIER, STEAL_PLAYER_XP_MULTIPLIER, KILL_PLAYER_BASE_XP, SQR_COLLISION_BASE_DMG, SQR_COLLISION_DMG_FACTOR, COLLISION_COOLDOWN } from '../../protocol/constants'
+import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, PLAYER_COLLISION_DAMAGE, MIN_OBSTACLE_SPAWN_DIST, SQR_BASE_ROT_SPEED, MAX_SQR_ROT_SPEED, KILL_SQUARE_XP_MULTIPLIER, STEAL_PLAYER_XP_MULTIPLIER, KILL_PLAYER_BASE_XP, SQR_COLLISION_BASE_DMG, SQR_COLLISION_DMG_FACTOR, COLLISION_COOLDOWN, PLAYER_BASE_RADIUS } from '../../protocol/constants'
 import { DANGER_MAP, DENSITY_MAP } from './data/map'
 import { circleIntersectsTriangle, currentLevel, xpForLevel } from '../../protocol/utils'
 import { PlayerState, SquareState } from '../../protocol/types'
@@ -66,7 +66,8 @@ wss.on('connection', (socket) => {
     input: { dx: 0, dy: 0, rotation: 0 },
     shieldTicks: SHIELD_DURATION,
     lastCollisionTime: 0,
-    wanderAngle: Math.random() * Math.PI * 2
+    wanderAngle: Math.random() * Math.PI * 2,
+    moveSpeed: UNIT_SPEED
   })
   // S->C: Tell this client their assigned id
   socket.send(JSON.stringify({ type: 'welcome', id }))
@@ -106,11 +107,11 @@ wss.on('connection', (socket) => {
 setInterval(() => {
   tick++
 
-  // 1) Process each player's input
+  // 1) Process player/bots input
   for (const p of players.values()) {
     if (!p.state.alive) continue
-    p.state.x = Math.max(WORLD_PADDING, Math.min(WORLD_WIDTH - WORLD_PADDING, p.state.x + p.input.dx * UNIT_SPEED))
-    p.state.y = Math.max(WORLD_PADDING, Math.min(WORLD_HEIGHT - WORLD_PADDING, p.state.y + p.input.dy * UNIT_SPEED))
+    p.state.x = Math.max(WORLD_PADDING, Math.min(WORLD_WIDTH - WORLD_PADDING, p.state.x + p.input.dx * p.moveSpeed))
+    p.state.y = Math.max(WORLD_PADDING, Math.min(WORLD_HEIGHT - WORLD_PADDING, p.state.y + p.input.dy * p.moveSpeed))
     p.state.rotation = p.input.rotation
 
     // 2) Process spawn shield timers
@@ -204,7 +205,7 @@ setInterval(() => {
     }
   }
 
-  // 4) Process current bots input
+  // 4) Prepare bots' input for next tick
   if (tick % 3 === 0) {
     for (const p of players.values()) {
       if (p.socket !== null || !p.state.alive) continue
@@ -685,7 +686,6 @@ function spawnPointScore(x: number, y: number, isBot: boolean): number {
   return distScore / danger
 }
 
-
 function nearestPlayerDist(x: number, y: number): number {
   let minSqDist = Infinity
   for (const p of players.values()) {
@@ -713,10 +713,10 @@ function spawnBots() {
   if (bestPlayer) spawnBotForPlayer(bestPlayer)
 }
 
-
 function spawnBot(x: number, y: number) {
   const dangerLevel = DANGER_MAP[getChunkIndex(x, y)]
   const strengthMultiplier = dangerLevel * Math.random()
+  const playerRadius = 20 + 12 * (strengthMultiplier)
   const id = nextPlayerId++
   players.set(id, {
     socket: null,
@@ -731,7 +731,7 @@ function spawnBot(x: number, y: number) {
       rotation: 0,
       hp: PLAYER_BASE_HP * (1 + strengthMultiplier),
       maxHp: PLAYER_BASE_HP * (1 + strengthMultiplier),
-      playerRadius: 20 + 12 * (strengthMultiplier),
+      playerRadius: playerRadius,
       drillType: 0,
       drillDmgMultiplier: 0.7 + (dangerLevel - 1) * 0.1,
       drillLengthMultiplier: 0.7 + (dangerLevel * Math.min(Math.random(), 0.2)) * 0.5
@@ -739,7 +739,8 @@ function spawnBot(x: number, y: number) {
     input: { dx: 0, dy: 0, rotation: Math.random() * Math.PI * 2 },
     shieldTicks: SHIELD_DURATION,
     lastCollisionTime: 0,
-    wanderAngle: Math.random() * Math.PI * 2
+    wanderAngle: Math.random() * Math.PI * 2,
+    moveSpeed: UNIT_SPEED * Math.sqrt(PLAYER_BASE_RADIUS / playerRadius)
   })
 }
 
