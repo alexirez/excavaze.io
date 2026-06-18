@@ -151,8 +151,12 @@ setInterval(() => {
 
       for (const [idA, a] of players) { // 2. player + drill collisions
         if (!a.state.alive) continue
+        const aReach = getDrillReach(a.state)
         for (const [idB, b] of players) {
           if (!b.state.alive || idA === idB || b.state.shieldActive) continue
+          const dx = a.state.x - b.state.x
+          const dy = a.state.y - b.state.y
+          if (dx*dx + dy*dy > (aReach + b.state.playerRadius) ** 2) continue // broadphase
           b.state.hp -= getDrillDamageOnCircle(
             a.state.x, a.state.y, a.state.rotation, a.state.playerRadius, 
             a.state.drillType, a.state.drillLengthMultiplier, a.state.drillDmgMultiplier,
