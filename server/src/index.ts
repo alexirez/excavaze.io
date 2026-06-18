@@ -166,7 +166,7 @@ setInterval(() => {
     if (!p.state.alive) continue
     const chunkIndex = getChunkIndex(p.state.x, p.state.y)
     getNearbySquareIds(chunkIndex, nearbySquareIds) // only consider 9 nearest chunks for efficient collision checking
-    const drillReach = p.state.playerRadius + 40 * p.state.drillLengthMultiplier
+    const drillReach = getDrillReach(p.state)
 
     for (const id of nearbySquareIds) {
 
@@ -178,7 +178,6 @@ setInterval(() => {
 
       if (sqrDist > (drillReach + square.boundingRadius )**2) continue
 
-      const dist = Math.sqrt(sqrDist)
       const sqSize = 20 + (square.state.maxHp / SQUARE_BASE_HP) * 10 // 3. drill + square collisions
       const sqHalf = sqSize / 2
 
@@ -375,6 +374,16 @@ function assignNextSquareId() {
   return nextSquareId
 }
 
+function getDrillReach(state: PlayerState): number {
+  switch (state.drillType) {
+    case 0: return state.playerRadius + 40 * state.drillLengthMultiplier
+    case 1: return state.playerRadius + 40 * state.drillLengthMultiplier
+    case 2: return state.playerRadius + 30 * state.drillLengthMultiplier + 80 + 2 * state.drillLengthMultiplier
+    case 3: return state.playerRadius + 10 * state.drillLengthMultiplier + 60
+    default: return state.playerRadius
+  }
+}
+
 function getDrillDamageOnCircle(originX: number, originY: number, rotation: number,
   playerRadius: number, drillType: number, drillLengthMultiplier: number, drillDmgMultiplier: number, 
   targetX: number, targetY: number, targetRadius: number): number {
@@ -525,7 +534,7 @@ function getSawbladeDrillDamage(
   const offset = playerRadius + 30 * drillLengthMultiplier
   const bladeX = originX + Math.cos(rotation) * offset
   const bladeY = originY + Math.sin(rotation) * offset
-  const bladeRadius = 80 + 2 * drillLengthMultiplier
+  const bladeRadius = 25 + 2 * drillLengthMultiplier
   const dx = targetX - bladeX, dy = targetY - bladeY
   return dx*dx + dy*dy < (bladeRadius + targetRadius) ** 2 ? 20 * drillDmgMultiplier : 0
 }
@@ -550,7 +559,7 @@ function sawbladeDmgOnRect(
   const offset = playerRadius + 30 * drillLengthMultiplier
   const bladeX = originX + Math.cos(rotation) * offset
   const bladeY = originY + Math.sin(rotation) * offset
-  const bladeRadius = 80 + 2 * drillLengthMultiplier
+  const bladeRadius = 25 + 2 * drillLengthMultiplier
   return circleIntersectsOrientedRect(bladeX, bladeY, bladeRadius, rx, ry, rRotation, rHalfW, rHalfH) ? 20 * drillDmgMultiplier : 0
 }
 
