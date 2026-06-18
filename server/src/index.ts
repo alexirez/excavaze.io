@@ -61,7 +61,7 @@ wss.on('connection', (socket) => {
       hpRegenPerSec: 0,
       moveSpeedMultiplier: UNIT_SPEED,
       playerRadius: 25,
-      drillType: 0,
+      drillType: 2,
       drillDmgMultiplier: 1,
       drillLengthMultiplier: 1
     },
@@ -381,6 +381,8 @@ function getDrillDamageOnCircle(originX: number, originY: number, rotation: numb
   switch (drillType) {
     case 0: return getStackedTrianglesDrillDamage(originX, originY, rotation, playerRadius, drillLengthMultiplier, drillDmgMultiplier, targetX, targetY, targetRadius)
     case 1: return getSingleTriangleDrillDamage(originX, originY, rotation, playerRadius, drillLengthMultiplier, drillDmgMultiplier, targetX, targetY, targetRadius)
+    case 2: return getSawbladeDrillDamage(originX, originY, rotation, playerRadius, drillLengthMultiplier, drillDmgMultiplier, targetX, targetY, targetRadius)
+    case 3: return getDeathbladeDrillDamage(originX, originY, rotation, playerRadius, drillLengthMultiplier, drillDmgMultiplier, targetX, targetY, targetRadius)
     default: return 0
   }
 }
@@ -393,6 +395,8 @@ function getDrillDamageOnRect(
   switch (drillType) {
     case 0: return stackedTrianglesDmgOnRect(originX, originY, rotation, playerRadius, drillLengthMultiplier, drillDmgMultiplier, rx, ry, rRotation, rHalfW, rHalfH)
     case 1: return singleTriangleDmgOnRect(originX, originY, rotation, playerRadius, drillLengthMultiplier, drillDmgMultiplier, rx, ry, rRotation, rHalfW, rHalfH)
+    case 2: return sawbladeDmgOnRect(originX, originY, rotation, playerRadius, drillLengthMultiplier, drillDmgMultiplier, rx, ry, rRotation, rHalfW, rHalfH)
+    case 3: return deathbladeDmgOnRect(originX, originY, rotation, playerRadius, drillLengthMultiplier, drillDmgMultiplier, rx, ry, rRotation, rHalfW, rHalfH)
     default: return 0
   }
 }
@@ -511,6 +515,54 @@ function getSingleTriangleDrillDamage(
     return 15 * drillDmgMultiplier
   }
   return 0
+}
+
+function getSawbladeDrillDamage(
+  originX: number, originY: number, rotation: number,
+  playerRadius: number, drillLengthMultiplier: number, drillDmgMultiplier: number,
+  targetX: number, targetY: number, targetRadius: number
+): number {
+  const offset = playerRadius + 30 * drillLengthMultiplier
+  const bladeX = originX + Math.cos(rotation) * offset
+  const bladeY = originY + Math.sin(rotation) * offset
+  const bladeRadius = 80 + 2 * drillLengthMultiplier
+  const dx = targetX - bladeX, dy = targetY - bladeY
+  return dx*dx + dy*dy < (bladeRadius + targetRadius) ** 2 ? 20 * drillDmgMultiplier : 0
+}
+
+function getDeathbladeDrillDamage(
+  originX: number, originY: number, rotation: number,
+  playerRadius: number, drillLengthMultiplier: number, drillDmgMultiplier: number,
+  targetX: number, targetY: number, targetRadius: number
+): number {
+  const offset = playerRadius + 10 * drillLengthMultiplier
+  const bladeX = originX + Math.cos(rotation) * offset
+  const bladeY = originY + Math.sin(rotation) * offset
+  const dx = targetX - bladeX, dy = targetY - bladeY
+  return dx*dx + dy*dy < (60 + targetRadius) ** 2 ? 20 * drillDmgMultiplier : 0
+}
+
+function sawbladeDmgOnRect(
+  originX: number, originY: number, rotation: number,
+  playerRadius: number, drillLengthMultiplier: number, drillDmgMultiplier: number,
+  rx: number, ry: number, rRotation: number, rHalfW: number, rHalfH: number
+): number {
+  const offset = playerRadius + 30 * drillLengthMultiplier
+  const bladeX = originX + Math.cos(rotation) * offset
+  const bladeY = originY + Math.sin(rotation) * offset
+  const bladeRadius = 80 + 2 * drillLengthMultiplier
+  return circleIntersectsOrientedRect(bladeX, bladeY, bladeRadius, rx, ry, rRotation, rHalfW, rHalfH) ? 20 * drillDmgMultiplier : 0
+}
+
+function deathbladeDmgOnRect(
+  originX: number, originY: number, rotation: number,
+  playerRadius: number, drillLengthMultiplier: number, drillDmgMultiplier: number,
+  rx: number, ry: number, rRotation: number, rHalfW: number, rHalfH: number
+): number {
+  const offset = playerRadius + 10 * drillLengthMultiplier
+  const bladeX = originX + Math.cos(rotation) * offset
+  const bladeY = originY + Math.sin(rotation) * offset
+  return circleIntersectsOrientedRect(bladeX, bladeY, 60, rx, ry, rRotation, rHalfW, rHalfH) ? 20 * drillDmgMultiplier : 0
 }
 
 // returns whether or not circle is inside of the rectangle

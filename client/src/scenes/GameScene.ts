@@ -305,6 +305,8 @@ function drawDrill(g: Phaser.GameObjects.Graphics, p: PlayerState, color: number
   switch (drillType) {
     case 0: drawStackedTrianglesDrill(g, p, color); break
     case 1: drawSingleTriangleDrill(g, p, color); break
+    case 2: drawSawblade(g, p, color); break
+    case 3: drawDeathblade(g, p, color); break
   }
 }
 
@@ -342,4 +344,45 @@ function drawSingleTriangleDrill(g: Phaser.GameObjects.Graphics, p: PlayerState,
     startX, width,
     startX + height, 0
   )
+}
+
+function drawSawblade(g: Phaser.GameObjects.Graphics, p: PlayerState, color: number) {
+  const offset = p.playerRadius + 30 * p.drillLengthMultiplier
+  const radius = 20 + 2 * p.drillLengthMultiplier
+  const spokes = 6
+
+  g.fillStyle(color)
+  g.fillCircle(offset, 0, radius)
+
+  // spokes
+  for (let i = 0; i < spokes; i++) {
+    const angle = (i / spokes) * Math.PI * 2
+    const tx = offset + Math.cos(angle) * (radius + 6)
+    const ty = Math.sin(angle) * (radius + 6)
+    g.fillTriangle(
+      offset + Math.cos(angle - 0.3) * radius, Math.sin(angle - 0.3) * radius,
+      offset + Math.cos(angle + 0.3) * radius, Math.sin(angle + 0.3) * radius,
+      tx, ty
+    )
+  }
+}
+
+function drawDeathblade(g: Phaser.GameObjects.Graphics, p: PlayerState, color: number) {
+  const offset = p.playerRadius + 10 * p.drillLengthMultiplier
+  const radius = 60
+  const spokes = 8
+
+  g.fillStyle(color)
+  g.fillCircle(offset, 0, radius)
+
+  for (let i = 0; i < spokes; i++) {
+    const angle = (i / spokes) * Math.PI * 2
+    const tx = offset + Math.cos(angle) * (radius + 10)
+    const ty = Math.sin(angle) * (radius + 10)
+    g.fillTriangle(
+      offset + Math.cos(angle - 0.25) * radius, Math.sin(angle - 0.25) * radius,
+      offset + Math.cos(angle + 0.25) * radius, Math.sin(angle + 0.25) * radius,
+      tx, ty
+    )
+  }
 }

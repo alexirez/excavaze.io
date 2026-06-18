@@ -1,4 +1,4 @@
-import { PLAYER_BASE_RADIUS } from "./constants"
+import { PLAYER_BASE_HP, PLAYER_BASE_RADIUS } from "./constants"
 import { PlayerState } from "./types"
 
 export interface PerkDef {
@@ -104,7 +104,7 @@ export const PERK_TREE: Record<string, PerkDef> = {
         desc: 'Long range\nVery high damage',
         rarity: 'epic',
         requiredPlayerLevel: 10,
-        apply: (state) => { state.drillType = 1; state.drillDmgMultiplier += 0.40 },
+        apply: (state) => { state.drillType = 2 },
     },
 
     'deathblade': {
@@ -112,7 +112,7 @@ export const PERK_TREE: Record<string, PerkDef> = {
         desc: 'Giant saw blade\nLower drill DMG\nVery large damage area',
         rarity: 'legendary',
         requiredPlayerLevel: 20,
-        apply: (state) => { state.drillType = 2; state.drillDmgMultiplier -= 0.75 },
+        apply: (state) => { state.drillType = 3 },
     },
 }
 
@@ -124,4 +124,8 @@ export const PERK_TRANSITIONS: Record<string, string[]> = {
   'hp_regen':     ['hp_regen_2'],
   'move_speed':   ['move_speed_2'],
   'sawblade':     ['deathblade'] // NOTE: deathblade subtracts 75% dmg so it must only be reachable via sawblade
+}
+
+export function activateCurrentPerks(playerState: PlayerState) {
+    // TODO
 }
