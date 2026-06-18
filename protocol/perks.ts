@@ -130,7 +130,7 @@ export function activateCurrentPerks(playerState: PlayerState) {
   // Reset to base stats before reapplying — perks are order-dependent
   playerState.maxHp = PLAYER_BASE_HP
   playerState.hpRegenPerSec = 0
-  playerState.moveSpeedMultiplier = PLAYER_BASE_SPEED
+  playerState.moveSpeedMultiplier = 1
   playerState.radius = PLAYER_BASE_RADIUS
   playerState.drillType = 0
   playerState.drillDmgMultiplier = 1

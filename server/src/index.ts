@@ -58,7 +58,7 @@ wss.on('connection', (socket) => {
       hp: PLAYER_BASE_HP,
       maxHp: PLAYER_BASE_HP,
       hpRegenPerSec: 0,
-      moveSpeedMultiplier: PLAYER_BASE_SPEED,
+      moveSpeedMultiplier: 1,
       radius: 25,
       collectedPerks: [],
       drillType: 0,
@@ -120,8 +120,8 @@ setInterval(() => {
   // 1) Process player/bots input
   for (const p of players.values()) {
     if (!p.state.alive) continue
-    p.state.x = Math.max(WORLD_PADDING, Math.min(WORLD_WIDTH - WORLD_PADDING, p.state.x + p.input.dx * p.state.moveSpeedMultiplier))
-    p.state.y = Math.max(WORLD_PADDING, Math.min(WORLD_HEIGHT - WORLD_PADDING, p.state.y + p.input.dy * p.state.moveSpeedMultiplier))
+    p.state.x = Math.max(WORLD_PADDING, Math.min(WORLD_WIDTH - WORLD_PADDING, p.state.x + p.input.dx * p.state.moveSpeedMultiplier * PLAYER_BASE_SPEED))
+    p.state.y = Math.max(WORLD_PADDING, Math.min(WORLD_HEIGHT - WORLD_PADDING, p.state.y + p.input.dy * p.state.moveSpeedMultiplier * PLAYER_BASE_SPEED))
     p.state.rotation = p.input.rotation
 
     // 2) Process spawn shield timers + hp regen
@@ -808,7 +808,7 @@ function spawnBot(x: number, y: number) {
       hp: PLAYER_BASE_HP * (1 + strengthMultiplier),
       maxHp: PLAYER_BASE_HP * (1 + strengthMultiplier),
       hpRegenPerSec: 0,
-      moveSpeedMultiplier: PLAYER_BASE_SPEED * Math.sqrt(PLAYER_BASE_RADIUS / radius),
+      moveSpeedMultiplier: Math.sqrt(PLAYER_BASE_RADIUS / radius),
       radius: radius,
       collectedPerks: [],
       drillType: 0,

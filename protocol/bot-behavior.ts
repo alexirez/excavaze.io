@@ -25,16 +25,16 @@ function computeObstacleAvoidance(bot: PlayerState, nearbySquareIds: number[], s
     const sq = squares.get(id)
     if (!sq) continue
     const sqHalf = (20 + (sq.state.maxHp / SQUARE_BASE_HP) * 10) / 2
-    const avoidDist = BOT_OBSTACLE_AVOIDANCE_DIST + bot.playerRadius + sqHalf
+    const avoidDist = BOT_OBSTACLE_AVOIDANCE_DIST + bot.radius + sqHalf
     const dx = bot.x - sq.state.x
     const dy = bot.y - sq.state.y
-    const dist = Math.sqrt(dx * dx + dy * dy) - bot.playerRadius - sqHalf
+    const dist = Math.sqrt(dx * dx + dy * dy) - bot.radius - sqHalf
     if (dist > avoidDist || dist < 0.001) continue
     const s = Math.max(0, 1 - dist / avoidDist)
     const strength = Math.pow(s, 16)
     if (_forceCount < 128) {
-      _forces[_forceCount].x = (dx / (dist + bot.playerRadius + sqHalf)) * strength
-      _forces[_forceCount].y = (dy / (dist + bot.playerRadius + sqHalf)) * strength
+      _forces[_forceCount].x = (dx / (dist + bot.radius + sqHalf)) * strength
+      _forces[_forceCount].y = (dy / (dist + bot.radius + sqHalf)) * strength
       _forceCount++
     }
   }
