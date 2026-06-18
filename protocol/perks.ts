@@ -167,14 +167,22 @@ export function rollPerkChoices(collectedPerks: string[]): string[] {
     }
   }
 
-  // deduplicate
-  const unique = [...new Set(pool)]
+  const unique = [...new Set(pool)] // avoid duplicates
 
-  // shuffle and pick 3
-  for (let i = unique.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [unique[i], unique[j]] = [unique[j], unique[i]]
-  }
-
-  return unique.slice(0, 3)
+  // pick 3 using rarity weights
+    const chosen: string[] = []
+    const remaining = [...unique]
+    while (chosen.length < 3 && remaining.length > 0) {
+    const totalWeight = remaining.reduce((sum, id) => sum + RARITY_CONFIG[PERK_TREE[id].rarity].weight, 0)
+    let roll = Math.random() * totalWeight
+    for (let i = 0; i < remaining.length; i++) {
+        roll -= RARITY_CONFIG[PERK_TREE[remaining[i]].rarity].weight
+        if (roll <= 0) {
+        chosen.push(remaining[i])
+        remaining.splice(i, 1)
+        break
+        }
+    }
+    }
+    return chosen
 }
