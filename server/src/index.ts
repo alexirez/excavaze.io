@@ -61,7 +61,7 @@ wss.on('connection', (socket) => {
       hpRegenPerSec: 0,
       moveSpeedMultiplier: UNIT_SPEED,
       playerRadius: 25,
-      drillType: 3,
+      drillType: 2,
       drillDmgMultiplier: 1,
       drillLengthMultiplier: 1
     },
@@ -538,7 +538,7 @@ function getSawbladeDrillDamage(
   const offset = playerRadius + 30 + 30 * drillLengthMultiplier
   const bladeX = originX + Math.cos(rotation) * offset
   const bladeY = originY + Math.sin(rotation) * offset
-  const bladeRadius = 22 + 2 * drillLengthMultiplier
+  const bladeRadius = 20 + 2 * drillLengthMultiplier
   const dx = targetX - bladeX, dy = targetY - bladeY
   return dx*dx + dy*dy < (bladeRadius + targetRadius) ** 2 ? 20 * drillDmgMultiplier : 0
 }
@@ -563,7 +563,7 @@ function sawbladeDmgOnRect(
   const offset = playerRadius + 25 + 25 * drillLengthMultiplier
   const bladeX = originX + Math.cos(rotation) * offset
   const bladeY = originY + Math.sin(rotation) * offset
-  const bladeRadius = 25 + 2 * drillLengthMultiplier
+  const bladeRadius = 22 + 2 * drillLengthMultiplier
   return circleIntersectsOrientedRect(bladeX, bladeY, bladeRadius, rx, ry, rRotation, rHalfW, rHalfH) ? 20 * drillDmgMultiplier : 0
 }
 

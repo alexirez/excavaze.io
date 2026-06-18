@@ -349,13 +349,14 @@ function drawSawblade(g: Phaser.GameObjects.Graphics, p: PlayerState, color: num
   const offset = p.playerRadius + 25 + 25 * p.drillLengthMultiplier
   const radius = 15 + 2 * p.drillLengthMultiplier
   const spokes = 9
+  const angleOffset = Date.now() * 0.003
 
   g.fillStyle(color)
   g.fillCircle(offset, 0, radius)
 
   // spokes
   for (let i = 0; i < spokes; i++) {
-    const angle = (i / spokes) * Math.PI * 2
+    const angle = (i / spokes) * Math.PI * 2 + angleOffset
     const tx = offset + Math.cos(angle) * (radius + 6)
     const ty = Math.sin(angle) * (radius + 6)
     g.fillTriangle(
@@ -370,12 +371,13 @@ function drawDeathblade(g: Phaser.GameObjects.Graphics, p: PlayerState, color: n
   const offset = p.playerRadius + 40 + 40 * p.drillLengthMultiplier
   const radius = 60
   const spokes = 8
+  const angleOffset = Date.now() * 0.003
 
   g.fillStyle(color, 0.7)
   g.fillCircle(offset, 0, radius)
 
   for (let i = 0; i < spokes; i++) {
-    const angle = (i / spokes) * Math.PI * 2
+    const angle = (i / spokes) * Math.PI * 2 + angleOffset
     const tx = offset + Math.cos(angle) * (radius + 10)
     const ty = Math.sin(angle) * (radius + 10)
     g.fillTriangle(
