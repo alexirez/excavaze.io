@@ -72,7 +72,7 @@ export const PERK_TREE: Record<string, PerkDef> = {
         desc: 'Max HP +20\nPlayer size +20%',
         rarity: 'common',
         requiredPlayerLevel: 1,
-        apply: (state) => { state.maxHp += 20; state.playerRadius += PLAYER_BASE_RADIUS*0.20 },
+        apply: (state) => { state.maxHp += 20; state.radius += PLAYER_BASE_RADIUS*0.20 },
     },
 
     'hp_buff_2': {
@@ -80,7 +80,7 @@ export const PERK_TREE: Record<string, PerkDef> = {
         desc: 'Max HP +60\nPlayer size +40%',
         rarity: 'rare',
         requiredPlayerLevel: 8,
-        apply: (state) => { state.maxHp += 60; state.playerRadius += PLAYER_BASE_RADIUS*0.40 },
+        apply: (state) => { state.maxHp += 60; state.radius += PLAYER_BASE_RADIUS*0.40 },
     },
 
     'hp_regen': {
