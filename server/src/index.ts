@@ -6,6 +6,7 @@ import { DANGER_MAP, DENSITY_MAP } from './data/map'
 import { circleIntersectsTriangle, currentLevel, xpForLevel } from '../../protocol/utils'
 import { PlayerState, SquareState } from '../../protocol/types'
 import { computeBotInput } from '../../protocol/bot-behavior'
+import { activateCurrentPerks, PERK_TREE, removeDrillPerks } from '../../protocol/perks'
 
 const PORT = 3000
 const MAX_PLAYER_COUNT = 20
@@ -107,6 +108,15 @@ wss.on('connection', (socket) => {
         p.state.drillDmgMultiplier = 1
         p.state.drillLengthMultiplier = 1
         p.shieldTicks = SHIELD_DURATION
+      } else if (msg.type === 'select_perk') {
+        const player = players.get(id)!
+        if (!player.state.alive) return
+        const perk = PERK_TREE[msg.perkId]
+        if (!perk) return
+        if (player.state.collectedPerks.includes(msg.perkId)) return // prevent duplicates
+        if (removeDrillPerks && isDrillPerk(msg.perkId)) removeDrillPerks(player.state)
+        player.state.collectedPerks.push(msg.perkId)
+        activateCurrentPerks(player.state)
       }
     } catch {
       // invalid JSON, ignore

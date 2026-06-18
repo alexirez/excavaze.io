@@ -61,6 +61,11 @@ export interface RespawnMessage {
   type: 'respawn'
 }
 
-export type ClientMessage = InputMessage | RequestUpgradeMessage | RespawnMessage
+export interface PerkSelection {
+  type: 'select_perk'
+  perkId: string
+}
+
+export type ClientMessage = InputMessage | RequestUpgradeMessage | RespawnMessage | PerkSelection
 export type ServerMessage = WelcomeMessage | WorldStateMessage | LevelUpMessage | PlayerKilledMessage 
   | SquareKilledPlayerMessage | DeathScreenMessage
