@@ -61,7 +61,8 @@ wss.on('connection', (socket) => {
       hpRegenPerSec: 0,
       moveSpeedMultiplier: UNIT_SPEED,
       playerRadius: 25,
-      drillType: 2,
+      collectedPerks: [],
+      drillType: 0,
       drillDmgMultiplier: 1,
       drillLengthMultiplier: 1
     },
@@ -801,6 +802,7 @@ function spawnBot(x: number, y: number) {
       hpRegenPerSec: 0,
       moveSpeedMultiplier: UNIT_SPEED * Math.sqrt(PLAYER_BASE_RADIUS / playerRadius),
       playerRadius: playerRadius,
+      collectedPerks: [],
       drillType: 0,
       drillDmgMultiplier: 0.7 + (dangerLevel - 1) * 0.1,
       drillLengthMultiplier: 0.7 + (dangerLevel * Math.min(Math.random(), 0.2)) * 0.5
