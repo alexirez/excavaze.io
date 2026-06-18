@@ -10,6 +10,7 @@ export const COLOR_OUTER_BOUNDS = 0x544e4e
 export const PLAYER_BASE_HP = 100
 export const SQUARE_BASE_HP = 30
 export const PLAYER_BASE_RADIUS = 25
+export const PLAYER_BASE_SPEED = 10
 export const COLLISION_COOLDOWN = 400
 export const BOT_OBSTACLE_AVOIDANCE_DIST = 200
 export const SQR_COLLISION_BASE_DMG = 40

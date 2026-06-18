@@ -1,7 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws'
 import { ServerPlayer, ServerSquare } from './entities'
 import { WorldStateMessage, ClientMessage, DeathScreenMessage, PlayerKilledMessage } from '../../protocol/messages'
-import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, PLAYER_COLLISION_DAMAGE, MIN_OBSTACLE_SPAWN_DIST, SQR_BASE_ROT_SPEED, MAX_SQR_ROT_SPEED, KILL_SQUARE_XP_MULTIPLIER, STEAL_PLAYER_XP_MULTIPLIER, KILL_PLAYER_BASE_XP, SQR_COLLISION_BASE_DMG, SQR_COLLISION_DMG_FACTOR, COLLISION_COOLDOWN, PLAYER_BASE_RADIUS } from '../../protocol/constants'
+import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, PLAYER_COLLISION_DAMAGE, MIN_OBSTACLE_SPAWN_DIST, SQR_BASE_ROT_SPEED, MAX_SQR_ROT_SPEED, KILL_SQUARE_XP_MULTIPLIER, STEAL_PLAYER_XP_MULTIPLIER, KILL_PLAYER_BASE_XP, SQR_COLLISION_BASE_DMG, SQR_COLLISION_DMG_FACTOR, COLLISION_COOLDOWN, PLAYER_BASE_RADIUS, PLAYER_BASE_SPEED } from '../../protocol/constants'
 import { DANGER_MAP, DENSITY_MAP } from './data/map'
 import { circleIntersectsTriangle, currentLevel, xpForLevel } from '../../protocol/utils'
 import { PlayerState, SquareState } from '../../protocol/types'
@@ -11,7 +11,6 @@ const PORT = 3000
 const MAX_PLAYER_COUNT = 20
 const CHUNK_COLS = 16
 const CHUNK_ROWS = 16
-const UNIT_SPEED = 10
 const SQUARE_SPEED = 0.5  // multiplies square drifting speed
 const SQUARE_BASE_BOUNDING_RADIUS = 10 // used for broad phase collision
 const SHIELD_DURATION = 50
@@ -59,7 +58,7 @@ wss.on('connection', (socket) => {
       hp: PLAYER_BASE_HP,
       maxHp: PLAYER_BASE_HP,
       hpRegenPerSec: 0,
-      moveSpeedMultiplier: UNIT_SPEED,
+      moveSpeedMultiplier: PLAYER_BASE_SPEED,
       radius: 25,
       collectedPerks: [],
       drillType: 0,
@@ -809,7 +808,7 @@ function spawnBot(x: number, y: number) {
       hp: PLAYER_BASE_HP * (1 + strengthMultiplier),
       maxHp: PLAYER_BASE_HP * (1 + strengthMultiplier),
       hpRegenPerSec: 0,
-      moveSpeedMultiplier: UNIT_SPEED * Math.sqrt(PLAYER_BASE_RADIUS / radius),
+      moveSpeedMultiplier: PLAYER_BASE_SPEED * Math.sqrt(PLAYER_BASE_RADIUS / radius),
       radius: radius,
       collectedPerks: [],
       drillType: 0,
