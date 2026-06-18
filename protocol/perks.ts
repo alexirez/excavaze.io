@@ -141,3 +141,10 @@ export function activateCurrentPerks(playerState: PlayerState) {
     if (perk) perk.apply(playerState)
   }
 }
+
+// Called before adding a drill perk so that old drills can become available again
+export function removeDrillPerks(playerState: PlayerState) {
+  playerState.collectedPerks = playerState.collectedPerks.filter(
+    id => !['sawblade', 'deathblade'].includes(id)
+  )
+}
