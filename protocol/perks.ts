@@ -123,7 +123,7 @@ export const PERK_TRANSITIONS: Record<string, string[]> = {
   'hp_buff':      ['hp_buff_2', 'hp_regen'],
   'hp_regen':     ['hp_regen_2'],
   'move_speed':   ['move_speed_2'],
-  'sawblade':     ['deathblade'] // NOTE: deathblade subtracts 75% dmg so it must only be reachable via sawblade
+  'sawblade':     ['deathblade']
 }
 
 export function activateCurrentPerks(playerState: PlayerState) {

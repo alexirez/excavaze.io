@@ -12,7 +12,6 @@ export class GameScene extends Phaser.Scene {
   private xpMaxBg!: Phaser.GameObjects.Graphics // background rounded rectangles for labels to be more visible
   private enemyNameLabels: Map<number, Phaser.GameObjects.Text> = new Map()
   private keys!: Record<string, Phaser.Input.Keyboard.Key>
-  private localId: number | null = null
   private latestPlayersState: Map<number, PlayerState> = new Map()
   private latestSquaresState: Map<number, SquareState> = new Map()
   private squareGraphics!: Phaser.GameObjects.Graphics
@@ -347,9 +346,9 @@ function drawSingleTriangleDrill(g: Phaser.GameObjects.Graphics, p: PlayerState,
 }
 
 function drawSawblade(g: Phaser.GameObjects.Graphics, p: PlayerState, color: number) {
-  const offset = p.playerRadius + 30 * p.drillLengthMultiplier
-  const radius = 20 + 2 * p.drillLengthMultiplier
-  const spokes = 6
+  const offset = p.playerRadius + 25 + 25 * p.drillLengthMultiplier
+  const radius = 15 + 2 * p.drillLengthMultiplier
+  const spokes = 9
 
   g.fillStyle(color)
   g.fillCircle(offset, 0, radius)
@@ -368,7 +367,7 @@ function drawSawblade(g: Phaser.GameObjects.Graphics, p: PlayerState, color: num
 }
 
 function drawDeathblade(g: Phaser.GameObjects.Graphics, p: PlayerState, color: number) {
-  const offset = p.playerRadius + 10 * p.drillLengthMultiplier
+  const offset = p.playerRadius + 40 + 40 * p.drillLengthMultiplier
   const radius = 60
   const spokes = 8
 

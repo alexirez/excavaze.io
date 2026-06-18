@@ -61,7 +61,7 @@ wss.on('connection', (socket) => {
       hpRegenPerSec: 0,
       moveSpeedMultiplier: UNIT_SPEED,
       playerRadius: 25,
-      drillType: 2,
+      drillType: 3,
       drillDmgMultiplier: 1,
       drillLengthMultiplier: 1
     },
@@ -382,8 +382,8 @@ function getDrillReach(state: PlayerState): number {
   switch (state.drillType) {
     case 0: return state.playerRadius + 40 * state.drillLengthMultiplier
     case 1: return state.playerRadius + 40 * state.drillLengthMultiplier
-    case 2: return state.playerRadius + 30 * state.drillLengthMultiplier + 80 + 2 * state.drillLengthMultiplier
-    case 3: return state.playerRadius + 10 * state.drillLengthMultiplier + 60
+    case 2: return state.playerRadius + 30 + 30 * state.drillLengthMultiplier + 25 + 2 * state.drillLengthMultiplier
+    case 3: return state.playerRadius + 40 + 40 * state.drillLengthMultiplier + 80
     default: return state.playerRadius
   }
 }
@@ -535,10 +535,10 @@ function getSawbladeDrillDamage(
   playerRadius: number, drillLengthMultiplier: number, drillDmgMultiplier: number,
   targetX: number, targetY: number, targetRadius: number
 ): number {
-  const offset = playerRadius + 30 * drillLengthMultiplier
+  const offset = playerRadius + 30 + 30 * drillLengthMultiplier
   const bladeX = originX + Math.cos(rotation) * offset
   const bladeY = originY + Math.sin(rotation) * offset
-  const bladeRadius = 25 + 2 * drillLengthMultiplier
+  const bladeRadius = 22 + 2 * drillLengthMultiplier
   const dx = targetX - bladeX, dy = targetY - bladeY
   return dx*dx + dy*dy < (bladeRadius + targetRadius) ** 2 ? 20 * drillDmgMultiplier : 0
 }
@@ -548,11 +548,11 @@ function getDeathbladeDrillDamage(
   playerRadius: number, drillLengthMultiplier: number, drillDmgMultiplier: number,
   targetX: number, targetY: number, targetRadius: number
 ): number {
-  const offset = playerRadius + 10 * drillLengthMultiplier
+  const offset = playerRadius + 40 + 40 * drillLengthMultiplier
   const bladeX = originX + Math.cos(rotation) * offset
   const bladeY = originY + Math.sin(rotation) * offset
   const dx = targetX - bladeX, dy = targetY - bladeY
-  return dx*dx + dy*dy < (60 + targetRadius) ** 2 ? 20 * drillDmgMultiplier : 0
+  return dx*dx + dy*dy < (80 + targetRadius) ** 2 ? 20 * drillDmgMultiplier : 0
 }
 
 function sawbladeDmgOnRect(
@@ -560,7 +560,7 @@ function sawbladeDmgOnRect(
   playerRadius: number, drillLengthMultiplier: number, drillDmgMultiplier: number,
   rx: number, ry: number, rRotation: number, rHalfW: number, rHalfH: number
 ): number {
-  const offset = playerRadius + 30 * drillLengthMultiplier
+  const offset = playerRadius + 25 + 25 * drillLengthMultiplier
   const bladeX = originX + Math.cos(rotation) * offset
   const bladeY = originY + Math.sin(rotation) * offset
   const bladeRadius = 25 + 2 * drillLengthMultiplier
@@ -572,10 +572,10 @@ function deathbladeDmgOnRect(
   playerRadius: number, drillLengthMultiplier: number, drillDmgMultiplier: number,
   rx: number, ry: number, rRotation: number, rHalfW: number, rHalfH: number
 ): number {
-  const offset = playerRadius + 10 * drillLengthMultiplier
+  const offset = playerRadius + 40 + 40 * drillLengthMultiplier
   const bladeX = originX + Math.cos(rotation) * offset
   const bladeY = originY + Math.sin(rotation) * offset
-  return circleIntersectsOrientedRect(bladeX, bladeY, 60, rx, ry, rRotation, rHalfW, rHalfH) ? 20 * drillDmgMultiplier : 0
+  return circleIntersectsOrientedRect(bladeX, bladeY, 80, rx, ry, rRotation, rHalfW, rHalfH) ? 20 * drillDmgMultiplier : 0
 }
 
 // returns whether or not circle is inside of the rectangle
