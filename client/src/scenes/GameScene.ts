@@ -371,7 +371,7 @@ function drawDeathblade(g: Phaser.GameObjects.Graphics, p: PlayerState, color: n
   const radius = 60
   const spokes = 8
 
-  g.fillStyle(color)
+  g.fillStyle(color, 0.7)
   g.fillCircle(offset, 0, radius)
 
   for (let i = 0; i < spokes; i++) {
