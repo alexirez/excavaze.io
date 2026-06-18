@@ -9,7 +9,7 @@ export interface PerkDef {
     apply: (state: PlayerState) => void
 }
 
-const RARITY_CONFIG = {
+export const RARITY_CONFIG = {
   common:    { weight: 59, color: '#ffffff' },
   rare:      { weight: 30,  color: '#da5817' },
   epic:      { weight: 8,   color: '#aa44ff' },
@@ -147,4 +147,29 @@ export function removeDrillPerks(playerState: PlayerState) {
   playerState.collectedPerks = playerState.collectedPerks.filter(
     id => !['sawblade', 'deathblade'].includes(id)
   )
+}
+
+export function rollPerkChoices(collectedPerks: string[]): string[] {
+  const collectedSet = new Set(collectedPerks)
+
+  // build pool of unlocked, uncollected perks
+  const pool: string[] = []
+  for (const [id, transitions] of Object.entries(PERK_TRANSITIONS)) {
+    if (id === 'root' || collectedSet.has(id)) {
+      for (const next of transitions) {
+        if (!collectedSet.has(next)) pool.push(next)
+      }
+    }
+  }
+
+  // deduplicate
+  const unique = [...new Set(pool)]
+
+  // shuffle and pick 3
+  for (let i = unique.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [unique[i], unique[j]] = [unique[j], unique[i]]
+  }
+
+  return unique.slice(0, 3)
 }
