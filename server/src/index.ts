@@ -6,7 +6,7 @@ import { DANGER_MAP, DENSITY_MAP } from './data/map'
 import { circleIntersectsTriangle, currentLevel, xpForLevel } from '../../protocol/utils'
 import { PlayerState, SquareState } from '../../protocol/types'
 import { computeBotInput } from '../../protocol/bot-behavior'
-import { activateCurrentPerks, PERK_TREE, removeDrillPerks } from '../../protocol/perks'
+import { activateCurrentPerks, isDrillPerk, PERK_TREE, removeDrillPerks } from '../../protocol/perks'
 
 const PORT = 3000
 const MAX_PLAYER_COUNT = 20
