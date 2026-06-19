@@ -284,53 +284,70 @@ export default function App() {
 
       {/* death screen */}
       {isDead && (
-        <div style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          width: '60vw',
-          height: '60vh',
-          borderRadius: 12,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'rgba(0,0,0,0.7)',
-          opacity: deathVisible ? 1 : 0,
-          transform: deathVisible ? 'translate(-50%, -50%) scale(1)' : 'translate(-50%, -50%) scale(0.5)',
-          transition: 'opacity 1s ease, transform 1s ease',
-          pointerEvents: isDead ? 'auto' : 'none',
-        }}>
-          <span style={{ color: '#ff3333', fontSize: 36, fontWeight: 'bold', display: 'block',
-            textAlign: 'center' }}>
-            You Were Killed by <span>{killerName}</span>
-          </span>
-          <span style={{ color: '#aaa', fontSize: 14, marginTop: 16, textAlign: 'center', padding: '0 24px' }}>
-            {deathTip}
-          </span>
-          <button
-            onClick={() => {
-              socket.send(JSON.stringify({ type: 'respawn' } satisfies RespawnMessage))
-              setIsDead(false)
-              const scene = phaserGame?.scene.getScene('GameScene') as GameScene
-              scene?.showHud()
-              setKillFeed([])
-            }}
-            style={{
-              marginTop: 24,
-              padding: '10px 32px',
-              fontSize: 16,
-              background: '#00ff99',
-              color: '#000',
-              border: 'none',
-              borderRadius: 6,
-              cursor: 'pointer',
-            }}
-          >
-            Play Again
-          </button>
-        </div>
-      )}
+      <div style={{
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        width: 600,
+        borderRadius: 16,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        background: 'rgba(20,20,28,0.95)',
+        border: '0.5px solid rgba(255,255,255,0.1)',
+        padding: '52px 64px',
+        opacity: deathVisible ? 1 : 0,
+        transform: deathVisible ? 'translate(-50%, -50%) scale(1)' : 'translate(-50%, -50%) scale(0.5)',
+        transition: 'opacity 1s ease, transform 1s ease',
+        pointerEvents: isDead ? 'auto' : 'none',
+      }}>
+        <span style={{ fontSize: 14, letterSpacing: 3, textTransform: 'uppercase', color: 'rgba(255,100,100,0.7)', marginBottom: 10 }}>
+          eliminated
+        </span>
+        <span style={{ fontSize: 16, color: 'rgba(255,255,255,0.45)', marginBottom: 4 }}>
+          you were killed by
+        </span>
+        <span style={{ fontSize: 42, color: '#f87171', letterSpacing: 1, marginBottom: 28 }}>
+          {killerName}
+        </span>
+        <div style={{ width: '100%', height: 0.5, background: 'rgba(255,255,255,0.08)', marginBottom: 24 }} />
+        <span style={{ fontSize: 15, color: 'rgba(255,255,255,0.35)', textAlign: 'center', lineHeight: 1.7, marginBottom: 32, fontStyle: 'italic' }}>
+          {deathTip}
+        </span>
+        <button
+          onClick={() => {
+            socket.send(JSON.stringify({ type: 'respawn' } satisfies RespawnMessage))
+            setIsDead(false)
+            const scene = phaserGame?.scene.getScene('GameScene') as GameScene
+            scene?.showHud()
+            setKillFeed([])
+          }}
+          style={{
+            padding: '11px 44px',
+            fontSize: 13,
+            background: 'rgba(120,180,255,0.10)',
+            color: '#7eb8f7',
+            border: '1px solid rgba(120,180,255,0.35)',
+            borderRadius: 8,
+            cursor: 'pointer',
+            letterSpacing: 2,
+            textTransform: 'uppercase',
+            fontFamily: "'Share Tech', monospace",
+            transition: 'background 0.15s, border-color 0.15s',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = 'rgba(120,180,255,0.18)'
+            e.currentTarget.style.borderColor = 'rgba(120,180,255,0.6)'
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'rgba(120,180,255,0.10)'
+            e.currentTarget.style.borderColor = 'rgba(120,180,255,0.35)'
+          }}
+        >
+          play again
+        </button>
+      </div>
+    )}
     </div>
   )
 }
