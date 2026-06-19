@@ -301,17 +301,17 @@ export default function App() {
         transition: 'opacity 1s ease, transform 1s ease',
         pointerEvents: isDead ? 'auto' : 'none',
       }}>
-        <span style={{ fontSize: 14, letterSpacing: 3, textTransform: 'uppercase', color: 'rgba(255,100,100,0.7)', marginBottom: 10 }}>
+        <span style={{ fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: 'rgba(255,100,100,0.9)', marginBottom: 10 }}>
           eliminated
         </span>
-        <span style={{ fontSize: 16, color: 'rgba(255,255,255,0.45)', marginBottom: 4 }}>
+        <span style={{ fontSize: 17, color: 'rgba(255,255,255,0.45)', marginBottom: 4 }}>
           you were killed by
         </span>
-        <span style={{ fontSize: 42, color: '#f87171', letterSpacing: 1, marginBottom: 28 }}>
+        <span style={{ fontSize: 52, color: 'rgba(255,100,100,0.9)', letterSpacing: 1, marginBottom: 28 }}>
           {killerName}
         </span>
-        <div style={{ width: '100%', height: 0.5, background: 'rgba(255,255,255,0.08)', marginBottom: 24 }} />
-        <span style={{ fontSize: 15, color: 'rgba(255,255,255,0.35)', textAlign: 'center', lineHeight: 1.7, marginBottom: 32, fontStyle: 'italic' }}>
+        <div style={{ width: '100%', height: 0.5, background: 'rgba(255,255,255,0.55)', marginBottom: 24 }} />
+        <span style={{ fontSize: 15, color: 'rgba(255,255,255,0.55)', textAlign: 'center', lineHeight: 1.7, marginBottom: 32, fontStyle: 'italic' }}>
           {deathTip}
         </span>
         <button
@@ -325,9 +325,9 @@ export default function App() {
           style={{
             padding: '11px 44px',
             fontSize: 13,
-            background: 'rgba(120,180,255,0.10)',
-            color: '#7eb8f7',
-            border: '1px solid rgba(120,180,255,0.35)',
+            background: 'rgba(121, 178, 247, 0.1)',
+            color: '#e1f958',
+            border: '1px solid rgba(206, 216, 86, 0.35)',
             borderRadius: 8,
             cursor: 'pointer',
             letterSpacing: 2,
@@ -336,12 +336,12 @@ export default function App() {
             transition: 'background 0.15s, border-color 0.15s',
           }}
           onMouseEnter={e => {
-            e.currentTarget.style.background = 'rgba(120,180,255,0.18)'
-            e.currentTarget.style.borderColor = 'rgba(120,180,255,0.6)'
+            e.currentTarget.style.background = 'rgba(121, 178, 247, 0.3)'
+            e.currentTarget.style.borderColor = 'rgba(238, 250, 102, 0.6)'
           }}
           onMouseLeave={e => {
-            e.currentTarget.style.background = 'rgba(120,180,255,0.10)'
-            e.currentTarget.style.borderColor = 'rgba(120,180,255,0.35)'
+            e.currentTarget.style.background = 'rgba(121, 178, 247, 0.1)'
+            e.currentTarget.style.borderColor = 'rgba(238, 250, 102, 0.35)'
           }}
         >
           play again
