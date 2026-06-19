@@ -29,7 +29,7 @@ export const PERK_TREE: Record<string, PerkDef> = {
 
     'drill_dmg_2': {
         title: 'Drill DMG++',
-        desc: 'Drill damage +20%',
+        desc: 'Additional +20% drill DMG',
         rarity: 'rare',
         requiredPlayerLevel: 3,
         apply: (state) => { state.drillDmgMultiplier += 0.2 },
@@ -61,10 +61,10 @@ export const PERK_TREE: Record<string, PerkDef> = {
 
     'move_speed_2': {
         title: 'Speedrunner',
-        desc: "Additional +30% movement\n-20% max HP",
+        desc: "Additional +30% movement\nMax HP -20%",
         rarity: 'rare',
         requiredPlayerLevel: 4,
-        apply: (state) => { state.moveSpeedMultiplier += 0.30; state.maxHp -= 0.20 },
+        apply: (state) => { state.moveSpeedMultiplier += 0.3; state.maxHp -= 0.2 },
     },
 
     'hp_buff': {
@@ -72,7 +72,7 @@ export const PERK_TREE: Record<string, PerkDef> = {
         desc: 'Max HP +20\nPlayer size +20%',
         rarity: 'common',
         requiredPlayerLevel: 1,
-        apply: (state) => { state.maxHp += 20; state.radius += PLAYER_BASE_RADIUS*0.20 },
+        apply: (state) => { state.maxHp += 20; state.radius += PLAYER_BASE_RADIUS * 0.2 },
     },
 
     'hp_buff_2': {
@@ -80,14 +80,14 @@ export const PERK_TREE: Record<string, PerkDef> = {
         desc: 'Max HP +60\nPlayer size +40%',
         rarity: 'rare',
         requiredPlayerLevel: 8,
-        apply: (state) => { state.maxHp += 60; state.radius += PLAYER_BASE_RADIUS*0.40 },
+        apply: (state) => { state.maxHp += 60; state.radius += PLAYER_BASE_RADIUS * 0.4 },
     },
 
     'hp_regen': {
         title: 'Survivor',
         desc: 'Regenerate 2 HP per second',
         rarity: 'rare',
-        requiredPlayerLevel: 4,
+        requiredPlayerLevel: 3,
         apply: (state) => { state.hpRegenPerSec += 2 * TICK_MS / 1000 },
     },
 
@@ -95,7 +95,7 @@ export const PERK_TREE: Record<string, PerkDef> = {
         title: 'Nanobots',
         desc: 'Additional +3 hp regen/sec',
         rarity: 'epic',
-        requiredPlayerLevel: 10,
+        requiredPlayerLevel: 7,
         apply: (state) => { state.hpRegenPerSec += 3 * TICK_MS / 1000 },
     },
 
