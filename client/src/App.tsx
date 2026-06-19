@@ -65,6 +65,9 @@ export default function App() {
   useEffect(() => {
     if (isDead) {
       requestAnimationFrame(() => setDeathVisible(true))
+      setPerkVisible(false)
+      perkChoicesRef.current = null
+      setTimeout(() => setPerkChoices(null), 300)
     } else {
       setDeathVisible(false)
     }
