@@ -1,4 +1,4 @@
-import { PLAYER_BASE_HP, PLAYER_BASE_RADIUS, PLAYER_BASE_SPEED } from "./constants"
+import { PLAYER_BASE_HP, PLAYER_BASE_RADIUS, PLAYER_BASE_SPEED, TICK_MS } from "./constants"
 import { PlayerState } from "./types"
 
 export interface PerkDef {
@@ -85,18 +85,18 @@ export const PERK_TREE: Record<string, PerkDef> = {
 
     'hp_regen': {
         title: 'Survivor',
-        desc: 'Regenerate 1 HP per second',
+        desc: 'Regenerate 2 HP per second',
         rarity: 'rare',
         requiredPlayerLevel: 4,
-        apply: (state) => { state.hpRegenPerSec += 1 },
+        apply: (state) => { state.hpRegenPerSec += 2 * TICK_MS / 1000 },
     },
 
     'hp_regen_2': {
         title: 'Nanobots',
-        desc: 'Additional +2 hp regen/sec',
+        desc: 'Additional +3 hp regen/sec',
         rarity: 'epic',
         requiredPlayerLevel: 10,
-        apply: (state) => { state.hpRegenPerSec += 2 },
+        apply: (state) => { state.hpRegenPerSec += 3 * TICK_MS / 1000 },
     },
 
     'sawblade': {
