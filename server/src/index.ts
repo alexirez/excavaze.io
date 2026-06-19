@@ -1,17 +1,17 @@
 import { WebSocketServer, WebSocket } from 'ws'
 import { ServerPlayer, ServerSquare } from './entities'
 import { WorldStateMessage, ClientMessage, DeathScreenMessage, PlayerKilledMessage } from '../../protocol/messages'
-import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, PLAYER_COLLISION_DAMAGE, MIN_OBSTACLE_SPAWN_DIST, SQR_BASE_ROT_SPEED, MAX_SQR_ROT_SPEED, KILL_SQUARE_XP_MULTIPLIER, STEAL_PLAYER_XP_MULTIPLIER, KILL_PLAYER_BASE_XP, SQR_COLLISION_BASE_DMG, SQR_COLLISION_DMG_FACTOR, COLLISION_COOLDOWN, PLAYER_BASE_RADIUS } from '../../protocol/constants'
+import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, PLAYER_COLLISION_DAMAGE, MIN_OBSTACLE_SPAWN_DIST, SQR_BASE_ROT_SPEED, MAX_SQR_ROT_SPEED, KILL_SQUARE_XP_MULTIPLIER, STEAL_PLAYER_XP_MULTIPLIER, KILL_PLAYER_BASE_XP, SQR_COLLISION_BASE_DMG, SQR_COLLISION_DMG_FACTOR, COLLISION_COOLDOWN, PLAYER_BASE_RADIUS, PLAYER_BASE_SPEED } from '../../protocol/constants'
 import { DANGER_MAP, DENSITY_MAP } from './data/map'
 import { circleIntersectsTriangle, currentLevel, xpForLevel } from '../../protocol/utils'
 import { PlayerState, SquareState } from '../../protocol/types'
 import { computeBotInput } from '../../protocol/bot-behavior'
+import { activateCurrentPerks, isDrillPerk, PERK_TREE, removeDrillPerks } from '../../protocol/perks'
 
 const PORT = 3000
 const MAX_PLAYER_COUNT = 20
 const CHUNK_COLS = 16
 const CHUNK_ROWS = 16
-const UNIT_SPEED = 10
 const SQUARE_SPEED = 0.5  // multiplies square drifting speed
 const SQUARE_BASE_BOUNDING_RADIUS = 10 // used for broad phase collision
 const SHIELD_DURATION = 50
@@ -58,7 +58,10 @@ wss.on('connection', (socket) => {
       rotation: 0,
       hp: PLAYER_BASE_HP,
       maxHp: PLAYER_BASE_HP,
-      playerRadius: 25,
+      hpRegenPerSec: 0,
+      moveSpeedMultiplier: 1,
+      radius: 25,
+      collectedPerks: [],
       drillType: 0,
       drillDmgMultiplier: 1,
       drillLengthMultiplier: 1
@@ -67,7 +70,6 @@ wss.on('connection', (socket) => {
     shieldTicks: SHIELD_DURATION,
     lastCollisionTime: 0,
     wanderAngle: Math.random() * Math.PI * 2,
-    moveSpeed: UNIT_SPEED
   })
   // S->C: Tell this client their assigned id
   socket.send(JSON.stringify({ type: 'welcome', id }))
@@ -88,15 +90,33 @@ wss.on('connection', (socket) => {
         }
       } else if (msg.type === 'respawn') {
         // TODO: smart spawning computes x, y
-        const player = players.get(id)!
-        if (player.state.alive) return
+        const p = players.get(id)!
+        if (p.state.alive) return
         const { x, y } = pickPlayerSpawnPoint()
-        player.state.alive = true
-        player.state.hp = PLAYER_BASE_HP
-        player.state.x = x
-        player.state.y = y
-        player.state.shieldActive = true
-        player.shieldTicks = SHIELD_DURATION
+        p.state.xp *= 0.8
+        p.state.alive = true
+        p.state.shieldActive = true
+        p.state.x = x
+        p.state.y = y
+        p.state.hp = PLAYER_BASE_HP
+        p.state.maxHp = PLAYER_BASE_HP
+        p.state.hpRegenPerSec = 0
+        p.state.moveSpeedMultiplier = 1
+        p.state.radius = PLAYER_BASE_RADIUS
+        p.state.collectedPerks = []
+        p.state.drillType = 0
+        p.state.drillDmgMultiplier = 1
+        p.state.drillLengthMultiplier = 1
+        p.shieldTicks = SHIELD_DURATION
+      } else if (msg.type === 'select_perk') {
+        const player = players.get(id)!
+        if (!player.state.alive) return
+        const perk = PERK_TREE[msg.perkId]
+        if (!perk) return
+        if (player.state.collectedPerks.includes(msg.perkId)) return // prevent duplicates
+        if (removeDrillPerks && isDrillPerk(msg.perkId)) removeDrillPerks(player.state)
+        player.state.collectedPerks.push(msg.perkId)
+        activateCurrentPerks(player.state)
       }
     } catch {
       // invalid JSON, ignore
@@ -110,15 +130,16 @@ setInterval(() => {
   // 1) Process player/bots input
   for (const p of players.values()) {
     if (!p.state.alive) continue
-    p.state.x = Math.max(WORLD_PADDING, Math.min(WORLD_WIDTH - WORLD_PADDING, p.state.x + p.input.dx * p.moveSpeed))
-    p.state.y = Math.max(WORLD_PADDING, Math.min(WORLD_HEIGHT - WORLD_PADDING, p.state.y + p.input.dy * p.moveSpeed))
+    p.state.x = Math.max(WORLD_PADDING, Math.min(WORLD_WIDTH - WORLD_PADDING, p.state.x + p.input.dx * p.state.moveSpeedMultiplier * PLAYER_BASE_SPEED))
+    p.state.y = Math.max(WORLD_PADDING, Math.min(WORLD_HEIGHT - WORLD_PADDING, p.state.y + p.input.dy * p.state.moveSpeedMultiplier * PLAYER_BASE_SPEED))
     p.state.rotation = p.input.rotation
 
-    // 2) Process spawn shield timers
+    // 2) Process spawn shield timers + hp regen
     if (p.shieldTicks > 0) {
       p.shieldTicks--
       if (p.shieldTicks === 0) p.state.shieldActive = false
     }
+    p.state.hp = Math.min(p.state.hp + p.state.hpRegenPerSec, p.state.maxHp)
   }
   
 
@@ -130,7 +151,7 @@ setInterval(() => {
         const dx = a.state.x - b.state.x
         const dy = a.state.y - b.state.y
         const dist = Math.sqrt(dx * dx + dy * dy)
-        const radiusSum = a.state.playerRadius + b.state.playerRadius
+        const radiusSum = a.state.radius + b.state.radius
 
         if (dist < radiusSum && dist > 0.001) {
           if (!a.state.shieldActive && Date.now() - a.lastCollisionTime >= COLLISION_COOLDOWN) {
@@ -149,12 +170,16 @@ setInterval(() => {
 
       for (const [idA, a] of players) { // 2. player + drill collisions
         if (!a.state.alive) continue
+        const aReach = getDrillReach(a.state)
         for (const [idB, b] of players) {
           if (!b.state.alive || idA === idB || b.state.shieldActive) continue
+          const dx = a.state.x - b.state.x
+          const dy = a.state.y - b.state.y
+          if (dx*dx + dy*dy > (aReach + b.state.radius) ** 2) continue // broadphase
           b.state.hp -= getDrillDamageOnCircle(
-            a.state.x, a.state.y, a.state.rotation, a.state.playerRadius, 
+            a.state.x, a.state.y, a.state.rotation, a.state.radius, 
             a.state.drillType, a.state.drillLengthMultiplier, a.state.drillDmgMultiplier,
-            b.state.x, b.state.y, b.state.playerRadius
+            b.state.x, b.state.y, b.state.radius
           )
           if (b.state.hp <= 0) killPlayer(a, b, 'drill')
         }
@@ -164,7 +189,7 @@ setInterval(() => {
     if (!p.state.alive) continue
     const chunkIndex = getChunkIndex(p.state.x, p.state.y)
     getNearbySquareIds(chunkIndex, nearbySquareIds) // only consider 9 nearest chunks for efficient collision checking
-    const drillReach = p.state.playerRadius + 40 * p.state.drillLengthMultiplier
+    const drillReach = getDrillReach(p.state)
 
     for (const id of nearbySquareIds) {
 
@@ -176,12 +201,11 @@ setInterval(() => {
 
       if (sqrDist > (drillReach + square.boundingRadius )**2) continue
 
-      const dist = Math.sqrt(sqrDist)
       const sqSize = 20 + (square.state.maxHp / SQUARE_BASE_HP) * 10 // 3. drill + square collisions
       const sqHalf = sqSize / 2
 
       square.state.hp -= getDrillDamageOnRect(
-        p.state.x, p.state.y, p.state.rotation, p.state.playerRadius,
+        p.state.x, p.state.y, p.state.rotation, p.state.radius,
         p.state.drillType, p.state.drillLengthMultiplier, p.state.drillDmgMultiplier,
         square.state.x, square.state.y, square.state.rotation, sqHalf, sqHalf
       )
@@ -190,7 +214,7 @@ setInterval(() => {
 
 
       if (circleIntersectsOrientedRect(
-        p.state.x, p.state.y, p.state.playerRadius,
+        p.state.x, p.state.y, p.state.radius,
         square.state.x, square.state.y, square.state.rotation, sqHalf, sqHalf // 4. player + square collisions
       )) {
         square.state.hp -= PLAYER_COLLISION_DAMAGE
@@ -373,37 +397,51 @@ function assignNextSquareId() {
   return nextSquareId
 }
 
+function getDrillReach(state: PlayerState): number {
+  switch (state.drillType) {
+    case 0: return state.radius + 40 * state.drillLengthMultiplier
+    case 1: return state.radius + 40 * state.drillLengthMultiplier
+    case 2: return state.radius + 30 + 30 * state.drillLengthMultiplier + 25 + 2 * state.drillLengthMultiplier
+    case 3: return state.radius + 40 + 40 * state.drillLengthMultiplier + 80
+    default: return state.radius
+  }
+}
+
 function getDrillDamageOnCircle(originX: number, originY: number, rotation: number,
-  playerRadius: number, drillType: number, drillLengthMultiplier: number, drillDmgMultiplier: number, 
+  radius: number, drillType: number, drillLengthMultiplier: number, drillDmgMultiplier: number, 
   targetX: number, targetY: number, targetRadius: number): number {
   switch (drillType) {
-    case 0: return getStackedTrianglesDrillDamage(originX, originY, rotation, playerRadius, drillLengthMultiplier, drillDmgMultiplier, targetX, targetY, targetRadius)
-    case 1: return getSingleTriangleDrillDamage(originX, originY, rotation, playerRadius, drillLengthMultiplier, drillDmgMultiplier, targetX, targetY, targetRadius)
+    case 0: return getStackedTrianglesDrillDamage(originX, originY, rotation, radius, drillLengthMultiplier, drillDmgMultiplier, targetX, targetY, targetRadius)
+    case 1: return getSingleTriangleDrillDamage(originX, originY, rotation, radius, drillLengthMultiplier, drillDmgMultiplier, targetX, targetY, targetRadius)
+    case 2: return getSawbladeDrillDamage(originX, originY, rotation, radius, drillLengthMultiplier, drillDmgMultiplier, targetX, targetY, targetRadius)
+    case 3: return getDeathbladeDrillDamage(originX, originY, rotation, radius, drillLengthMultiplier, drillDmgMultiplier, targetX, targetY, targetRadius)
     default: return 0
   }
 }
 
 function getDrillDamageOnRect(
   originX: number, originY: number, rotation: number,
-  playerRadius: number, drillType: number, drillLengthMultiplier: number, drillDmgMultiplier: number,
+  radius: number, drillType: number, drillLengthMultiplier: number, drillDmgMultiplier: number,
   rx: number, ry: number, rRotation: number, rHalfW: number, rHalfH: number
 ): number {
   switch (drillType) {
-    case 0: return stackedTrianglesDmgOnRect(originX, originY, rotation, playerRadius, drillLengthMultiplier, drillDmgMultiplier, rx, ry, rRotation, rHalfW, rHalfH)
-    case 1: return singleTriangleDmgOnRect(originX, originY, rotation, playerRadius, drillLengthMultiplier, drillDmgMultiplier, rx, ry, rRotation, rHalfW, rHalfH)
+    case 0: return stackedTrianglesDmgOnRect(originX, originY, rotation, radius, drillLengthMultiplier, drillDmgMultiplier, rx, ry, rRotation, rHalfW, rHalfH)
+    case 1: return singleTriangleDmgOnRect(originX, originY, rotation, radius, drillLengthMultiplier, drillDmgMultiplier, rx, ry, rRotation, rHalfW, rHalfH)
+    case 2: return sawbladeDmgOnRect(originX, originY, rotation, radius, drillLengthMultiplier, drillDmgMultiplier, rx, ry, rRotation, rHalfW, rHalfH)
+    case 3: return deathbladeDmgOnRect(originX, originY, rotation, radius, drillLengthMultiplier, drillDmgMultiplier, rx, ry, rRotation, rHalfW, rHalfH)
     default: return 0
   }
 }
 
 function stackedTrianglesDmgOnRect(
   originX: number, originY: number, rotation: number,
-  playerRadius: number, drillLengthMultiplier: number, drillDmgMultiplier: number,
+  radius: number, drillLengthMultiplier: number, drillDmgMultiplier: number,
   rx: number, ry: number, rRotation: number, rHalfW: number, rHalfH: number
 ): number {
   const segments = 5
   const totalLength = 40 * drillLengthMultiplier
   const segmentLength = totalLength / segments
-  const startX = playerRadius
+  const startX = radius
   const baseWidth = 25
   const cos = Math.cos(rotation)
   const sin = Math.sin(rotation)
@@ -431,10 +469,10 @@ function stackedTrianglesDmgOnRect(
 
 function singleTriangleDmgOnRect(
   originX: number, originY: number, rotation: number,
-  playerRadius: number, drillLengthMultiplier: number, drillDmgMultiplier: number,
+  radius: number, drillLengthMultiplier: number, drillDmgMultiplier: number,
   rx: number, ry: number, rRotation: number, rHalfW: number, rHalfH: number
 ): number {
-  const startX = playerRadius
+  const startX = radius
   const width = 10
   const height = 40 * drillLengthMultiplier
   const cos = Math.cos(rotation)
@@ -455,13 +493,13 @@ function singleTriangleDmgOnRect(
 
 function getStackedTrianglesDrillDamage(
   originX: number, originY: number, rotation: number,
-  playerRadius: number, drillLengthMultiplier: number, drillDmgMultiplier: number,
+  radius: number, drillLengthMultiplier: number, drillDmgMultiplier: number,
   targetX: number, targetY: number, targetRadius: number
 ): number {
   const segments = 5
   const totalLength = 40 * drillLengthMultiplier
   const segmentLength = totalLength / segments
-  const startX = playerRadius
+  const startX = radius
   const baseWidth = 25
   const cos = Math.cos(rotation)
   const sin = Math.sin(rotation)
@@ -489,10 +527,10 @@ function getStackedTrianglesDrillDamage(
 
 function getSingleTriangleDrillDamage(
   originX: number, originY: number, rotation: number,
-  playerRadius: number, drillLengthMultiplier: number, drillDmgMultiplier: number,
+  radius: number, drillLengthMultiplier: number, drillDmgMultiplier: number,
   targetX: number, targetY: number, targetRadius: number
 ): number {
-  const startX = playerRadius
+  const startX = radius
   const width = 10
   const height = 40 * drillLengthMultiplier
   const cos = Math.cos(rotation)
@@ -509,6 +547,54 @@ function getSingleTriangleDrillDamage(
     return 15 * drillDmgMultiplier
   }
   return 0
+}
+
+function getSawbladeDrillDamage(
+  originX: number, originY: number, rotation: number,
+  radius: number, drillLengthMultiplier: number, drillDmgMultiplier: number,
+  targetX: number, targetY: number, targetRadius: number
+): number {
+  const offset = radius + 30 + 30 * drillLengthMultiplier
+  const bladeX = originX + Math.cos(rotation) * offset
+  const bladeY = originY + Math.sin(rotation) * offset
+  const bladeRadius = 20 + 2 * drillLengthMultiplier
+  const dx = targetX - bladeX, dy = targetY - bladeY
+  return dx*dx + dy*dy < (bladeRadius + targetRadius) ** 2 ? 20 * drillDmgMultiplier : 0
+}
+
+function getDeathbladeDrillDamage(
+  originX: number, originY: number, rotation: number,
+  radius: number, drillLengthMultiplier: number, drillDmgMultiplier: number,
+  targetX: number, targetY: number, targetRadius: number
+): number {
+  const offset = radius + 40 + 40 * drillLengthMultiplier
+  const bladeX = originX + Math.cos(rotation) * offset
+  const bladeY = originY + Math.sin(rotation) * offset
+  const dx = targetX - bladeX, dy = targetY - bladeY
+  return dx*dx + dy*dy < (80 + targetRadius) ** 2 ? 20 * drillDmgMultiplier : 0
+}
+
+function sawbladeDmgOnRect(
+  originX: number, originY: number, rotation: number,
+  radius: number, drillLengthMultiplier: number, drillDmgMultiplier: number,
+  rx: number, ry: number, rRotation: number, rHalfW: number, rHalfH: number
+): number {
+  const offset = radius + 25 + 25 * drillLengthMultiplier
+  const bladeX = originX + Math.cos(rotation) * offset
+  const bladeY = originY + Math.sin(rotation) * offset
+  const bladeRadius = 22 + 2 * drillLengthMultiplier
+  return circleIntersectsOrientedRect(bladeX, bladeY, bladeRadius, rx, ry, rRotation, rHalfW, rHalfH) ? 20 * drillDmgMultiplier : 0
+}
+
+function deathbladeDmgOnRect(
+  originX: number, originY: number, rotation: number,
+  radius: number, drillLengthMultiplier: number, drillDmgMultiplier: number,
+  rx: number, ry: number, rRotation: number, rHalfW: number, rHalfH: number
+): number {
+  const offset = radius + 40 + 40 * drillLengthMultiplier
+  const bladeX = originX + Math.cos(rotation) * offset
+  const bladeY = originY + Math.sin(rotation) * offset
+  return circleIntersectsOrientedRect(bladeX, bladeY, 80, rx, ry, rRotation, rHalfW, rHalfH) ? 20 * drillDmgMultiplier : 0
 }
 
 // returns whether or not circle is inside of the rectangle
@@ -589,7 +675,7 @@ function isSpawnClearOfPlayers(spawnX: number, spawnY: number, minDist: number):
   for (const p of players.values()) {
     const dx = p.state.x - spawnX
     const dy = p.state.y - spawnY
-    if (dx * dx + dy * dy < (minDist + p.state.playerRadius)**2) return false
+    if (dx * dx + dy * dy < (minDist + p.state.radius)**2) return false
   }
   return true
 }
@@ -716,7 +802,7 @@ function spawnBots() {
 function spawnBot(x: number, y: number) {
   const dangerLevel = DANGER_MAP[getChunkIndex(x, y)]
   const strengthMultiplier = dangerLevel * Math.random()
-  const playerRadius = 20 + 12 * (strengthMultiplier)
+  const radius = 20 + 12 * (strengthMultiplier)
   const id = nextPlayerId++
   players.set(id, {
     socket: null,
@@ -731,7 +817,10 @@ function spawnBot(x: number, y: number) {
       rotation: 0,
       hp: PLAYER_BASE_HP * (1 + strengthMultiplier),
       maxHp: PLAYER_BASE_HP * (1 + strengthMultiplier),
-      playerRadius: playerRadius,
+      hpRegenPerSec: 0,
+      moveSpeedMultiplier: Math.sqrt(PLAYER_BASE_RADIUS / radius),
+      radius: radius,
+      collectedPerks: [],
       drillType: 0,
       drillDmgMultiplier: 0.7 + (dangerLevel - 1) * 0.1,
       drillLengthMultiplier: 0.7 + (dangerLevel * Math.min(Math.random(), 0.2)) * 0.5
@@ -740,7 +829,6 @@ function spawnBot(x: number, y: number) {
     shieldTicks: SHIELD_DURATION,
     lastCollisionTime: 0,
     wanderAngle: Math.random() * Math.PI * 2,
-    moveSpeed: UNIT_SPEED * Math.sqrt(PLAYER_BASE_RADIUS / playerRadius)
   })
 }
 

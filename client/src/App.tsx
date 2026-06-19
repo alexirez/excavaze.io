@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import PhaserGame, { phaserGame } from './core/PhaserGame'
 import socket, { addSocketListener, getLocalId, removeSocketListener } from './network/socket'
 import { RespawnMessage, ServerMessage } from '../../protocol/messages'
 import { GameScene } from './scenes/GameScene'
+import { currentLevel } from '../../protocol/utils'
+import { PERK_TREE, RARITY_CONFIG, rollPerkChoices } from '../../protocol/perks'
 
 interface KillFeedEntry {
   id: number
@@ -54,10 +56,18 @@ export default function App() {
   const [killerName, setKillerName] = useState('')
   const [deathTip, setDeathTip] = useState('')
   const [leaderboard, setLeaderboard] = useState<{ id: number, name: string, xp: number }[]>([])
+  const [perkChoices, setPerkChoices] = useState<string[] | null>(null)
+  const [perkVisible, setPerkVisible] = useState(false)
+  const [pendingCount, setPendingCount] = useState(0)
+  const lastPerkChoiceTime = useRef<number>(0)
+  const perkChoicesRef = useRef<string[] | null>(null)
 
   useEffect(() => {
     if (isDead) {
       requestAnimationFrame(() => setDeathVisible(true))
+      setPerkVisible(false)
+      perkChoicesRef.current = null
+      setTimeout(() => setPerkChoices(null), 300)
     } else {
       setDeathVisible(false)
     }
@@ -68,10 +78,22 @@ export default function App() {
       const msg = JSON.parse(event.data) as ServerMessage
 
       if (msg.type === 'world_state') {
-        const sorted = [...msg.players]
+        const sorted = [...msg.players] // 1. Handle leaderboard
           .sort((a, b) => b.xp - a.xp)
           .slice(0, 10)
         setLeaderboard(sorted)
+        const localId = getLocalId() // 2. Handle perk selection
+        const local = msg.players.find(p => p.id === localId)
+        if (local) {
+          const pending = currentLevel(local.xp) - local.collectedPerks.length
+          setPendingCount(pending)
+          if (pending > 0 && !perkChoicesRef.current && Date.now() > lastPerkChoiceTime.current + 500) {
+            const choices = rollPerkChoices(local.collectedPerks)
+            setPerkChoices(choices)
+            perkChoicesRef.current = choices
+            requestAnimationFrame(() => setPerkVisible(true))
+          }
+        }
       } else if (msg.type === 'player_killed') {
         const id = Date.now()
         setKillFeed(prev => [...prev, { id, victimId: msg.victimId, killerId: msg.killerId, killerName: msg.killerName, victimName: msg.victimName, exiting: false }])
@@ -185,55 +207,147 @@ export default function App() {
         </div>
       </div>
 
+      {/* perk selection */}
+      {perkChoices && (
+      <div style={{
+        position: 'absolute',
+        top: '60%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 12,
+        pointerEvents: 'auto',
+        zIndex: 100,
+        opacity: perkVisible ? 1 : 0,
+        translate: perkVisible ? '0 0' : '0 40px',
+        transition: 'opacity 0.3s ease, translate 0.3s ease',
+      }}>
+        {/* pending count badge */}
+        {pendingCount > 1 && (
+          <div style={{
+            color: '#ffdd00',
+            fontFamily: "'Share Tech', sans-serif",
+            fontSize: 13,
+            background: 'rgba(0,0,0,0.6)',
+            padding: '2px 10px',
+            borderRadius: 99,
+          }}>
+            +{pendingCount - 1} upgrade{pendingCount - 1 > 1 ? 's' : ''} pending
+          </div>
+        )}
+
+        {/* cards row */}
+        <div style={{ display: 'flex', gap: 16 }}>
+          {perkChoices.map(perkId => {
+            const perk = PERK_TREE[perkId]
+            const rarityColor = RARITY_CONFIG[perk.rarity].color
+            return (
+              <div
+                key={perkId}
+                onClick={() => {
+                  socket.send(JSON.stringify({ type: 'select_perk', perkId }))
+                  lastPerkChoiceTime.current = Date.now()
+                  setPerkVisible(false)
+                  perkChoicesRef.current = null
+                  setTimeout(() => setPerkChoices(null), 300) // wait for fade-up animation
+                }}
+                onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+                onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                style={{
+                  width: 140,
+                  padding: '14px 16px',
+                  borderRadius: 8,
+                  background: 'rgba(0,0,0,0.6)',
+                  border: `2px solid ${rarityColor}`,
+                  color: 'white',
+                  cursor: 'pointer',
+                  fontFamily: "'Share Tech', sans-serif",
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 6,
+                  transition: 'transform 0.15s ease',
+                }}
+              >
+                <span style={{ color: rarityColor, fontSize: 11, textTransform: 'uppercase', letterSpacing: 1 }}>
+                  {perk.rarity}
+                </span>
+                <span style={{ fontSize: 15, fontWeight: 'bold' }}>{perk.title}</span>
+                <span style={{ fontSize: 12, color: '#aaa', whiteSpace: 'pre-line' }}>{perk.desc}</span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    )}
+
       {/* death screen */}
       {isDead && (
-        <div style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          width: '60vw',
-          height: '60vh',
-          borderRadius: 12,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'rgba(0,0,0,0.7)',
-          opacity: deathVisible ? 1 : 0,
-          transform: deathVisible ? 'translate(-50%, -50%) scale(1)' : 'translate(-50%, -50%) scale(0.5)',
-          transition: 'opacity 1s ease, transform 1s ease',
-          pointerEvents: isDead ? 'auto' : 'none',
-        }}>
-          <span style={{ color: '#ff3333', fontSize: 36, fontWeight: 'bold', display: 'block',
-            textAlign: 'center' }}>
-            You Were Killed by <span>{killerName}</span>
-          </span>
-          <span style={{ color: '#aaa', fontSize: 14, marginTop: 16, textAlign: 'center', padding: '0 24px' }}>
-            {deathTip}
-          </span>
-          <button
-            onClick={() => {
-              socket.send(JSON.stringify({ type: 'respawn' } satisfies RespawnMessage))
-              setIsDead(false)
-              const scene = phaserGame?.scene.getScene('GameScene') as GameScene
-              scene?.showHud()
-              setKillFeed([])
-            }}
-            style={{
-              marginTop: 24,
-              padding: '10px 32px',
-              fontSize: 16,
-              background: '#00ff99',
-              color: '#000',
-              border: 'none',
-              borderRadius: 6,
-              cursor: 'pointer',
-            }}
-          >
-            Play Again
-          </button>
-        </div>
-      )}
+      <div style={{
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        width: 600,
+        borderRadius: 16,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        background: 'rgba(20,20,28,0.95)',
+        border: '0.5px solid rgba(255,255,255,0.1)',
+        padding: '52px 64px',
+        opacity: deathVisible ? 1 : 0,
+        transform: deathVisible ? 'translate(-50%, -50%) scale(1)' : 'translate(-50%, -50%) scale(0.5)',
+        transition: 'opacity 1s ease, transform 1s ease',
+        pointerEvents: isDead ? 'auto' : 'none',
+      }}>
+        <span style={{ fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: 'rgba(255,100,100,0.9)', marginBottom: 10 }}>
+          eliminated
+        </span>
+        <span style={{ fontSize: 17, color: 'rgba(255,255,255,0.45)', marginBottom: 4 }}>
+          you were killed by
+        </span>
+        <span style={{ fontSize: 52, color: 'rgba(255,100,100,0.9)', letterSpacing: 1, marginBottom: 28 }}>
+          {killerName}
+        </span>
+        <div style={{ width: '100%', height: 0.5, background: 'rgba(255,255,255,0.55)', marginBottom: 24 }} />
+        <span style={{ fontSize: 15, color: 'rgba(255,255,255,0.55)', textAlign: 'center', lineHeight: 1.7, marginBottom: 32, fontStyle: 'italic' }}>
+          {deathTip}
+        </span>
+        <button
+          onClick={() => {
+            socket.send(JSON.stringify({ type: 'respawn' } satisfies RespawnMessage))
+            setIsDead(false)
+            const scene = phaserGame?.scene.getScene('GameScene') as GameScene
+            scene?.showHud()
+            setKillFeed([])
+          }}
+          style={{
+            padding: '11px 44px',
+            fontSize: 13,
+            background: 'rgba(121, 178, 247, 0.1)',
+            color: '#e1f958',
+            border: '1px solid rgba(206, 216, 86, 0.35)',
+            borderRadius: 8,
+            cursor: 'pointer',
+            letterSpacing: 2,
+            textTransform: 'uppercase',
+            fontFamily: "'Share Tech', monospace",
+            transition: 'background 0.15s, border-color 0.15s',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = 'rgba(121, 178, 247, 0.3)'
+            e.currentTarget.style.borderColor = 'rgba(238, 250, 102, 0.6)'
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'rgba(121, 178, 247, 0.1)'
+            e.currentTarget.style.borderColor = 'rgba(238, 250, 102, 0.35)'
+          }}
+        >
+          play again
+        </button>
+      </div>
+    )}
     </div>
   )
 }
