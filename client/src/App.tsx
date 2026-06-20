@@ -3,8 +3,12 @@ import PhaserGame, { phaserGame } from './core/PhaserGame'
 import socket, { addSocketListener, getLocalId, removeSocketListener } from './network/socket'
 import { RespawnMessage, ServerMessage } from '../../protocol/messages'
 import { GameScene } from './scenes/GameScene'
-import { currentLevel } from '../../protocol/utils'
+import { currentLevel, xpForNextLevel, xpThisLevel } from '../../protocol/utils'
 import { PERK_TREE, RARITY_CONFIG, rollPerkChoices } from '../../protocol/perks'
+
+type Screen = 'startMenu' // start screen
+  | 'game' // in battle and death screen
+  | 'upgrades' // upgrades menu
 
 interface KillFeedEntry {
   id: number
@@ -50,7 +54,11 @@ function formatXp(xp: number): string {
 }
 
 export default function App() {
+  const [screen, setScreen] = useState<Screen>('startMenu')
   const [killFeed, setKillFeed] = useState<KillFeedEntry[]>([])
+  const [xpRatio, setXpRatio] = useState(0)
+  const [xpLevel, setXpLevel] = useState(1)
+  const [xpIsMax, setXpIsMax] = useState(false)
   const [isDead, setIsDead] = useState(false)
   const [deathVisible, setDeathVisible] = useState(false)
   const [killerName, setKillerName] = useState('')
@@ -93,6 +101,10 @@ export default function App() {
             perkChoicesRef.current = choices
             requestAnimationFrame(() => setPerkVisible(true))
           }
+          const level = currentLevel(local.xp)
+            setXpLevel(level + 1)
+            setXpRatio(xpThisLevel(local.xp) / xpForNextLevel(local.xp))
+            setXpIsMax(level >= 6)
         }
       } else if (msg.type === 'player_killed') {
         const id = Date.now()
@@ -125,6 +137,40 @@ export default function App() {
   return (
     <div style={{ position: 'relative', width: '100vw', height: '100vh' }}>
       <PhaserGame />
+
+      {/* xp bar */}
+      {screen === 'game' && !isDead && (
+      <div style={{
+        position: 'absolute',
+        top: 20,
+        left: 18,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        pointerEvents: 'none',
+        fontFamily: "'Share Tech', sans-serif",
+      }}>
+        <span style={{ fontSize: 12, color: 'white' }}>LVL {xpLevel}</span>
+        <div style={{ width: 200, height: 12, background: '#333333', position: 'relative' }}>
+          <div style={{
+            width: `${xpRatio * 100}%`,
+            height: 10,
+            background: '#ffdd00',
+            position: 'absolute',
+            top: 0, left: 0,
+          }} />
+        </div>
+        {xpIsMax && (
+          <div style={{
+            background: '#444444',
+            borderRadius: 4,
+            padding: '1px 6px',
+          }}>
+            <span style={{ fontSize: 12, color: '#ffdd00' }}>MAX</span>
+          </div>
+        )}
+      </div>
+    )}
 
       {/* kill feed */}
       <div style={{
@@ -319,7 +365,6 @@ export default function App() {
             socket.send(JSON.stringify({ type: 'respawn' } satisfies RespawnMessage))
             setIsDead(false)
             const scene = phaserGame?.scene.getScene('GameScene') as GameScene
-            scene?.showHud()
             setKillFeed([])
           }}
           style={{
