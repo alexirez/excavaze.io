@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { phaserGame } from '../core/PhaserGame'
 
 interface Props {
   onPlay: (name: string) => void
@@ -147,8 +148,13 @@ export default function StartMenu({ onPlay }: Props) {
               borderRadius: 8, padding: '12px 16px', fontSize: 16, color: 'white',
               fontFamily: "'Share Tech', monospace", outline: 'none',
             }}
-            onFocus={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.35)'}
-            onBlur={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'}
+            onFocus={e => {
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.35)'
+              phaserGame?.input.keyboard?.clearCaptures()
+            }}
+            onBlur={e => {
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'
+            }}
           />
           <button
             onClick={() => { if (name.trim()) onPlay(name.trim()) }}
