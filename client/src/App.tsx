@@ -352,7 +352,7 @@ export default function App() {
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          background: 'rgba(20,20,28,0.95)',
+          background: 'rgba(20,20,28,0.88)',
           border: '0.5px solid rgba(255,255,255,0.1)',
           padding: '52px 64px',
           opacity: deathVisible ? 1 : 0,
@@ -379,9 +379,9 @@ export default function App() {
               style={{
                 padding: '11px 20px',
                 fontSize: 13,
-                background: 'rgba(121, 178, 247, 0.1)',
-                color: '#e1f958',
-                border: '1px solid rgba(206, 216, 86, 0.35)',
+                background: 'rgba(53, 53, 50, 0.25)',
+                color: 'rgba(200, 200, 200, 0.8)',
+                border: '1px solid rgba(255,255,255,0.4)',
                 borderRadius: 8,
                 cursor: 'pointer',
                 fontFamily: "'Share Tech', monospace",
@@ -390,13 +390,13 @@ export default function App() {
               }}
               onMouseEnter={e => {
                 e.currentTarget.style.background = 'rgba(255,255,255,0.1)'
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.35)'
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.4)'
                 e.currentTarget.style.color = 'rgba(255,255,255,0.7)'
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'
-                e.currentTarget.style.color = 'rgba(255,255,255,0.4)'
+                e.currentTarget.style.background = 'rgba(53, 53, 50, 0.25)'
+                e.currentTarget.style.borderColor = 'rgba(200, 200, 200, 0.6)'
+                e.currentTarget.style.color = 'rgba(200, 200, 200, 0.8)'
               }}
             >
               ✕
@@ -411,9 +411,9 @@ export default function App() {
               style={{
                 padding: '11px 44px',
                 fontSize: 13,
-                background: 'rgba(121, 178, 247, 0.1)',
-                color: '#e1f958',
-                border: '1px solid rgba(206, 216, 86, 0.35)',
+                background: 'rgba(53, 53, 50, 0.25)',
+                color: 'rgba(200, 200, 200, 0.8)',
+                border: '1px solid rgba(200, 200, 200, 0.6)',
                 borderRadius: 8,
                 cursor: 'pointer',
                 letterSpacing: 2,
@@ -423,13 +423,13 @@ export default function App() {
               }}
               onMouseEnter={e => {
                 e.currentTarget.style.background = 'rgba(255,255,255,0.1)'
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.35)'
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.4)'
                 e.currentTarget.style.color = 'rgba(255,255,255,0.7)'
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'
-                e.currentTarget.style.color = 'rgba(255,255,255,0.4)'
+                e.currentTarget.style.background = 'rgba(53, 53, 50, 0.25)'
+                e.currentTarget.style.borderColor = 'rgba(200, 200, 200, 0.6)'
+                e.currentTarget.style.color = 'rgba(200, 200, 200, 0.8)'
               }}
             >
               play again
@@ -439,9 +439,9 @@ export default function App() {
               style={{
                 padding: '11px 20px',
                 fontSize: 13,
-                background: 'rgba(121, 178, 247, 0.1)',
-                color: '#e1f958',
-                border: '1px solid rgba(206, 216, 86, 0.35)',
+                background: 'rgba(255,221,0,0.18)',
+                color: 'rgb(255, 221, 0.8)',
+                border: '1px solid rgba(255,221,0,0.5)',
                 borderRadius: 8,
                 cursor: 'pointer',
                 fontFamily: "'Share Tech', monospace",
@@ -449,14 +449,14 @@ export default function App() {
                 transition: 'background 0.15s, border-color 0.15s',
               }}
               onMouseEnter={e => {
-                e.currentTarget.style.background = 'rgba(255,221,0,0.18)'
-                e.currentTarget.style.borderColor = 'rgba(255,221,0,0.5)'
-                e.currentTarget.style.color = '#ffdd00'
+                e.currentTarget.style.background = 'rgba(255,221,0,0.25)'
+                e.currentTarget.style.borderColor = 'rgba(255,221,0,0.8)'
+                e.currentTarget.style.color = 'rgb(255, 221, 0.95)'
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.background = 'rgba(255,221,0,0.08)'
-                e.currentTarget.style.borderColor = 'rgba(255,221,0,0.2)'
-                e.currentTarget.style.color = 'rgba(255,221,0,0.6)'
+                e.currentTarget.style.background = 'rgba(255,221,0,0.18)'
+                e.currentTarget.style.borderColor = 'rgba(255,221,0,0.5)'
+                e.currentTarget.style.color = 'rgb(255, 221, 0.8)'
               }}
             >
               Upgrades
