@@ -48,6 +48,14 @@ export default function StartMenu({ onPlay }: Props) {
                   borderRadius: 7, cursor: 'pointer', fontFamily: "'Share Tech', monospace",
                   fontSize: 12, letterSpacing: 1, textTransform: 'uppercase',
                 }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.2)'
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'
+                }}
               >
                 cancel
               </button>
@@ -207,12 +215,12 @@ export default function StartMenu({ onPlay }: Props) {
               transition: 'color 0.15s, border-color 0.15s',
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.color = '#ffdd00'
-              e.currentTarget.style.borderColor = 'rgba(255,221,0,0.35)'
+              e.currentTarget.style.color = 'rgba(255, 221, 0, 0.8)'
+              e.currentTarget.style.borderColor = 'rgba(255,221,0,0.6)'
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.color = 'rgba(255,255,255,0.25)'
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
+              e.currentTarget.style.color = 'rgba(255,255,255,0.5)'
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.45)'
             }}
           >
             ★ star on github
