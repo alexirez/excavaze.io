@@ -150,6 +150,9 @@ export default function GameHud({ screen, onHome, onUpgrades, onRespawn }: Props
         gap: 10,
         pointerEvents: 'none',
         fontFamily: "'Share Tech', sans-serif",
+        transform: isDead ? 'translateX(-200px)' : 'translateX(0)',
+        opacity: isDead ? 0 : 1,
+        transition: isDead ? 'transform 0.4s ease, opacity 0.4s ease' : 'none',
       }}>
         <span style={{ fontSize: 12, color: 'white' }}>LVL {xpLevel}</span>
         <div style={{ width: 200, height: 12, background: '#333333', position: 'relative' }}>
