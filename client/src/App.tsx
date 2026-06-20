@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import PhaserGame, { phaserGame } from './core/PhaserGame'
 import socket, { addSocketListener, getLocalId, removeSocketListener } from './network/socket'
 import { RespawnMessage, ServerMessage } from '../../protocol/messages'
-import { GameScene } from './scenes/GameScene'
+import { GameScene } from './core/GameScene'
 import { currentLevel, xpForNextLevel, xpThisLevel } from '../../protocol/utils'
 import { PERK_TREE, RARITY_CONFIG, rollPerkChoices } from '../../protocol/perks'
 

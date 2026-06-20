@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react'
 import Phaser from 'phaser'
-import { GameScene } from '../scenes/GameScene'
+import { GameScene } from './GameScene'
 
 export let phaserGame: Phaser.Game | null = null
 
