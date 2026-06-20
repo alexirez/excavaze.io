@@ -93,6 +93,7 @@ wss.on('connection', (socket) => {
         const p = players.get(id)!
         if (p.state.alive) return
         const { x, y } = pickPlayerSpawnPoint()
+        p.state.name = msg.name
         p.state.xp *= 0.8
         p.state.alive = true
         p.state.shieldActive = true

@@ -15,6 +15,7 @@ export default function App() {
       <PhaserGame />
       <GameHud
         screen={screen}
+        playerName={playerName}
         onHome={() => setScreen('startMenu')}
         onUpgrades={() => setScreen('upgrades')}
         onRespawn={() => setScreen('game')}

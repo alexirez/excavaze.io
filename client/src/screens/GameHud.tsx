@@ -51,12 +51,13 @@ type Screen = 'startMenu' | 'game' | 'upgrades'
 
 interface Props {
   screen: Screen
+  playerName: string
   onHome: () => void
   onUpgrades: () => void
   onRespawn: () => void
 }
 
-export default function GameHud({ screen, onHome, onUpgrades, onRespawn }: Props) {
+export default function GameHud({ screen, playerName, onHome, onUpgrades, onRespawn }: Props) {
   const [killFeed, setKillFeed] = useState<KillFeedEntry[]>([])
   const [xpRatio, setXpRatio] = useState(0)
   const [xpLevel, setXpLevel] = useState(1)
@@ -386,7 +387,7 @@ export default function GameHud({ screen, onHome, onUpgrades, onRespawn }: Props
           </button>
           <button
             onClick={() => {
-              socket.send(JSON.stringify({ type: 'respawn' } satisfies RespawnMessage))
+              socket.send(JSON.stringify({ type: 'respawn', name: playerName } satisfies RespawnMessage))
               setIsDead(false)
               setKillFeed([])
               onRespawn()
