@@ -38,7 +38,7 @@ export default function StartMenu({ onPlay }: Props) {
             gap: 16, maxWidth: 280, textAlign: 'center',
           }}>
             <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', lineHeight: 1.7 }}>
-              This will open GitHub so you can star the excavaze.io repo. Thanks for the support!
+              This will open github.com so you can star the repository. Your support is appreciated!
             </div>
             <div style={{ display: 'flex', gap: 10, width: '100%' }}>
               <button
@@ -132,7 +132,7 @@ export default function StartMenu({ onPlay }: Props) {
 
         {/* name input + play */}
         <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
-          <div style={{ fontSize: 11, letterSpacing: 2, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase' }}>
+          <div style={{ fontSize: 11, letterSpacing: 2, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase' }}>
             your name
           </div>
           <input
@@ -144,16 +144,18 @@ export default function StartMenu({ onPlay }: Props) {
             onKeyDown={e => { if (e.key === 'Enter' && name.trim()) onPlay(name.trim()) }}
             style={{
               width: '100%', boxSizing: 'border-box',
-              background: 'rgba(255,255,255,0.05)', border: '0.5px solid rgba(255,255,255,0.15)',
+              background: 'rgba(255,255,255,0.05)', border: '0.5px solid rgba(255,255,255,0.35)',
               borderRadius: 8, padding: '12px 16px', fontSize: 16, color: 'white',
               fontFamily: "'Share Tech', monospace", outline: 'none',
             }}
             onFocus={e => {
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.35)'
+              e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.4)'
               phaserGame?.input.keyboard?.clearCaptures()
             }}
             onBlur={e => {
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'
+              e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.35)'
             }}
           />
           <button
@@ -172,7 +174,7 @@ export default function StartMenu({ onPlay }: Props) {
             }}
             onMouseLeave={e => {
               e.currentTarget.style.background = 'rgba(0,255,153,0.10)'
-              e.currentTarget.style.borderColor = 'rgba(0,255,153,0.35)'
+              e.currentTarget.style.borderColor = 'rgba(0,255,153,0.4)'
             }}
           >
             play
@@ -185,8 +187,8 @@ export default function StartMenu({ onPlay }: Props) {
           background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.07)',
           borderRadius: 8, padding: '14px 16px', marginBottom: 10,
         }}>
-          <div style={{ fontSize: 10, letterSpacing: 2, color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: 6 }}>tip</div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.7 }}>
+          <div style={{ fontSize: 10, letterSpacing: 2, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', marginBottom: 6 }}>tip</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', lineHeight: 1.7 }}>
             Avoid large players — their drills deal significantly more damage.
           </div>
         </div>
@@ -197,15 +199,15 @@ export default function StartMenu({ onPlay }: Props) {
             flex: 1, background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.07)',
             borderRadius: 8, padding: '14px 16px',
           }}>
-            <div style={{ fontSize: 10, letterSpacing: 2, color: 'rgba(255,221,0,0.6)', textTransform: 'uppercase', marginBottom: 6 }}>upgrades</div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.7 }}>Level up to unlock perks and grow stronger.</div>
+            <div style={{ fontSize: 10, letterSpacing: 2, color: 'rgba(255,221,0,0.72)', textTransform: 'uppercase', marginBottom: 6 }}>upgrades</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.7 }}>Unlock permanent upgrades here with diamonds.</div>
           </div>
           <div style={{
             flex: 1, background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.07)',
             borderRadius: 8, padding: '14px 16px',
           }}>
-            <div style={{ fontSize: 10, letterSpacing: 2, color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: 6 }}>controls</div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>WASD to move<br />mouse to aim</div>
+            <div style={{ fontSize: 10, letterSpacing: 2, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', marginBottom: 6 }}>controls</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', lineHeight: 1.7 }}>Movement: WASD<br />Aim with the cursor</div>
           </div>
         </div>
 
@@ -214,10 +216,10 @@ export default function StartMenu({ onPlay }: Props) {
           <button
             onClick={() => setShowStarConfirm(true)}
             style={{
-              background: 'none', border: '0.5px solid rgba(255,255,255,0.08)',
+              background: 'none', border: '0.5px solid rgba(255,255,255,0.45)',
               borderRadius: 7, padding: '7px 14px', cursor: 'pointer',
               fontFamily: "'Share Tech', monospace", fontSize: 13,
-              color: 'rgba(255,255,255,0.25)', letterSpacing: 1,
+              color: 'rgba(255,255,255,0.5)', letterSpacing: 1,
               transition: 'color 0.15s, border-color 0.15s',
             }}
             onMouseEnter={e => {
