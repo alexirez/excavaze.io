@@ -6,6 +6,10 @@ import { GameScene } from './core/GameScene'
 import { currentLevel, xpForNextLevel, xpThisLevel } from '../../protocol/utils'
 import { PERK_TREE, RARITY_CONFIG, rollPerkChoices } from '../../protocol/perks'
 
+//import GameHud from './screens/GameHud'
+import StartMenu from './screens/StartMenu'
+import UpgradesScreen from './screens/UpgradesScreen'
+
 type Screen = 'startMenu' // start screen
   | 'game' // in battle and death screen
   | 'upgrades' // upgrades menu
@@ -137,19 +141,8 @@ export default function App() {
   return (
     <div style={{ position: 'relative', width: '100vw', height: '100vh' }}>
       <PhaserGame />
-      {screen === 'startMenu' && (
-        <div style={{
-          position: 'absolute', inset: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(14,14,20,0.85)',
-          fontFamily: "'Share Tech', monospace",
-          color: 'white', fontSize: 32,
-        }}>
-          <button onClick={() => setScreen('game')} style={{ background: 'none', border: 'none', color: 'white', fontSize: 32, cursor: 'pointer' }}>
-            click to play (temp)
-          </button>
-        </div>
-      )}
+      {screen === 'startMenu' && <StartMenu onPlay={() => setScreen('game')} />}
+      {screen === 'upgrades' && <UpgradesScreen onBack={() => setScreen('game')} />}
       {screen === 'game' && <>
         {/* xp bar */}
         {screen === 'game' && !isDead && (
@@ -435,7 +428,7 @@ export default function App() {
               play again
             </button>
             <button
-              onClick={() => setScreen('startMenu')}
+              onClick={() => setScreen('upgrades')}
               style={{
                 padding: '11px 20px',
                 fontSize: 13,
