@@ -52,17 +52,18 @@ type Screen = 'startMenu' | 'game' | 'upgrades'
 interface Props {
   screen: Screen
   playerName: string
+  isDead: boolean
+  setIsDead: (val: boolean) => void
   onHome: () => void
   onUpgrades: () => void
   onRespawn: () => void
 }
 
-export default function GameHud({ screen, playerName, onHome, onUpgrades, onRespawn }: Props) {
+export default function GameHud({ screen, playerName, isDead, setIsDead, onHome, onUpgrades, onRespawn }: Props) {
   const [killFeed, setKillFeed] = useState<KillFeedEntry[]>([])
   const [xpRatio, setXpRatio] = useState(0)
   const [xpLevel, setXpLevel] = useState(1)
   const [xpIsMax, setXpIsMax] = useState(false)
-  const [isDead, setIsDead] = useState(false)
   const [deathVisible, setDeathVisible] = useState(false)
   const [killerName, setKillerName] = useState('')
   const [deathTip, setDeathTip] = useState('')

@@ -42,19 +42,18 @@ spawnSquaresOnStartup()
 
 wss.on('connection', (socket) => {
   const id = nextPlayerId++
-  const { x, y } = pickPlayerSpawnPoint()
   console.log(`Player ${id} connected`)
 
   players.set(id, {
     socket,
     state: {
       id,
-      name: "Player", // TODO: allow setting name
+      name: 'Player',
       xp: 0,
-      alive: true,
-      shieldActive: true,
-      x: x, 
-      y: y,
+      alive: false,
+      shieldActive: false,
+      x: 0, 
+      y: 0,
       rotation: 0,
       hp: PLAYER_BASE_HP,
       maxHp: PLAYER_BASE_HP,
@@ -89,7 +88,6 @@ wss.on('connection', (socket) => {
           rotation: msg.rotation,
         }
       } else if (msg.type === 'respawn') {
-        // TODO: smart spawning computes x, y
         const p = players.get(id)!
         if (p.state.alive) return
         const { x, y } = pickPlayerSpawnPoint()
