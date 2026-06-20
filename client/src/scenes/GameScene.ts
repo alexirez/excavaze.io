@@ -6,7 +6,6 @@ import { WORLD_WIDTH, WORLD_HEIGHT, COLOR_BACKGROUND, COLOR_OUTER_BOUNDS, WORLD_
 import { currentLevel, xpThisLevel, xpForNextLevel } from '../../../protocol/utils'
 
 export class GameScene extends Phaser.Scene {
-  private playerStatBars!: Phaser.GameObjects.Graphics
   private enemyNameLabels: Map<number, Phaser.GameObjects.Text> = new Map()
   private keys!: Record<string, Phaser.Input.Keyboard.Key>
   private latestPlayersState: Map<number, PlayerState> = new Map()
@@ -33,15 +32,9 @@ export class GameScene extends Phaser.Scene {
     this.cameraTarget.setVisible(false)
     this.cameras.main.startFollow(this.cameraTarget)
 
-    // initialize stat bar graphics
-    this.playerStatBars = this.add.graphics()
-    this.playerStatBars.setScrollFactor(0)
-    this.playerStatBars.setDepth(80)
-
+    // initialize graphics
     this.squareHealthBarGraphics = this.add.graphics()
     this.squareHealthBarGraphics.setDepth(20)
-
-    // initialize graphics
     this.playerGraphics = this.add.graphics()
     this.playerGraphics.setDepth(99)
     this.enemyGraphics = this.add.graphics()
@@ -136,7 +129,6 @@ export class GameScene extends Phaser.Scene {
     if (localId === null) return
     const playerState = this.latestPlayersState.get(localId)
     this.playerGraphics.clear()
-    this.playerStatBars.clear()
     if (playerState) {
       this.cameraTarget.x = playerState.x
       this.cameraTarget.y = playerState.y
