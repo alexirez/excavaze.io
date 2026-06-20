@@ -373,37 +373,95 @@ export default function App() {
           <span style={{ fontSize: 15, color: 'rgba(255,255,255,0.55)', textAlign: 'center', lineHeight: 1.7, marginBottom: 32, fontStyle: 'italic' }}>
             {deathTip}
           </span>
-          <button
-            onClick={() => {
-              socket.send(JSON.stringify({ type: 'respawn' } satisfies RespawnMessage))
-              setIsDead(false)
-              const scene = phaserGame?.scene.getScene('GameScene') as GameScene
-              setKillFeed([])
-            }}
-            style={{
-              padding: '11px 44px',
-              fontSize: 13,
-              background: 'rgba(121, 178, 247, 0.1)',
-              color: '#e1f958',
-              border: '1px solid rgba(206, 216, 86, 0.35)',
-              borderRadius: 8,
-              cursor: 'pointer',
-              letterSpacing: 2,
-              textTransform: 'uppercase',
-              fontFamily: "'Share Tech', monospace",
-              transition: 'background 0.15s, border-color 0.15s',
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.background = 'rgba(121, 178, 247, 0.3)'
-              e.currentTarget.style.borderColor = 'rgba(238, 250, 102, 0.6)'
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.background = 'rgba(121, 178, 247, 0.1)'
-              e.currentTarget.style.borderColor = 'rgba(238, 250, 102, 0.35)'
-            }}
-          >
-            play again
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button
+              onClick={() => setScreen('startMenu')}
+              style={{
+                padding: '11px 20px',
+                fontSize: 13,
+                background: 'rgba(121, 178, 247, 0.1)',
+                color: '#e1f958',
+                border: '1px solid rgba(206, 216, 86, 0.35)',
+                borderRadius: 8,
+                cursor: 'pointer',
+                fontFamily: "'Share Tech', monospace",
+                lineHeight: 1,
+                transition: 'background 0.15s, border-color 0.15s',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.1)'
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.35)'
+                e.currentTarget.style.color = 'rgba(255,255,255,0.7)'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'
+                e.currentTarget.style.color = 'rgba(255,255,255,0.4)'
+              }}
+            >
+              ✕
+            </button>
+            <button
+              onClick={() => {
+                socket.send(JSON.stringify({ type: 'respawn' } satisfies RespawnMessage))
+                setIsDead(false)
+                const scene = phaserGame?.scene.getScene('GameScene') as GameScene
+                setKillFeed([])
+              }}
+              style={{
+                padding: '11px 44px',
+                fontSize: 13,
+                background: 'rgba(121, 178, 247, 0.1)',
+                color: '#e1f958',
+                border: '1px solid rgba(206, 216, 86, 0.35)',
+                borderRadius: 8,
+                cursor: 'pointer',
+                letterSpacing: 2,
+                textTransform: 'uppercase',
+                fontFamily: "'Share Tech', monospace",
+                transition: 'background 0.15s, border-color 0.15s',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.1)'
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.35)'
+                e.currentTarget.style.color = 'rgba(255,255,255,0.7)'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'
+                e.currentTarget.style.color = 'rgba(255,255,255,0.4)'
+              }}
+            >
+              play again
+            </button>
+            <button
+              onClick={() => setScreen('startMenu')}
+              style={{
+                padding: '11px 20px',
+                fontSize: 13,
+                background: 'rgba(121, 178, 247, 0.1)',
+                color: '#e1f958',
+                border: '1px solid rgba(206, 216, 86, 0.35)',
+                borderRadius: 8,
+                cursor: 'pointer',
+                fontFamily: "'Share Tech', monospace",
+                lineHeight: 1,
+                transition: 'background 0.15s, border-color 0.15s',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'rgba(255,221,0,0.18)'
+                e.currentTarget.style.borderColor = 'rgba(255,221,0,0.5)'
+                e.currentTarget.style.color = '#ffdd00'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'rgba(255,221,0,0.08)'
+                e.currentTarget.style.borderColor = 'rgba(255,221,0,0.2)'
+                e.currentTarget.style.color = 'rgba(255,221,0,0.6)'
+              }}
+            >
+              Upgrades
+            </button>
+          </div>
         </div>
       )}
       </>}
