@@ -1,5 +1,15 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { phaserGame } from '../core/PhaserGame'
+
+const shakeStyle = `
+  @keyframes shake {
+    0%, 100% { transform: translateX(0) }
+    20% { transform: translateX(-8px) }
+    40% { transform: translateX(8px) }
+    60% { transform: translateX(-6px) }
+    80% { transform: translateX(6px) }
+  }
+`
 
 interface Props {
   onPlay: (name: string) => void
@@ -12,6 +22,8 @@ export default function StartMenu({ onPlay }: Props) {
   const [name, setName] = useState('')
   const [online, setOnline] = useState(false)
   const [showStarConfirm, setShowStarConfirm] = useState(false)
+  const nameInputRef = useRef<HTMLInputElement>(null)
+  const [nameError, setNameError] = useState(false)
 
   return (
     <div style={{
@@ -20,6 +32,7 @@ export default function StartMenu({ onPlay }: Props) {
       background: 'rgba(14,14,20,0.85)',
       fontFamily: "'Share Tech', monospace",
     }}>
+    <style>{shakeStyle}</style>
 
       {/* star confirmation popup */}
       {showStarConfirm && (
@@ -136,6 +149,7 @@ export default function StartMenu({ onPlay }: Props) {
             your name
           </div>
           <input
+            ref={nameInputRef}
             type="text"
             placeholder="enter name..."
             maxLength={16}
@@ -147,6 +161,8 @@ export default function StartMenu({ onPlay }: Props) {
               background: 'rgba(255,255,255,0.05)', border: '0.5px solid rgba(255,255,255,0.35)',
               borderRadius: 8, padding: '12px 16px', fontSize: 16, color: 'white',
               fontFamily: "'Share Tech', monospace", outline: 'none',
+              animation: nameError ? 'shake 0.5s ease' : 'none',
+              borderColor: nameError ? 'rgba(255,100,100,0.6)' : 'rgba(255,255,255,0.15)',
             }}
             onFocus={e => {
               e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
@@ -158,8 +174,21 @@ export default function StartMenu({ onPlay }: Props) {
               e.currentTarget.style.borderColor = 'rgba(255,255,255,0.35)'
             }}
           />
+          {nameError && (
+            <div style={{ fontSize: 11, color: 'rgba(255,100,100,0.8)', letterSpacing: 1, marginTop: -4 }}>
+              please enter a name
+            </div>
+          )}
           <button
-            onClick={() => { if (name.trim()) onPlay(name.trim()) }}
+            onClick={() => {
+              if (!name.trim()) {
+                nameInputRef.current?.focus()
+                setNameError(true)
+                setTimeout(() => setNameError(false), 3500)
+                return
+              }
+              onPlay(name.trim())
+            }}
             style={{
               width: '100%', padding: '13px', fontSize: 14,
               background: 'rgba(0,255,153,0.10)', color: '#00ff99',
