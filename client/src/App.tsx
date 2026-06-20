@@ -360,13 +360,13 @@ export default function App() {
           transition: 'opacity 1s ease, transform 1s ease',
           pointerEvents: isDead ? 'auto' : 'none',
         }}>
-          <span style={{ fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: 'rgba(255,100,100,0.9)', marginBottom: 10 }}>
+          <span style={{ fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: 'rgba(255,100,100,1)', marginBottom: 10 }}>
             eliminated
           </span>
           <span style={{ fontSize: 17, color: 'rgba(255,255,255,0.45)', marginBottom: 4 }}>
             you were killed by
           </span>
-          <span style={{ fontSize: 52, color: 'rgba(255,100,100,0.9)', letterSpacing: 1, marginBottom: 28 }}>
+          <span style={{ fontSize: 52, color: 'rgba(255,100,100,1)', letterSpacing: 1, marginBottom: 28 }}>
             {killerName}
           </span>
           <div style={{ width: '100%', height: 0.5, background: 'rgba(255,255,255,0.55)', marginBottom: 24 }} />
