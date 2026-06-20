@@ -24,6 +24,7 @@ export default function StartMenu({ onPlay }: Props) {
   const [showStarConfirm, setShowStarConfirm] = useState(false)
   const nameInputRef = useRef<HTMLInputElement>(null)
   const [nameError, setNameError] = useState(false)
+  const shakeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   return (
     <div style={{
@@ -154,7 +155,13 @@ export default function StartMenu({ onPlay }: Props) {
             placeholder="enter name..."
             maxLength={16}
             value={name}
-            onChange={e => setName(e.target.value)}
+            onChange={e => {
+              setName(e.target.value)
+              if (nameError) {
+                if (shakeTimeoutRef.current) clearTimeout(shakeTimeoutRef.current)
+                setNameError(false)
+              }
+            }}
             onKeyDown={e => { if (e.key === 'Enter' && name.trim()) onPlay(name.trim()) }}
             style={{
               width: '100%', boxSizing: 'border-box',
@@ -184,7 +191,9 @@ export default function StartMenu({ onPlay }: Props) {
               if (!name.trim()) {
                 nameInputRef.current?.focus()
                 setNameError(true)
-                setTimeout(() => setNameError(false), 3500)
+                if (shakeTimeoutRef.current) clearTimeout(shakeTimeoutRef.current)
+                setNameError(true)
+                shakeTimeoutRef.current = setTimeout(() => setNameError(false), 3500)
                 return
               }
               onPlay(name.trim())
