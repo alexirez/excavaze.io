@@ -38,6 +38,11 @@ export default function StartMenu({ onPlay, onUpgrades }: Props) {
     .catch(() => {})
   }, [])
 
+  const persistName = () => {
+    const trimmed = name.trim()
+    if (trimmed) saveUsername(trimmed).catch(() => {})
+  }
+
   const handlePlay = () => {
     const trimmed = name.trim()
     if (!trimmed) {
@@ -47,8 +52,13 @@ export default function StartMenu({ onPlay, onUpgrades }: Props) {
       shakeTimeoutRef.current = setTimeout(() => setNameError(false), 3500)
       return
     }
-    saveUsername(trimmed).catch(() => {})
+    persistName()
     onPlay(trimmed)
+  }
+
+  const handleUpgrades = () => {
+    persistName()
+    onUpgrades()
   }
 
   return (
@@ -253,7 +263,7 @@ export default function StartMenu({ onPlay, onUpgrades }: Props) {
         {/* upgrades + controls panels */}
         <div style={{ width: '100%', display: 'flex', gap: 8, marginBottom: 10 }}>
           <div
-            onClick={onUpgrades}
+            onClick={handleUpgrades}
             onMouseEnter={e => {
               e.currentTarget.style.background = 'rgba(255,221,0,0.2)'
               e.currentTarget.style.borderColor = 'rgba(255,221,0,0.2)'
