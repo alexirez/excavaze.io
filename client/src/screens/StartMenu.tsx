@@ -1,5 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { phaserGame } from '../core/PhaserGame'
+import { loadProfile, saveUsername } from '../../storage/offlineStorage'
 
 const shakeStyle = `
   @keyframes shake {
@@ -30,7 +31,25 @@ export default function StartMenu({ onPlay, onUpgrades }: Props) {
   useEffect(() => {
     phaserGame?.input.keyboard?.clearCaptures()
     nameInputRef.current?.focus()
+    loadProfile()
+    .then(profile => {
+      if (profile.username) setName(profile.username)
+    })
+    .catch(() => {})
   }, [])
+
+  const handlePlay = () => {
+    const trimmed = name.trim()
+    if (!trimmed) {
+      nameInputRef.current?.focus()
+      if (shakeTimeoutRef.current) clearTimeout(shakeTimeoutRef.current)
+      setNameError(true)
+      shakeTimeoutRef.current = setTimeout(() => setNameError(false), 3500)
+      return
+    }
+    saveUsername(trimmed).catch(() => {})
+    onPlay(trimmed)
+  }
 
   return (
     <div style={{
@@ -170,16 +189,7 @@ export default function StartMenu({ onPlay, onUpgrades }: Props) {
             }}
             onKeyDown={e => {
               e.stopPropagation()
-              if (e.key === 'Enter') {
-                if (!name.trim()) {
-                  nameInputRef.current?.focus()
-                  if (shakeTimeoutRef.current) clearTimeout(shakeTimeoutRef.current)
-                  setNameError(true)
-                  shakeTimeoutRef.current = setTimeout(() => setNameError(false), 3500)
-                  return
-                }
-                onPlay(name.trim())
-              }
+              if (e.key === 'Enter') handlePlay()
             }}
             onKeyUp={e => e.stopPropagation()}
             style={{
@@ -206,17 +216,7 @@ export default function StartMenu({ onPlay, onUpgrades }: Props) {
             </div>
           )}
           <button
-            onClick={() => {
-              if (!name.trim()) {
-                nameInputRef.current?.focus()
-                setNameError(true)
-                if (shakeTimeoutRef.current) clearTimeout(shakeTimeoutRef.current)
-                setNameError(true)
-                shakeTimeoutRef.current = setTimeout(() => setNameError(false), 3500)
-                return
-              }
-              onPlay(name.trim())
-            }}
+            onClick={handlePlay}
             style={{
               width: '100%', padding: '13px', fontSize: 14,
               background: 'rgba(0,255,153,0.10)', color: '#00ff99',
