@@ -255,16 +255,16 @@ export default function StartMenu({ onPlay, onUpgrades }: Props) {
           <div
             onClick={onUpgrades}
             onMouseEnter={e => {
-              e.currentTarget.style.background = 'rgba(255,221,0,0.06)'
+              e.currentTarget.style.background = 'rgba(255,221,0,0.2)'
               e.currentTarget.style.borderColor = 'rgba(255,221,0,0.2)'
               e.currentTarget.style.cursor = 'pointer'
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.03)'
+              e.currentTarget.style.background = 'rgba(255,221,0,0.09)'
               e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
             }}
             style={{
-              flex: 1, background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.07)',
+              flex: 1, background: 'rgba(255,221,0,0.09)', border: '0.5px solid rgba(255,255,255,0.07)',
               borderRadius: 8, padding: '14px 16px', transition: 'background 0.15s, border-color 0.15s',
               cursor: 'pointer',
             }}
