@@ -35,7 +35,7 @@ export default function App() {
         onUpgrades={() => setScreen('upgrades')}
       />
       )}
-      {screen === 'upgrades' && <UpgradesScreen onBack={() => setScreen('game')} />}
+      {screen === 'upgrades' && <UpgradesScreen onBack={() => setScreen('startMenu')} />}
     </div>
   )
 }
