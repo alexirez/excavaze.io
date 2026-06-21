@@ -15,14 +15,15 @@ const shakeStyle = `
 interface Props {
   onPlay: (name: string) => void
   onUpgrades: () => void
+  online: boolean
+  setOnline: React.Dispatch<React.SetStateAction<boolean>>
 }
 
 const ONLINE_SERVER_URL = 'wss://excavaze.io'
 const LOCAL_SERVER_URL = 'localhost:3000'
 
-export default function StartMenu({ onPlay, onUpgrades }: Props) {
+export default function StartMenu({ onPlay, onUpgrades, online, setOnline }: Props) {
   const [name, setName] = useState('')
-  const [online, setOnline] = useState(false)
   const [showStarConfirm, setShowStarConfirm] = useState(false)
   const nameInputRef = useRef<HTMLInputElement>(null)
   const [nameError, setNameError] = useState(false)

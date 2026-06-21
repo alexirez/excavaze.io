@@ -11,6 +11,7 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>('startMenu')
   const [playerName, setPlayerName] = useState('Player')
   const [isDead, setIsDead] = useState(true)
+  const [online, setOnline] = useState(false) // TODO: set to true once online mode is working
 
   return (
     <div style={{ position: 'relative', width: '100vw', height: '100vh' }}>
@@ -26,6 +27,8 @@ export default function App() {
       />
       {screen === 'startMenu' && (
       <StartMenu 
+        online={online}
+        setOnline={setOnline}
         onPlay={(name) => {
           setPlayerName(name)
           setIsDead(false)
