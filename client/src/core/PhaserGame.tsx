@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react'
 import Phaser from 'phaser'
-import { GameScene } from '../scenes/GameScene'
+import { GameScene } from './GameScene'
 
 export let phaserGame: Phaser.Game | null = null
 
@@ -18,6 +18,11 @@ export default function PhaserGame() {
       scale: {
         mode: Phaser.Scale.RESIZE,
         autoCenter: Phaser.Scale.CENTER_BOTH,
+      },
+      input: {
+        keyboard: {
+          capture: []
+        }
       },
     })
 

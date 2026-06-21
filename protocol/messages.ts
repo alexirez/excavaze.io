@@ -59,6 +59,7 @@ export interface DeathScreenMessage {
 
 export interface RespawnMessage {
   type: 'respawn'
+  name: string
 }
 
 export interface PerkSelection {
