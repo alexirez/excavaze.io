@@ -19,6 +19,11 @@ export default function PhaserGame() {
         mode: Phaser.Scale.RESIZE,
         autoCenter: Phaser.Scale.CENTER_BOTH,
       },
+      input: {
+        keyboard: {
+          capture: []
+        }
+      },
     })
 
     phaserGame.events.once('ready', () => {

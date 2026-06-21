@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { phaserGame } from '../core/PhaserGame'
 
 const shakeStyle = `
@@ -25,6 +25,11 @@ export default function StartMenu({ onPlay }: Props) {
   const nameInputRef = useRef<HTMLInputElement>(null)
   const [nameError, setNameError] = useState(false)
   const shakeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    phaserGame?.input.keyboard?.clearCaptures()
+    nameInputRef.current?.focus()
+  }, [])
 
   return (
     <div style={{
@@ -162,7 +167,20 @@ export default function StartMenu({ onPlay }: Props) {
                 setNameError(false)
               }
             }}
-            onKeyDown={e => { if (e.key === 'Enter' && name.trim()) onPlay(name.trim()) }}
+            onKeyDown={e => {
+              e.stopPropagation()
+              if (e.key === 'Enter') {
+                if (!name.trim()) {
+                  nameInputRef.current?.focus()
+                  if (shakeTimeoutRef.current) clearTimeout(shakeTimeoutRef.current)
+                  setNameError(true)
+                  shakeTimeoutRef.current = setTimeout(() => setNameError(false), 3500)
+                  return
+                }
+                onPlay(name.trim())
+              }
+            }}
+            onKeyUp={e => e.stopPropagation()}
             style={{
               width: '100%', boxSizing: 'border-box',
               background: 'rgba(255,255,255,0.05)', border: '0.5px solid rgba(255,255,255,0.35)',
