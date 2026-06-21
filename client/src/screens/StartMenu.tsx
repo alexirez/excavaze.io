@@ -13,12 +13,13 @@ const shakeStyle = `
 
 interface Props {
   onPlay: (name: string) => void
+  onUpgrades: () => void
 }
 
 const ONLINE_SERVER_URL = 'wss://excavaze.io'
 const LOCAL_SERVER_URL = 'localhost:3000'
 
-export default function StartMenu({ onPlay }: Props) {
+export default function StartMenu({ onPlay, onUpgrades }: Props) {
   const [name, setName] = useState('')
   const [online, setOnline] = useState(false)
   const [showStarConfirm, setShowStarConfirm] = useState(false)
@@ -251,10 +252,23 @@ export default function StartMenu({ onPlay }: Props) {
 
         {/* upgrades + controls panels */}
         <div style={{ width: '100%', display: 'flex', gap: 8, marginBottom: 10 }}>
-          <div style={{
-            flex: 1, background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.07)',
-            borderRadius: 8, padding: '14px 16px',
-          }}>
+          <div
+            onClick={onUpgrades}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'rgba(255,221,0,0.06)'
+              e.currentTarget.style.borderColor = 'rgba(255,221,0,0.2)'
+              e.currentTarget.style.cursor = 'pointer'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'rgba(255,255,255,0.03)'
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
+            }}
+            style={{
+              flex: 1, background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.07)',
+              borderRadius: 8, padding: '14px 16px', transition: 'background 0.15s, border-color 0.15s',
+              cursor: 'pointer',
+            }}
+          >
             <div style={{ fontSize: 10, letterSpacing: 2, color: 'rgba(255,221,0,0.72)', textTransform: 'uppercase', marginBottom: 6 }}>upgrades</div>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.7 }}>Unlock permanent upgrades here with diamonds.</div>
           </div>

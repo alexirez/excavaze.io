@@ -25,12 +25,15 @@ export default function App() {
         onRespawn={() => setScreen('game')}
       />
       {screen === 'startMenu' && (
-        <StartMenu onPlay={(name) => {
+      <StartMenu 
+        onPlay={(name) => {
           setPlayerName(name)
           setIsDead(false)
           setScreen('game')
           socket.send(JSON.stringify({ type: 'respawn', name }))
-        }} />
+        }}
+        onUpgrades={() => setScreen('upgrades')}
+      />
       )}
       {screen === 'upgrades' && <UpgradesScreen onBack={() => setScreen('game')} />}
     </div>
