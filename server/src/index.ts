@@ -73,9 +73,9 @@ wss.on('connection', (socket) => {
   // S->C: Tell this client their assigned id
   socket.send(JSON.stringify({ type: 'welcome', id }))
 
-  socket.on('close', () => {
+  socket.on('close', (code, reason) => {
     players.delete(id)
-    console.log(`Player ${id} disconnected`)
+    console.log(`Player ${id} disconnected (server-side) — code: ${code}, reason: ${reason.toString()}`)
     })
 
   socket.on('message', (data) => {

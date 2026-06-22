@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import PhaserGame from './core/PhaserGame'
 import StartMenu from './screens/StartMenu'
 import GameHud from './screens/GameHud'
 import UpgradesScreen from './screens/UpgradesScreen'
-import socket from './network/socket'
+import { socket, ONLINE_SERVER_URL, LOCAL_SERVER_URL } from './network/socket'
 
 type Screen = 'startMenu' | 'game' | 'upgrades'
 
@@ -11,7 +11,18 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>('startMenu')
   const [playerName, setPlayerName] = useState('Player')
   const [isDead, setIsDead] = useState(true)
-  const [online, setOnline] = useState(false) // TODO: set to true once online mode is working
+  const [online, setOnline] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    async function switchMode() {
+      await socket.disconnect()
+      if (cancelled) return // user toggled again while socket was closing
+      socket.connect(online ? ONLINE_SERVER_URL : LOCAL_SERVER_URL)
+    }
+    switchMode()
+    return () => { cancelled = true }
+  }, [online])
 
   return (
     <div style={{ position: 'relative', width: '100vw', height: '100vh' }}>

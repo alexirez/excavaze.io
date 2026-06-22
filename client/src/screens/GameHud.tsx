@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import socket, { addSocketListener, getLocalId, removeSocketListener } from '../network/socket'
+import { socket, addSocketListener, getLocalId } from '../network/socket'
 import { RespawnMessage, ServerMessage } from '../../../protocol/messages'
 import { currentLevel, xpForNextLevel, xpThisLevel } from '../../../protocol/utils'
 import { PERK_TREE, RARITY_CONFIG, rollPerkChoices } from '../../../protocol/perks'
@@ -135,7 +135,6 @@ export default function GameHud({ screen, playerName, isDead, setIsDead, onHome,
       }
     }
     addSocketListener(handler)
-    return () => removeSocketListener(handler)
   }, [])
 
   const isGame = screen === 'game'

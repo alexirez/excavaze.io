@@ -20,7 +20,7 @@ interface Props {
 }
 
 const ONLINE_SERVER_URL = 'wss://excavaze.io'
-const LOCAL_SERVER_URL = 'localhost:3000'
+const LOCAL_SERVER_URL = 'wss://localhost:3000'
 
 export default function StartMenu({ onPlay, onUpgrades, online, setOnline }: Props) {
   const [name, setName] = useState('')
