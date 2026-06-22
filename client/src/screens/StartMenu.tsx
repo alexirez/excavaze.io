@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { phaserGame } from '../core/PhaserGame'
-import { loadProfile, saveUsername } from '../../storage/offlineStorage'
+import { loadOfflineUsername, saveOfflineUsername } from '../../storage/offlineStorage'
 
 const shakeStyle = `
   @keyframes shake {
@@ -32,16 +32,15 @@ export default function StartMenu({ onPlay, onUpgrades, online, setOnline }: Pro
   useEffect(() => {
     phaserGame?.input.keyboard?.clearCaptures()
     nameInputRef.current?.focus()
-    loadProfile()
-    .then(profile => {
-      if (profile.username) setName(profile.username)
-    })
-    .catch(() => {})
+
+    loadOfflineUsername()
+      .then(username => { if (username) setName(username) })
+      .catch(() => {})
   }, [])
 
   const persistName = () => {
     const trimmed = name.trim()
-    if (trimmed) saveUsername(trimmed).catch(() => {})
+    if (trimmed) saveOfflineUsername(trimmed).catch(() => {})
   }
 
   const handlePlay = () => {
