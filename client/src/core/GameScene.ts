@@ -353,8 +353,11 @@ function drawDeathblade(g: Phaser.GameObjects.Graphics, p: PlayerState, color: n
   const spokes = 8
   const angleOffset = Date.now() * 0.003
 
+  g.fillStyle(color)
+  g.fillRect(p.radius, -4, offset - p.radius, 8) // handle
+  g.fillCircle(offset, 0, 6)
   g.fillStyle(color, 0.7)
-  g.fillCircle(offset, 0, radius)
+  g.fillCircle(offset, 0, radius) // giant saw
 
   for (let i = 0; i < spokes; i++) {
     const angle = (i / spokes) * Math.PI * 2 + angleOffset
