@@ -21,7 +21,7 @@ function connect(url: string): void {
   ws.onclose = () => {
     if (!shouldReconnect || current !== ws) return
     if (generation !== reconnectGeneration) return
-    console.log('[socket] disconnected, retrying in 0.5s...')
+    console.log(`[socket] connection to ${url} failed, retrying in 0.5s...`)
     reconnectTimeout = setTimeout(() => connect(url), 500)
   }
 
@@ -30,8 +30,6 @@ function connect(url: string): void {
     if (msg.type === 'welcome') localId = msg.id
     for (const listener of listeners) listener(e)
   }
-
-  ws.onerror = () => console.error('[socket] error')
 }
 
 function disconnect(): Promise<void> {
