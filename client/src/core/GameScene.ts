@@ -124,13 +124,14 @@ export class GameScene extends Phaser.Scene {
     }, 50)
 
     this.events.on('shutdown', () => {
-    if (this.inputInterval) {
-      clearInterval(this.inputInterval)
-      this.inputInterval = null
-    }
-    this.removeSocketListener?.()
-    this.removeSocketListener = null
-  })
+      console.log('[GameScene] shutdown fired')
+      if (this.inputInterval) {
+        clearInterval(this.inputInterval)
+        this.inputInterval = null
+      }
+      this.removeSocketListener?.()
+      this.removeSocketListener = null
+    })
   }
 
   // Only rendering, game logic is on server side

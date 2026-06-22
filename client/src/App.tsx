@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import PhaserGame from './core/PhaserGame'
+import PhaserGame, { phaserGame } from './core/PhaserGame'
 import StartMenu from './screens/StartMenu'
 import GameHud from './screens/GameHud'
 import UpgradesScreen from './screens/UpgradesScreen'
@@ -16,9 +16,11 @@ export default function App() {
   useEffect(() => {
     let cancelled = false
     async function switchMode() {
+      phaserGame?.scene.stop('GameScene')
       await socket.disconnect()
       if (cancelled) return // user toggled again while socket was closing
-      socket.connect(online ? ONLINE_SERVER_URL : LOCAL_SERVER_URL)
+      await socket.connect(online ? ONLINE_SERVER_URL : LOCAL_SERVER_URL)
+      phaserGame?.scene.start('GameScene')
     }
     switchMode()
     return () => { cancelled = true }
