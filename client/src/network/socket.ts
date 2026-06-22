@@ -7,8 +7,11 @@ let current: WebSocket | null = null
 let shouldReconnect = false
 const listeners: ((event: MessageEvent) => void)[] = []
 let localId: number | null = null
+let reconnectGeneration = 0
+let reconnectTimeout: ReturnType<typeof setTimeout> | null = null
 
 function connect(url: string): void {
+  const generation = ++reconnectGeneration
   shouldReconnect = true
   const ws = new WebSocket(url)
   current = ws
@@ -17,8 +20,9 @@ function connect(url: string): void {
 
   ws.onclose = () => {
     if (!shouldReconnect || current !== ws) return
+    if (generation !== reconnectGeneration) return
     console.log('[socket] disconnected, retrying in 0.5s...')
-    setTimeout(() => connect(url), 500)
+    reconnectTimeout = setTimeout(() => connect(url), 500)
   }
 
   ws.onmessage = (e) => {
@@ -31,13 +35,18 @@ function connect(url: string): void {
 }
 
 function disconnect(): Promise<void> {
+  reconnectGeneration++
   shouldReconnect = false
   localId = null
   const ws = current
   current = null
 
-  if (!ws || ws.readyState === WebSocket.CLOSED) return Promise.resolve()
+  if (reconnectTimeout) {
+    clearTimeout(reconnectTimeout)
+    reconnectTimeout = null
+  }
 
+  if (!ws || ws.readyState === WebSocket.CLOSED) return Promise.resolve()
   return new Promise((resolve) => {
     ws.onclose = () => resolve()
     ws.close(1000, 'Mode switch')

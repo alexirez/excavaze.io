@@ -17,12 +17,15 @@ export class GameScene extends Phaser.Scene {
 
   private inputInterval: ReturnType<typeof setInterval> | null = null
   private removeSocketListener: (() => void) | null = null
+  private static intervalGeneration = 0
 
   constructor() {
     super({ key: 'GameScene' })
   }
 
   create() {
+    const generation = ++GameScene.intervalGeneration
+
     // background of in-bounds area
     this.add.rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH - WORLD_PADDING * 2.5, WORLD_HEIGHT - WORLD_PADDING * 2.5, COLOR_BACKGROUND).setDepth(-1)
 
@@ -102,6 +105,11 @@ export class GameScene extends Phaser.Scene {
     // Send input to server every tick
     if (this.inputInterval) clearInterval(this.inputInterval)
     this.inputInterval = setInterval(() => {
+      if (generation !== GameScene.intervalGeneration) {
+        clearInterval(this.inputInterval!)
+        this.inputInterval = null
+        return
+      }
       if (getLocalId() === null) return
       const dx = (this.keys.D.isDown ? 1 : 0) - (this.keys.A.isDown ? 1 : 0)
       const dy = (this.keys.S.isDown ? 1 : 0) - (this.keys.W.isDown ? 1 : 0)
@@ -125,10 +133,6 @@ export class GameScene extends Phaser.Scene {
 
     this.events.on('shutdown', () => {
       console.log('[GameScene] shutdown fired')
-      if (this.inputInterval) {
-        clearInterval(this.inputInterval)
-        this.inputInterval = null
-      }
       this.removeSocketListener?.()
       this.removeSocketListener = null
     })

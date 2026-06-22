@@ -19,7 +19,7 @@ export default function App() {
       phaserGame?.scene.stop('GameScene')
       await socket.disconnect()
       if (cancelled) return // user toggled again while socket was closing
-      await socket.connect(online ? ONLINE_SERVER_URL : LOCAL_SERVER_URL)
+      socket.connect(online ? ONLINE_SERVER_URL : LOCAL_SERVER_URL)
       phaserGame?.scene.start('GameScene')
     }
     switchMode()
