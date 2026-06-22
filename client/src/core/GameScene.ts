@@ -3,7 +3,6 @@ import { socket, addSocketListener, getLocalId } from '../network/socket'
 import { PlayerState, SquareState } from '../../../protocol/types'
 import { ServerMessage } from '../../../protocol/messages'
 import { WORLD_WIDTH, WORLD_HEIGHT, COLOR_BACKGROUND, COLOR_OUTER_BOUNDS, WORLD_PADDING, SQUARE_BASE_HP, PLAYER_BASE_HP } from '../../../protocol/constants'
-import { currentLevel, xpThisLevel, xpForNextLevel } from '../../../protocol/utils'
 
 export class GameScene extends Phaser.Scene {
   private enemyNameLabels: Map<number, Phaser.GameObjects.Text> = new Map()
@@ -15,6 +14,9 @@ export class GameScene extends Phaser.Scene {
   private playerGraphics!: Phaser.GameObjects.Graphics
   private enemyGraphics!: Phaser.GameObjects.Graphics
   private cameraTarget!: Phaser.GameObjects.Rectangle
+
+  private inputInterval: ReturnType<typeof setInterval> | null = null
+  private removeSocketListener: (() => void) | null = null
 
   constructor() {
     super({ key: 'GameScene' })
@@ -95,10 +97,11 @@ export class GameScene extends Phaser.Scene {
         }
       }
     }
-    addSocketListener(handler)
+    this.removeSocketListener = addSocketListener(handler)
 
     // Send input to server every tick
-    setInterval(() => {
+    if (this.inputInterval) clearInterval(this.inputInterval)
+    this.inputInterval = setInterval(() => {
       if (getLocalId() === null) return
       const dx = (this.keys.D.isDown ? 1 : 0) - (this.keys.A.isDown ? 1 : 0)
       const dy = (this.keys.S.isDown ? 1 : 0) - (this.keys.W.isDown ? 1 : 0)
@@ -119,6 +122,15 @@ export class GameScene extends Phaser.Scene {
 
       socket.send(JSON.stringify({ type: 'input', dx, dy, rotation }))
     }, 50)
+
+    this.events.on('shutdown', () => {
+    if (this.inputInterval) {
+      clearInterval(this.inputInterval)
+      this.inputInterval = null
+    }
+    this.removeSocketListener?.()
+    this.removeSocketListener = null
+  })
   }
 
   // Only rendering, game logic is on server side
