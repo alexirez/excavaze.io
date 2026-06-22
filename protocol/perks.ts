@@ -117,13 +117,14 @@ export const PERK_TREE: Record<string, PerkDef> = {
 }
 
 export const PERK_TRANSITIONS: Record<string, string[]> = {
-  'root':         ['drill_dmg', 'drill_length', 'move_speed', 'hp_buff'],
-  'drill_dmg':    ['drill_dmg_2'],
-  'drill_length': ['drill_length_2', 'sawblade'],
-  'hp_buff':      ['hp_buff_2', 'hp_regen'],
-  'hp_regen':     ['hp_regen_2'],
-  'move_speed':   ['move_speed_2'],
-  'sawblade':     ['deathblade']
+  'root':           ['drill_dmg', 'drill_length', 'move_speed', 'hp_buff'],
+  'drill_dmg':      ['drill_dmg_2'],
+  'drill_length':   ['drill_length_2'],
+  'drill_length_2': ['sawblade'],
+  'hp_buff':        ['hp_buff_2', 'hp_regen'],
+  'hp_regen':       ['hp_regen_2'],
+  'move_speed':     ['move_speed_2'],
+  'sawblade':       ['deathblade']
 }
 
 export function activateCurrentPerks(playerState: PlayerState) {

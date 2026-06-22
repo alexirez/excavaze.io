@@ -326,7 +326,13 @@ function drawSawblade(g: Phaser.GameObjects.Graphics, p: PlayerState, color: num
   const angleOffset = Date.now() * 0.003
 
   g.fillStyle(color)
-  g.fillCircle(offset, 0, radius)
+
+  // handle — from player edge to blade center
+  const handleWidth = 6
+  g.fillStyle(color)
+  g.fillRect(p.radius, -handleWidth / 2, offset - p.radius, handleWidth)
+
+  g.fillCircle(offset, 0, radius) // saw
 
   // spokes
   for (let i = 0; i < spokes; i++) {
