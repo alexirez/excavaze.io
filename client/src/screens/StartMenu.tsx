@@ -295,13 +295,21 @@ export default function StartMenu({ onPlay, onUpgrades, online, setOnline, gems 
         {/* bottom row: gems + github star */}
         <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <img src="/assets/gem.svg" alt="gems" style={{ width: 32, height: 32 }} />
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              background: 'rgba(255,255,255,0.05)',
+              border: '0.5px solid rgba(255,255,255,0.1)',
+              borderRadius: 8, padding: '2px 14px',
+              minWidth: 120,
+            }}>
+            <img src="/assets/gem.svg" alt="gems" style={{ width: 30, height: 30 }} />
             <span style={{
               fontSize: 13, color: 'rgba(255,255,255,0.55)',
               fontFamily: "'Share Tech', monospace", letterSpacing: 1,
             }}>
               {gems}
             </span>
+            </div>
           </div>
           <button
             onClick={() => setShowStarConfirm(true)}
