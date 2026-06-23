@@ -24,8 +24,8 @@ export const UPGRADE_NODES: UpgradeNode[] = [
         icon: 'gem.svg',
         cost: [{ currency: 'gem', amount: 120 }],
         parents: ['drill_dmg_1'],
-        x: 200,
-        y: 500,
+        x: 480,
+        y: 320,
     },
     {
         id: 'drill_dmg_3',

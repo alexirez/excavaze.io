@@ -9,10 +9,10 @@ import { loadOfflineGems, saveOfflineGems } from '../storage/offlineStorage'
 type Screen = 'startMenu' | 'game' | 'upgrades'
 
 export default function App() {
-  const [screen, setScreen] = useState<Screen>('startMenu')
+  const [screen, setScreen] = useState<Screen>('upgrades')
   const [playerName, setPlayerName] = useState('Player')
   const [isDead, setIsDead] = useState(true)
-  const [online, setOnline] = useState(true)
+  const [online, setOnline] = useState(false)
   const [gems, setGems] = useState(0)
 
   useEffect(() => {
