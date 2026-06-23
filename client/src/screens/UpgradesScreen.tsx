@@ -97,6 +97,10 @@ export default function UpgradesScreen({ onBack, purchasedUpgrades = [] }: Props
       display: 'flex',
       flexDirection: 'column',
     }}>
+      <style>{`
+        .upgrade-scroll::-webkit-scrollbar { display: none; }
+        .upgrade-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
 
       {/* header */}
       <div style={{
@@ -155,6 +159,7 @@ export default function UpgradesScreen({ onBack, purchasedUpgrades = [] }: Props
       {/* scrollable canvas */}
       <div
         ref={containerRef}
+        className="upgrade-scroll"
         onScroll={() => forceUpdate(x => x + 1)}
         style={{
           flex: 1,
