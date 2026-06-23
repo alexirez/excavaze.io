@@ -72,7 +72,7 @@ wss.on('connection', (socket) => {
     wanderAngle: Math.random() * Math.PI * 2,
   })
   // S->C: Tell this client their assigned id
-  socket.send(JSON.stringify({ type: 'welcome', id }))
+  socket.send(JSON.stringify({ type: 'welcome', id, gems: 10 }))
 
   socket.on('close', (code, reason) => {
     players.delete(id)

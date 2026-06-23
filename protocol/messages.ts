@@ -19,6 +19,7 @@ export interface WorldStateMessage {
 export interface WelcomeMessage {
   type: 'welcome'
   id: number
+  gems: number
 }
 
 export interface LevelUpMessage {

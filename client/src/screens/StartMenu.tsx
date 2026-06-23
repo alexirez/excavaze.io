@@ -17,12 +17,13 @@ interface Props {
   onUpgrades: () => void
   online: boolean
   setOnline: React.Dispatch<React.SetStateAction<boolean>>
+  gems: number
 }
 
 const ONLINE_SERVER_URL = 'wss://excavaze.io'
 const LOCAL_SERVER_URL = 'wss://localhost:3000'
 
-export default function StartMenu({ onPlay, onUpgrades, online, setOnline }: Props) {
+export default function StartMenu({ onPlay, onUpgrades, online, setOnline, gems }: Props) {
   const [name, setName] = useState('')
   const [showStarConfirm, setShowStarConfirm] = useState(false)
   const nameInputRef = useRef<HTMLInputElement>(null)
@@ -291,8 +292,17 @@ export default function StartMenu({ onPlay, onUpgrades, online, setOnline }: Pro
           </div>
         </div>
 
-        {/* star button */}
-        <div style={{ width: '100%', display: 'flex', justifyContent: 'flex-end' }}>
+        {/* bottom row: gems + github star */}
+        <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <img src="/assets/gem.svg" alt="gems" style={{ width: 32, height: 32 }} />
+            <span style={{
+              fontSize: 13, color: 'rgba(255,255,255,0.55)',
+              fontFamily: "'Share Tech', monospace", letterSpacing: 1,
+            }}>
+              {gems}
+            </span>
+          </div>
           <button
             onClick={() => setShowStarConfirm(true)}
             style={{
@@ -314,7 +324,6 @@ export default function StartMenu({ onPlay, onUpgrades, online, setOnline }: Pro
             ★ star on github
           </button>
         </div>
-
       </div>
     </div>
   )

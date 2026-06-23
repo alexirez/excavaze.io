@@ -9,6 +9,7 @@ const listeners: ((event: MessageEvent) => void)[] = []
 let localId: number | null = null
 let reconnectGeneration = 0
 let reconnectTimeout: ReturnType<typeof setTimeout> | null = null
+let welcomeCallback: ((id: number, gems: number) => void) | null = null
 
 function connect(url: string): void {
   const generation = ++reconnectGeneration
@@ -26,10 +27,14 @@ function connect(url: string): void {
   }
 
   ws.onmessage = (e) => {
-    const msg = JSON.parse(e.data) as ServerMessage
-    if (msg.type === 'welcome') localId = msg.id
-    for (const listener of listeners) listener(e)
+  const msg = JSON.parse(e.data) as ServerMessage
+  if (msg.type === 'welcome') {
+    localId = msg.id
+    welcomeCallback?.(msg.id, msg.gems)
+    welcomeCallback = null
   }
+  for (const listener of listeners) listener(e)
+}
 }
 
 function disconnect(): Promise<void> {
@@ -82,6 +87,10 @@ export const socket = {
       ws?.removeEventListener('open', handler)
     }
     ws?.addEventListener('open', handler)
+  },
+
+  onWelcome(cb: (id: number, gems: number) => void): void {
+    welcomeCallback = cb
   },
 
   get readyState() { return current?.readyState ?? WebSocket.CLOSED },
