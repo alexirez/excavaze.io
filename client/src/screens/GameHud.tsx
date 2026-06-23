@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import socket, { addSocketListener, getLocalId, removeSocketListener } from '../network/socket'
+import { socket, addSocketListener, getLocalId } from '../network/socket'
 import { RespawnMessage, ServerMessage } from '../../../protocol/messages'
 import { currentLevel, xpForNextLevel, xpThisLevel } from '../../../protocol/utils'
 import { PERK_TREE, RARITY_CONFIG, rollPerkChoices } from '../../../protocol/perks'
@@ -59,6 +59,8 @@ interface Props {
   onRespawn: () => void
 }
 
+let killFeedCounter = 0
+
 export default function GameHud({ screen, playerName, isDead, setIsDead, onHome, onUpgrades, onRespawn }: Props) {
   const [killFeed, setKillFeed] = useState<KillFeedEntry[]>([])
   const [xpRatio, setXpRatio] = useState(0)
@@ -111,7 +113,7 @@ export default function GameHud({ screen, playerName, isDead, setIsDead, onHome,
           setXpIsMax(level >= 6)
         }
       } else if (msg.type === 'player_killed') {
-        const id = Date.now()
+        const id = killFeedCounter++
         setKillFeed(prev => [...prev, { id, victimId: msg.victimId, killerId: msg.killerId, killerName: msg.killerName, victimName: msg.victimName, exiting: false }])
         setTimeout(() => {
           setKillFeed(prev => prev.map(e => e.id === id ? { ...e, exiting: true } : e))
@@ -135,7 +137,6 @@ export default function GameHud({ screen, playerName, isDead, setIsDead, onHome,
       }
     }
     addSocketListener(handler)
-    return () => removeSocketListener(handler)
   }, [])
 
   const isGame = screen === 'game'

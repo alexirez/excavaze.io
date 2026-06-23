@@ -1,9 +1,8 @@
 import Phaser from 'phaser'
-import socket, { addSocketListener, getLocalId } from '../network/socket'
+import { socket, addSocketListener, getLocalId } from '../network/socket'
 import { PlayerState, SquareState } from '../../../protocol/types'
 import { ServerMessage } from '../../../protocol/messages'
 import { WORLD_WIDTH, WORLD_HEIGHT, COLOR_BACKGROUND, COLOR_OUTER_BOUNDS, WORLD_PADDING, SQUARE_BASE_HP, PLAYER_BASE_HP } from '../../../protocol/constants'
-import { currentLevel, xpThisLevel, xpForNextLevel } from '../../../protocol/utils'
 
 export class GameScene extends Phaser.Scene {
   private enemyNameLabels: Map<number, Phaser.GameObjects.Text> = new Map()
@@ -16,11 +15,17 @@ export class GameScene extends Phaser.Scene {
   private enemyGraphics!: Phaser.GameObjects.Graphics
   private cameraTarget!: Phaser.GameObjects.Rectangle
 
+  private inputInterval: ReturnType<typeof setInterval> | null = null
+  private removeSocketListener: (() => void) | null = null
+  private static intervalGeneration = 0
+
   constructor() {
     super({ key: 'GameScene' })
   }
 
   create() {
+    const generation = ++GameScene.intervalGeneration
+
     // background of in-bounds area
     this.add.rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH - WORLD_PADDING * 2.5, WORLD_HEIGHT - WORLD_PADDING * 2.5, COLOR_BACKGROUND).setDepth(-1)
 
@@ -95,10 +100,16 @@ export class GameScene extends Phaser.Scene {
         }
       }
     }
-    addSocketListener(handler)
+    this.removeSocketListener = addSocketListener(handler)
 
     // Send input to server every tick
-    setInterval(() => {
+    if (this.inputInterval) clearInterval(this.inputInterval)
+    this.inputInterval = setInterval(() => {
+      if (generation !== GameScene.intervalGeneration) {
+        clearInterval(this.inputInterval!)
+        this.inputInterval = null
+        return
+      }
       if (getLocalId() === null) return
       const dx = (this.keys.D.isDown ? 1 : 0) - (this.keys.A.isDown ? 1 : 0)
       const dy = (this.keys.S.isDown ? 1 : 0) - (this.keys.W.isDown ? 1 : 0)
@@ -119,6 +130,12 @@ export class GameScene extends Phaser.Scene {
 
       socket.send(JSON.stringify({ type: 'input', dx, dy, rotation }))
     }, 50)
+
+    this.events.on('shutdown', () => {
+      console.log('[GameScene] shutdown fired')
+      this.removeSocketListener?.()
+      this.removeSocketListener = null
+    })
   }
 
   // Only rendering, game logic is on server side
@@ -309,7 +326,13 @@ function drawSawblade(g: Phaser.GameObjects.Graphics, p: PlayerState, color: num
   const angleOffset = Date.now() * 0.003
 
   g.fillStyle(color)
-  g.fillCircle(offset, 0, radius)
+
+  // handle — from player edge to blade center
+  const handleWidth = 6
+  g.fillStyle(color)
+  g.fillRect(p.radius, -handleWidth / 2, offset - p.radius, handleWidth)
+
+  g.fillCircle(offset, 0, radius) // saw
 
   // spokes
   for (let i = 0; i < spokes; i++) {
@@ -330,8 +353,11 @@ function drawDeathblade(g: Phaser.GameObjects.Graphics, p: PlayerState, color: n
   const spokes = 8
   const angleOffset = Date.now() * 0.003
 
+  g.fillStyle(color)
+  g.fillRect(p.radius, -4, offset - p.radius, 8) // handle
+  g.fillCircle(offset, 0, 6)
   g.fillStyle(color, 0.7)
-  g.fillCircle(offset, 0, radius)
+  g.fillCircle(offset, 0, radius) // giant saw
 
   for (let i = 0; i < spokes; i++) {
     const angle = (i / spokes) * Math.PI * 2 + angleOffset

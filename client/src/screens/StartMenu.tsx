@@ -1,5 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { phaserGame } from '../core/PhaserGame'
+import { loadOfflineUsername, saveOfflineUsername } from '../../storage/offlineStorage'
 
 const shakeStyle = `
   @keyframes shake {
@@ -14,14 +15,16 @@ const shakeStyle = `
 interface Props {
   onPlay: (name: string) => void
   onUpgrades: () => void
+  online: boolean
+  setOnline: React.Dispatch<React.SetStateAction<boolean>>
+  gems: number
 }
 
 const ONLINE_SERVER_URL = 'wss://excavaze.io'
-const LOCAL_SERVER_URL = 'localhost:3000'
+const LOCAL_SERVER_URL = 'wss://localhost:3000'
 
-export default function StartMenu({ onPlay, onUpgrades }: Props) {
+export default function StartMenu({ onPlay, onUpgrades, online, setOnline, gems }: Props) {
   const [name, setName] = useState('')
-  const [online, setOnline] = useState(false)
   const [showStarConfirm, setShowStarConfirm] = useState(false)
   const nameInputRef = useRef<HTMLInputElement>(null)
   const [nameError, setNameError] = useState(false)
@@ -30,7 +33,34 @@ export default function StartMenu({ onPlay, onUpgrades }: Props) {
   useEffect(() => {
     phaserGame?.input.keyboard?.clearCaptures()
     nameInputRef.current?.focus()
+
+    loadOfflineUsername()
+      .then(username => { if (username) setName(username) })
+      .catch(() => {})
   }, [])
+
+  const persistName = () => {
+    const trimmed = name.trim()
+    if (trimmed) saveOfflineUsername(trimmed).catch(() => {})
+  }
+
+  const handlePlay = () => {
+    const trimmed = name.trim()
+    if (!trimmed) {
+      nameInputRef.current?.focus()
+      if (shakeTimeoutRef.current) clearTimeout(shakeTimeoutRef.current)
+      setNameError(true)
+      shakeTimeoutRef.current = setTimeout(() => setNameError(false), 3500)
+      return
+    }
+    persistName()
+    onPlay(trimmed)
+  }
+
+  const handleUpgrades = () => {
+    persistName()
+    onUpgrades()
+  }
 
   return (
     <div style={{
@@ -170,16 +200,7 @@ export default function StartMenu({ onPlay, onUpgrades }: Props) {
             }}
             onKeyDown={e => {
               e.stopPropagation()
-              if (e.key === 'Enter') {
-                if (!name.trim()) {
-                  nameInputRef.current?.focus()
-                  if (shakeTimeoutRef.current) clearTimeout(shakeTimeoutRef.current)
-                  setNameError(true)
-                  shakeTimeoutRef.current = setTimeout(() => setNameError(false), 3500)
-                  return
-                }
-                onPlay(name.trim())
-              }
+              if (e.key === 'Enter') handlePlay()
             }}
             onKeyUp={e => e.stopPropagation()}
             style={{
@@ -206,17 +227,7 @@ export default function StartMenu({ onPlay, onUpgrades }: Props) {
             </div>
           )}
           <button
-            onClick={() => {
-              if (!name.trim()) {
-                nameInputRef.current?.focus()
-                setNameError(true)
-                if (shakeTimeoutRef.current) clearTimeout(shakeTimeoutRef.current)
-                setNameError(true)
-                shakeTimeoutRef.current = setTimeout(() => setNameError(false), 3500)
-                return
-              }
-              onPlay(name.trim())
-            }}
+            onClick={handlePlay}
             style={{
               width: '100%', padding: '13px', fontSize: 14,
               background: 'rgba(0,255,153,0.10)', color: '#00ff99',
@@ -253,7 +264,7 @@ export default function StartMenu({ onPlay, onUpgrades }: Props) {
         {/* upgrades + controls panels */}
         <div style={{ width: '100%', display: 'flex', gap: 8, marginBottom: 10 }}>
           <div
-            onClick={onUpgrades}
+            onClick={handleUpgrades}
             onMouseEnter={e => {
               e.currentTarget.style.background = 'rgba(255,221,0,0.2)'
               e.currentTarget.style.borderColor = 'rgba(255,221,0,0.2)'
@@ -281,8 +292,26 @@ export default function StartMenu({ onPlay, onUpgrades }: Props) {
           </div>
         </div>
 
-        {/* star button */}
-        <div style={{ width: '100%', display: 'flex', justifyContent: 'flex-end' }}>
+        {/* bottom row: gems + github star */}
+        <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              background: 'rgba(255,255,255,0.05)',
+              border: '0.5px solid rgba(255,255,255,0.1)',
+              borderRadius: 8, padding: '2px 14px 2px 4px',
+              minWidth: 130,
+            }}>
+            <img src="/assets/purchase-plus-button.svg" alt="gems" style={{ width: 30, height: 30 }} />
+            <img src="/assets/gem.svg" alt="gems" style={{ width: 30, height: 30 }} />
+            <span style={{
+              fontSize: 13, color: 'rgba(255,255,255,0.55)',
+              fontFamily: "'Share Tech', monospace", letterSpacing: 1,
+            }}>
+              {gems}
+            </span>
+            </div>
+          </div>
           <button
             onClick={() => setShowStarConfirm(true)}
             style={{
@@ -304,7 +333,6 @@ export default function StartMenu({ onPlay, onUpgrades }: Props) {
             ★ star on github
           </button>
         </div>
-
       </div>
     </div>
   )

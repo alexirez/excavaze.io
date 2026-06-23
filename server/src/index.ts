@@ -40,9 +40,10 @@ for (let i = 0; i < CHUNK_ROWS * CHUNK_COLS; i++)
 
 spawnSquaresOnStartup()
 
+console.log('')
 wss.on('connection', (socket) => {
   const id = nextPlayerId++
-  console.log(`Player ${id} connected`)
+  console.log(`${'\x1b[32m'}Player ${id} connected${'\x1b[0m'}`)
 
   players.set(id, {
     socket,
@@ -71,11 +72,11 @@ wss.on('connection', (socket) => {
     wanderAngle: Math.random() * Math.PI * 2,
   })
   // S->C: Tell this client their assigned id
-  socket.send(JSON.stringify({ type: 'welcome', id }))
+  socket.send(JSON.stringify({ type: 'welcome', id, gems: 10 }))
 
-  socket.on('close', () => {
+  socket.on('close', (code, reason) => {
     players.delete(id)
-    console.log(`Player ${id} disconnected`)
+    console.log(`${'\x1b[31m'}Player ${id} disconnected${'\x1b[0m'}  ${'\x1b[2m'}code: ${code}  reason: ${reason.toString() || '—'}${'\x1b[0m'}`)
     })
 
   socket.on('message', (data) => {
