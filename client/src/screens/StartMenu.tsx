@@ -299,9 +299,10 @@ export default function StartMenu({ onPlay, onUpgrades, online, setOnline, gems 
               display: 'flex', alignItems: 'center', gap: 6,
               background: 'rgba(255,255,255,0.05)',
               border: '0.5px solid rgba(255,255,255,0.1)',
-              borderRadius: 8, padding: '2px 14px',
-              minWidth: 120,
+              borderRadius: 8, padding: '2px 14px 2px 4px',
+              minWidth: 130,
             }}>
+            <img src="/assets/purchase-plus-button.svg" alt="gems" style={{ width: 30, height: 30 }} />
             <img src="/assets/gem.svg" alt="gems" style={{ width: 30, height: 30 }} />
             <span style={{
               fontSize: 13, color: 'rgba(255,255,255,0.55)',
