@@ -66,13 +66,13 @@ export async function saveOfflineUsername(username: string): Promise<void> {
   await db.put(STORE_NAME, username, 'username')
 }
 
-// --- Diamonds ---
-export async function loadOfflineDiamonds(): Promise<number> {
+// --- Gems ---
+export async function loadOfflineGems(): Promise<number> {
   const db = await getDB()
   return ((await db.get(STORE_NAME, 'diamonds')) as number) ?? OFFLINE_DEFAULTS.diamonds
 }
 
-export async function saveOfflineDiamonds(diamonds: number): Promise<void> {
+export async function saveOfflineGems(diamonds: number): Promise<void> {
   const db = await getDB()
   await db.put(STORE_NAME, diamonds, 'diamonds')
 }
