@@ -254,18 +254,23 @@ export default function UpgradesScreen({ onBack, purchasedUpgrades = [] }: Props
                     left: node.x + NODES_OFFSET_X,
                     top: node.y + NODES_OFFSET_Y,
                     width: 130,
-                    background: 'rgba(20,20,30,0.95)',
+                    background: state === 'purchased'
+                      ? 'rgba(16,28,22,1)'
+                      : state === 'available'
+                      ? 'rgba(26,24,14,1)'
+                      : 'rgba(18,18,24,0.7)',
+
+                    border: state === 'purchased'
+                      ? '2px solid rgba(0,255,153,0.5)'
+                      : state === 'available'
+                      ? '2px solid rgba(255,221,0,0.5)'
+                      : '2px solid rgba(255,255,255,0.1)',
+                    opacity: 1,
                     borderRadius: 10,
                     padding: '10px 12px 9px',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: 5,
-                    border: state === 'purchased'
-                      ? '1px solid rgba(0,255,153,0.4)'
-                      : state === 'available'
-                      ? '1px solid rgba(255,221,0,0.35)'
-                      : '0.5px solid rgba(255,255,255,0.09)',
-                    opacity: state === 'locked' ? 0.4 : 1,
                     cursor: state === 'available' ? 'pointer' : 'default',
                     transition: 'border-color 0.15s, background 0.15s',
                   }}
