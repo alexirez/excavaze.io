@@ -163,14 +163,14 @@ export default function UpgradesScreen({ onBack, purchasedUpgrades = [] }: Props
             background: 'none', border: '3px solid rgba(255,255,255,0.2)',
             borderRadius: 7, padding: '7px 14px', cursor: 'pointer',
             color: 'rgba(255,255,255,0.5)', fontFamily: "'Share Tech', monospace",
-            fontSize: 54, letterSpacing: 1, zIndex: 50,
+            fontSize: 48, letterSpacing: 1, zIndex: 50,
           }}
           onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.5)'}
           onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'}
         >
           ← Close
         </button>
-        <span style={{ fontSize: 48, letterSpacing: 3, textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', zIndex: 50, }}>
+        <span style={{ fontSize: 42, letterSpacing: 3, textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', zIndex: 50, }}>
           upgrades
         </span>
 
@@ -179,7 +179,7 @@ export default function UpgradesScreen({ onBack, purchasedUpgrades = [] }: Props
           <button
             onClick={() => handleZoom(-1)}
             style={{
-              width: 64, height: 64, background: 'rgba(255,255,255,0.06)',
+              width: 54, height: 54, background: 'rgba(255,255,255,0.06)',
               border: '0.7px solid rgba(255,255,255,0.13)', borderRadius: 6,
               color: 'rgba(255,255,255,0.5)', fontSize: 48, cursor: 'pointer',
               fontFamily: 'monospace', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -188,13 +188,13 @@ export default function UpgradesScreen({ onBack, purchasedUpgrades = [] }: Props
             onMouseEnter={e => e.currentTarget.style.color = 'white'}
             onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.5)'}
           >-</button>
-          <span style={{ fontSize: 36, letterSpacing: 1, color: 'rgba(255,255,255,0.3)', minWidth: 72, textAlign: 'center', zIndex: 50, }}>
+          <span style={{ fontSize: 30, letterSpacing: 1, color: 'rgba(255,255,255,0.3)', minWidth: 72, textAlign: 'center', zIndex: 50, }}>
             {Math.round(zoom * 100)}%
           </span>
           <button
             onClick={() => handleZoom(1)}
             style={{
-              width: 64, height: 64, background: 'rgba(255,255,255,0.06)',
+              width: 54, height: 54, background: 'rgba(255,255,255,0.06)',
               border: '0.7px solid rgba(255,255,255,0.13)', borderRadius: 6,
               color: 'rgba(255,255,255,0.5)', fontSize: 32, cursor: 'pointer',
               fontFamily: 'monospace', display: 'flex', alignItems: 'center', justifyContent: 'center',
