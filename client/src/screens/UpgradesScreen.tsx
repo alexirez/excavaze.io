@@ -184,6 +184,7 @@ export default function UpgradesScreen({ onBack, purchasedUpgrades = [] }: Props
         display: 'flex', alignItems: 'center', gap: 16,
         padding: '16px 36px',
         flexShrink: 0,
+        background: 'none',
       }}>
         <button
           onClick={onBack}
@@ -239,7 +240,7 @@ export default function UpgradesScreen({ onBack, purchasedUpgrades = [] }: Props
         ref={containerRef}
         className="upgrade-canvas"
         onScroll={() => forceUpdate(x => x + 1)}
-        style={{ flex: 1, overflow: 'scroll', position: 'relative', }}
+        style={{ flex: 1, overflow: 'scroll', position: 'relative', background: 'transparent', zIndex: 5}}
       >
         <canvas
         ref={bgCanvasRef}
@@ -252,7 +253,7 @@ export default function UpgradesScreen({ onBack, purchasedUpgrades = [] }: Props
         }}
       />
         {/* wrapper sized to zoomed canvas so scrollbars are accurate */}
-        <div style={{ width: baseCanvasW * zoom, height: baseCanvasH * zoom, position: 'relative' }}>
+        <div style={{ width: baseCanvasW * zoom, height: baseCanvasH * zoom, position: 'relative', zIndex: 5 }}>
 
           {/* scaled inner canvas */}
           <div style={{
@@ -301,6 +302,7 @@ export default function UpgradesScreen({ onBack, purchasedUpgrades = [] }: Props
                     gap: 5,
                     cursor: state === 'available' ? 'pointer' : 'default',
                     transition: 'border-color 0.15s, background 0.15s',
+                    zIndex: 99
                   }}
                   onMouseEnter={e => {
                     if (state === 'available') {
@@ -315,7 +317,7 @@ export default function UpgradesScreen({ onBack, purchasedUpgrades = [] }: Props
                     }
                   }}
                 >
-                  <div style={{ fontSize: 26, color: 'rgba(255,255,255,0.38)', lineHeight: 1.5, fontFamily: 'sans-serif', padding:'0px 7px 0px 7px' }}>
+                  <div style={{ fontSize: 26, color: 'rgba(255,255,255,0.38)', lineHeight: 1.5, fontFamily: 'sans-serif', padding:'0px 7px 0px 7px', zIndex: 99 }}>
                     {node.desc}
                   </div>
 
