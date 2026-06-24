@@ -281,7 +281,7 @@ export default function StartMenu({ onPlay, onUpgrades, online, setOnline, gems 
             }}
           >
             <div style={{ fontSize: 10, letterSpacing: 2, color: 'rgba(255,221,0,0.72)', textTransform: 'uppercase', marginBottom: 6 }}>upgrades</div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.7 }}>Unlock permanent upgrades here with diamonds.</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.7 }}>Unlock permanent upgrades here with gems.</div>
           </div>
           <div style={{
             flex: 1, background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.07)',

@@ -281,7 +281,7 @@ export default function UpgradesScreen({ onBack, purchasedUpgrades = [] }: Props
                     position: 'absolute',
                     left: node.x + NODES_OFFSET_X,
                     top: node.y + NODES_OFFSET_Y,
-                    width: 130,
+                    width: 160,
                     background: state === 'purchased'
                       ? 'rgba(16,28,22,1)'
                       : state === 'available'
@@ -315,21 +315,21 @@ export default function UpgradesScreen({ onBack, purchasedUpgrades = [] }: Props
                     }
                   }}
                 >
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', lineHeight: 1.5, fontFamily: 'sans-serif' }}>
+                  <div style={{ fontSize: 26, color: 'rgba(255,255,255,0.38)', lineHeight: 1.5, fontFamily: 'sans-serif', padding:'0px 7px 0px 7px' }}>
                     {node.desc}
                   </div>
 
                   {state === 'purchased' && (
-                    <div style={{ fontSize: 9, letterSpacing: 1.5, color: 'rgba(0,255,153,0.55)' }}>✓ owned</div>
+                    <div style={{ fontSize: 22, paddingLeft: 7, letterSpacing: 1.5, color: 'rgba(0,255,153,0.55)' }}>✓ owned</div>
                   )}
                   {state === 'locked' && (
-                    <div style={{ fontSize: 9, letterSpacing: 1, color: 'rgba(255,255,255,0.2)' }}>🔒 locked</div>
+                    <div style={{ fontSize: 16, paddingLeft: 7, letterSpacing: 1, color: 'rgba(255,255,255,0.2)' }}>🔒 locked</div>
                   )}
                   {state === 'available' && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 2 }}>
+                    <div style={{ display: 'flex', paddingLeft: 7, flexWrap: 'wrap', gap: 5, marginTop: 2 }}>
                       {node.cost.map((c, i) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, letterSpacing: 1, color: 'rgba(255,255,255,0.5)' }}>
-                          <img src={CURRENCY_ICONS[c.currency]} alt={c.currency} style={{ width: 11, height: 11 }} />
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 22, letterSpacing: 1, color: 'rgba(255,255,255,0.5)' }}>
+                          <img src={CURRENCY_ICONS[c.currency]} alt={c.currency} style={{ width: 24, height: 24 }} />
                           <span>{c.amount}</span>
                         </div>
                       ))}
