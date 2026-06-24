@@ -36,6 +36,53 @@ export default function UpgradesScreen({ onBack, purchasedUpgrades = [] }: Props
   const baseCanvasW = Math.max(...UPGRADE_NODES.map(n => n.x)) + 200 + CANVAS_PAD
   const baseCanvasH = Math.max(...UPGRADE_NODES.map(n => n.y)) + 200 + CANVAS_PAD
 
+  const bgCanvasRef = useRef<HTMLCanvasElement>(null)
+
+  useEffect(() => {
+    const canvas = bgCanvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')!
+    const W = canvas.width = window.innerWidth
+    const H = canvas.height = window.innerHeight
+
+    ctx.fillStyle = 'rgb(11,11,17)'
+    ctx.fillRect(0, 0, W, H)
+
+    // Pointy-top hexagons, flat rows
+    const size = 52  // circumradius
+    const hexW = Math.sqrt(3) * size
+    const hexH = 2 * size
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)'
+    ctx.lineWidth = 0.5
+
+    const cols = Math.ceil(W / hexW) + 2
+    const rows = Math.ceil(H / (hexH * 0.75)) + 2
+
+    for (let row = -1; row < rows; row++) {
+      for (let col = -1; col < cols; col++) {
+        const cx = col * hexW + (row % 2 === 0 ? 0 : hexW / 2)
+        const cy = row * hexH * 0.75
+        ctx.beginPath()
+        for (let i = 0; i < 6; i++) {
+          const angle = (Math.PI / 180) * (60 * i - 30)  // pointy-top
+          const x = cx + size * Math.cos(angle)
+          const y = cy + size * Math.sin(angle)
+          i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)
+        }
+        ctx.closePath()
+        ctx.stroke()
+      }
+    }
+
+    // Radial vignette on top
+    const grad = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W, H) * 0.75)
+    grad.addColorStop(0, 'rgba(11,11,17,0)')
+    grad.addColorStop(1, 'rgba(6,6,10,0.85)')
+    ctx.fillStyle = grad
+    ctx.fillRect(0, 0, W, H)
+  }, [])
+
   useEffect(() => {
     setTimeout(() => forceUpdate(x => x + 1), 50)
   }, [])
@@ -97,10 +144,12 @@ export default function UpgradesScreen({ onBack, purchasedUpgrades = [] }: Props
       display: 'flex',
       flexDirection: 'column',
     }}>
-      <style>{`
-        .upgrade-scroll::-webkit-scrollbar { display: none; }
-        .upgrade-scroll { -ms-overflow-style: none; scrollbar-width: none; }
-      `}</style>
+      <style>{
+      `
+        .upgrade-canvas::-webkit-scrollbar { display: none; }
+        .upgrade-canvas { -ms-overflow-style: none; scrollbar-width: none; }
+      `
+      }</style>
 
       {/* header */}
       <div style={{
@@ -115,14 +164,14 @@ export default function UpgradesScreen({ onBack, purchasedUpgrades = [] }: Props
             background: 'none', border: '0.5px solid rgba(255,255,255,0.2)',
             borderRadius: 7, padding: '7px 14px', cursor: 'pointer',
             color: 'rgba(255,255,255,0.5)', fontFamily: "'Share Tech', monospace",
-            fontSize: 12, letterSpacing: 1,
+            fontSize: 12, letterSpacing: 1, zIndex: 50,
           }}
           onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.5)'}
           onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'}
         >
           ← back
         </button>
-        <span style={{ fontSize: 11, letterSpacing: 3, textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)' }}>
+        <span style={{ fontSize: 11, letterSpacing: 3, textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', zIndex: 50, }}>
           upgrades
         </span>
 
@@ -131,24 +180,26 @@ export default function UpgradesScreen({ onBack, purchasedUpgrades = [] }: Props
           <button
             onClick={() => handleZoom(-1)}
             style={{
-              width: 28, height: 28, background: 'rgba(255,255,255,0.06)',
+              width: 54, height: 54, background: 'rgba(255,255,255,0.06)',
               border: '0.5px solid rgba(255,255,255,0.13)', borderRadius: 6,
               color: 'rgba(255,255,255,0.5)', fontSize: 24, cursor: 'pointer',
               fontFamily: 'monospace', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              zIndex: 50,
             }}
             onMouseEnter={e => e.currentTarget.style.color = 'white'}
             onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.5)'}
           >-</button>
-          <span style={{ fontSize: 10, letterSpacing: 1, color: 'rgba(255,255,255,0.3)', minWidth: 36, textAlign: 'center' }}>
+          <span style={{ fontSize: 24, letterSpacing: 1, color: 'rgba(255,255,255,0.3)', minWidth: 72, textAlign: 'center', zIndex: 50, }}>
             {Math.round(zoom * 100)}%
           </span>
           <button
             onClick={() => handleZoom(1)}
             style={{
-              width: 28, height: 28, background: 'rgba(255,255,255,0.06)',
+              width: 54, height: 54, background: 'rgba(255,255,255,0.06)',
               border: '0.5px solid rgba(255,255,255,0.13)', borderRadius: 6,
               color: 'rgba(255,255,255,0.5)', fontSize: 16, cursor: 'pointer',
               fontFamily: 'monospace', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              zIndex: 50,
             }}
             onMouseEnter={e => e.currentTarget.style.color = 'white'}
             onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.5)'}
@@ -159,14 +210,20 @@ export default function UpgradesScreen({ onBack, purchasedUpgrades = [] }: Props
       {/* scrollable canvas */}
       <div
         ref={containerRef}
-        className="upgrade-scroll"
+        className="upgrade-canvas"
         onScroll={() => forceUpdate(x => x + 1)}
-        style={{
-          flex: 1,
-          overflow: 'scroll',
-          position: 'relative',
-        }}
+        style={{ flex: 1, overflow: 'scroll', position: 'relative', }}
       >
+        <canvas
+        ref={bgCanvasRef}
+        style={{
+          position: 'fixed',
+          top: 0, left: 0,
+          width: '100%', height: '100%',
+          pointerEvents: 'none',
+          zIndex: 0,
+        }}
+      />
         {/* wrapper sized to zoomed canvas so scrollbars are accurate */}
         <div style={{ width: baseCanvasW * zoom, height: baseCanvasH * zoom, position: 'relative' }}>
 
