@@ -39,6 +39,13 @@ export default function UpgradesScreen({ onBack, purchasedUpgrades = [] }: Props
   const bgCanvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
+    if (containerRef.current) {
+      containerRef.current.scrollLeft = 700  // adjust to your desired x
+      containerRef.current.scrollTop = 0   // adjust to your desired y
+    }
+  }, [])
+
+  useEffect(() => {
     const canvas = bgCanvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')!
