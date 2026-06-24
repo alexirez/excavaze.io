@@ -183,7 +183,7 @@ export default function UpgradesScreen({ onBack, purchasedUpgrades = [] }: Props
       <div style={{
         display: 'flex', alignItems: 'center', gap: 16,
         padding: '16px 36px',
-        flexShrink: 0,
+        position: 'absolute', top: 0, left: 0, right: 0,
         background: 'none',
       }}>
         <button
@@ -204,7 +204,13 @@ export default function UpgradesScreen({ onBack, purchasedUpgrades = [] }: Props
         </span>
 
         {/* zoom controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 16,
+          padding: '16px 36px',
+          marginLeft: 'auto',
+          background: 'none',
+          zIndex: 100,
+        }}>
           <button
             onClick={() => handleZoom(-1)}
             style={{
@@ -262,6 +268,20 @@ export default function UpgradesScreen({ onBack, purchasedUpgrades = [] }: Props
             transform: `scale(${zoom})`,
             transformOrigin: '0 0',
           }}>
+
+            {/* UPGRADES label */}
+            <div style={{
+              position: 'absolute',
+              left: 1200,
+              top: 30,
+            }}>
+              <div style={{ fontSize: 128, letterSpacing: 6, color: 'rgba(255,255,255,0.15)', textTransform: 'uppercase' }}>
+                upgrades
+              </div>
+              <div style={{ fontSize: 54, color: 'rgba(255,255,255,0.25)', letterSpacing: 2, textAlign: 'center' }}>
+                {purchasedUpgrades.length} / {UPGRADE_NODES.length} unlocked
+              </div>
+            </div>
 
             {/* svg connector layer */}
             <svg
