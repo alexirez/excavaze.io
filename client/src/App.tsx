@@ -4,7 +4,7 @@ import StartMenu from './screens/StartMenu'
 import GameHud from './screens/GameHud'
 import UpgradesScreen from './screens/UpgradesScreen'
 import { socket, ONLINE_SERVER_URL, LOCAL_SERVER_URL } from './network/socket'
-import { loadOfflineGems, saveOfflineGems } from '../storage/offlineStorage'
+import { loadOfflineGems } from '../storage/offlineStorage'
 
 type Screen = 'startMenu' | 'game' | 'upgrades'
 

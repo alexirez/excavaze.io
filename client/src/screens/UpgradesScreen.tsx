@@ -133,12 +133,12 @@ export default function UpgradesScreen({ onBack, purchasedUpgrades = [] }: Props
             style={{
               width: 28, height: 28, background: 'rgba(255,255,255,0.06)',
               border: '0.5px solid rgba(255,255,255,0.13)', borderRadius: 6,
-              color: 'rgba(255,255,255,0.5)', fontSize: 16, cursor: 'pointer',
+              color: 'rgba(255,255,255,0.5)', fontSize: 24, cursor: 'pointer',
               fontFamily: 'monospace', display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
             onMouseEnter={e => e.currentTarget.style.color = 'white'}
             onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.5)'}
-          >−</button>
+          >-</button>
           <span style={{ fontSize: 10, letterSpacing: 1, color: 'rgba(255,255,255,0.3)', minWidth: 36, textAlign: 'center' }}>
             {Math.round(zoom * 100)}%
           </span>
