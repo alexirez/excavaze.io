@@ -107,10 +107,38 @@ export default function UpgradesScreen({ onBack, purchasedUpgrades = [] }: Props
         const tr = toEl.getBoundingClientRect()
         const scroll = containerRef.current!
 
-        const fx = (fr.left - containerRect.left + scroll.scrollLeft) / zoom + fr.width / zoom / 2
-        const fy = (fr.top - containerRect.top + scroll.scrollTop) / zoom + fr.height / zoom
-        const tx = (tr.left - containerRect.left + scroll.scrollLeft) / zoom + tr.width / zoom / 2
-        const ty = (tr.top - containerRect.top + scroll.scrollTop) / zoom
+        const fx_center = (fr.left - containerRect.left + scroll.scrollLeft) / zoom + fr.width / zoom / 2
+        const fy_center = (fr.top - containerRect.top + scroll.scrollTop) / zoom + fr.height / zoom / 2
+        const tx_center = (tr.left - containerRect.left + scroll.scrollLeft) / zoom + tr.width / zoom / 2
+        const ty_center = (tr.top - containerRect.top + scroll.scrollTop) / zoom + tr.height / zoom / 2
+
+        const dx = tx_center - fx_center
+        const dy = ty_center - fy_center
+
+        let fx, fy, tx, ty
+        if (Math.abs(dy) >= Math.abs(dx)) {
+          // primarily vertical — connect top/bottom
+          if (dy > 0) {
+            // child is below
+            fx = fx_center; fy = fy_center + fr.height / zoom / 2
+            tx = tx_center; ty = ty_center - tr.height / zoom / 2
+          } else {
+            // child is above
+            fx = fx_center; fy = fy_center - fr.height / zoom / 2
+            tx = tx_center; ty = ty_center + tr.height / zoom / 2
+          }
+        } else {
+          // primarily horizontal — connect left/right
+          if (dx > 0) {
+            // child is to the right
+            fx = fx_center + fr.width / zoom / 2; fy = fy_center
+            tx = tx_center - tr.width / zoom / 2; ty = ty_center
+          } else {
+            // child is to the left
+            fx = fx_center - fr.width / zoom / 2; fy = fy_center
+            tx = tx_center + tr.width / zoom / 2; ty = ty_center
+          }
+        }
 
         const cy = (fy + ty) / 2
         const parentState = getState(parentNode, purchasedUpgrades)
