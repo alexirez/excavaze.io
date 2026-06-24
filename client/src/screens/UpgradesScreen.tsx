@@ -315,7 +315,6 @@ export default function UpgradesScreen({ onBack, purchasedUpgrades = [] }: Props
                     }
                   }}
                 >
-                  <img src={`/assets/${node.icon}`} alt="" style={{ width: 128, height: 128 }} />
                   <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', lineHeight: 1.5, fontFamily: 'sans-serif' }}>
                     {node.desc}
                   </div>
