@@ -12,7 +12,7 @@ export const UPGRADE_NODES: UpgradeNode[] = [
     {
         id: 'drill_dmg_1',
         desc: '+1% drill damage.',
-        icon: 'gem.svg',
+        icon: 'drill-DMG.svg',
         cost: [{ currency: 'gem', amount: 30 }],
         parents: [],
         x: 200,
@@ -21,7 +21,7 @@ export const UPGRADE_NODES: UpgradeNode[] = [
     {
         id: 'drill_dmg_2',
         desc: '+2% drill damage.',
-        icon: 'gem.svg',
+        icon: 'drill-DMG.svg',
         cost: [{ currency: 'gem', amount: 120 }],
         parents: ['drill_dmg_1'],
         x: 420,
@@ -30,7 +30,7 @@ export const UPGRADE_NODES: UpgradeNode[] = [
     {
         id: 'drill_dmg_3',
         desc: '+3% drill damage.',
-        icon: 'gem.svg',
+        icon: 'drill-DMG.svg',
         cost: [{ currency: 'gem', amount: 450 }],
         parents: ['drill_dmg_2'],
         x: 640,
@@ -39,7 +39,7 @@ export const UPGRADE_NODES: UpgradeNode[] = [
     {
         id: 'drill_dmg_4',
         desc: '+4% drill damage.',
-        icon: 'gem.svg',
+        icon: 'drill-DMG.svg',
         cost: [{ currency: 'gem', amount: 1080 }],
         parents: ['drill_dmg_3'],
         x: 860,
@@ -48,7 +48,7 @@ export const UPGRADE_NODES: UpgradeNode[] = [
     {
         id: 'drill_dmg_5',
         desc: '+5% drill damage.',
-        icon: 'gem.svg',
+        icon: 'drill-DMG.svg',
         cost: [{ currency: 'gem', amount: 1600 }],
         parents: ['drill_dmg_4'],
         x: 1080,
@@ -102,7 +102,7 @@ export const UPGRADE_NODES: UpgradeNode[] = [
     {
         id: 'drill_length_1',
         desc: '+1% drill length.',
-        icon: 'gem.svg',
+        icon: 'drill-length.svg',
         cost: [{ currency: 'gem', amount: 30 }],
         parents: [],
         x: 200,
@@ -111,7 +111,7 @@ export const UPGRADE_NODES: UpgradeNode[] = [
     {
         id: 'drill_length_2',
         desc: '+2% drill length.',
-        icon: 'gem.svg',
+        icon: 'drill-length.svg',
         cost: [{ currency: 'gem', amount: 120 }],
         parents: ['drill_length_1'],
         x: 420,
@@ -120,7 +120,7 @@ export const UPGRADE_NODES: UpgradeNode[] = [
     {
         id: 'drill_length_3',
         desc: '+3% drill length.',
-        icon: 'gem.svg',
+        icon: 'drill-length.svg',
         cost: [{ currency: 'gem', amount: 450 }],
         parents: ['drill_length_2'],
         x: 640,
@@ -129,7 +129,7 @@ export const UPGRADE_NODES: UpgradeNode[] = [
     {
         id: 'drill_length_4',
         desc: '+4% drill length.',
-        icon: 'gem.svg',
+        icon: 'drill-length.svg',
         cost: [{ currency: 'gem', amount: 1080 }],
         parents: ['drill_length_3'],
         x: 860,
@@ -138,7 +138,7 @@ export const UPGRADE_NODES: UpgradeNode[] = [
     {
         id: 'drill_length_5',
         desc: '+5% drill length.',
-        icon: 'gem.svg',
+        icon: 'drill-length.svg',
         cost: [{ currency: 'gem', amount: 1600 }],
         parents: ['drill_length_4'],
         x: 1080,

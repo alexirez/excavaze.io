@@ -295,7 +295,7 @@ export default function UpgradesScreen({ onBack, purchasedUpgrades = [] }: Props
                       : '2px solid rgba(255,255,255,0.1)',
                     opacity: 1,
                     borderRadius: 10,
-                    padding: '10px 12px 9px',
+                    padding: '10px 0px 9px',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: 5,
@@ -315,7 +315,7 @@ export default function UpgradesScreen({ onBack, purchasedUpgrades = [] }: Props
                     }
                   }}
                 >
-                  <img src={`/assets/${node.icon}`} alt="" style={{ width: 24, height: 24 }} />
+                  <img src={`/assets/${node.icon}`} alt="" style={{ width: 128, height: 128 }} />
                   <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', lineHeight: 1.5, fontFamily: 'sans-serif' }}>
                     {node.desc}
                   </div>
