@@ -1,5 +1,5 @@
-import { PLAYER_BASE_HP, PLAYER_BASE_RADIUS, PLAYER_BASE_SPEED, TICK_MS } from "./constants"
-import { PlayerState } from "./types"
+import { PLAYER_BASE_HP, PLAYER_BASE_RADIUS, PLAYER_BASE_SPEED, TICK_MS } from "../constants"
+import { PlayerState } from "../types"
 
 export interface PerkDef {
     title: string

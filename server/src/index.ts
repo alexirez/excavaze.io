@@ -5,7 +5,7 @@ import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUA
 import { circleIntersectsTriangle, currentLevel, xpForLevel } from '../../protocol/utils'
 import { PlayerState, SquareState } from '../../protocol/types'
 import { computeBotInput } from '../../protocol/bot-behavior'
-import { activateCurrentPerks, isDrillPerk, PERK_TREE, removeDrillPerks } from '../../protocol/perks'
+import { activateCurrentPerks, isDrillPerk, PERK_TREE, removeDrillPerks } from '../../protocol/data/perks'
 import { assignNextPlayerId, fillMapSquares, getChunkIndex, getNearbySquareIds, pickPlayerSpawnPoint, spawnBots, spawnSquaresOnStartup } from '../../protocol/world'
 
 const PORT = 3000

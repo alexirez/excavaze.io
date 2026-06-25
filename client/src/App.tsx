@@ -5,7 +5,7 @@ import GameHud from './screens/GameHud'
 import UpgradesScreen from './screens/UpgradesScreen'
 import { socket, ONLINE_SERVER_URL, LOCAL_SERVER_URL } from './network/socket'
 import { loadOfflineGems, saveOfflineGems, loadOfflineUpgrades, saveOfflineUpgrades } from '../storage/offlineStorage'
-import { UPGRADE_NODES } from '../../protocol/upgrade-nodes'
+import { UPGRADE_NODES } from '../../protocol/data/upgrade-nodes'
 
 type Screen = 'startMenu' | 'game' | 'upgrades'
 

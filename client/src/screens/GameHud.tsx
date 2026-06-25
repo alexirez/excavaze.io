@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { socket, addSocketListener, getLocalId } from '../network/socket'
 import { RespawnMessage, ServerMessage } from '../../../protocol/messages'
 import { currentLevel, xpForNextLevel, xpThisLevel } from '../../../protocol/utils'
-import { PERK_TREE, RARITY_CONFIG, rollPerkChoices } from '../../../protocol/perks'
+import { PERK_TREE, RARITY_CONFIG, rollPerkChoices } from '../../../protocol/data/perks'
 
 interface KillFeedEntry {
   id: number
