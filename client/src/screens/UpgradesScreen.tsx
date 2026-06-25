@@ -3,7 +3,10 @@ import { UPGRADE_NODES, UpgradeNode } from '../../../protocol/upgrade-nodes'
 
 interface Props {
   onBack: () => void
+  online: boolean
+  gems: number
   purchasedUpgrades?: string[]
+  onPurchase: (nodeId: string) => void
 }
 
 const CURRENCY_ICONS: Record<string, string> = {
@@ -26,7 +29,7 @@ const ZOOM_STEP = 0.1
 const ZOOM_MIN = 0.5
 const ZOOM_MAX = 1.6
 
-export default function UpgradesScreen({ onBack, purchasedUpgrades = [] }: Props) {
+export default function UpgradesScreen({ onBack, online, gems, purchasedUpgrades = [], onPurchase }: Props) {
   const svgRef = useRef<SVGSVGElement>(null)
   const nodeRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const containerRef = useRef<HTMLDivElement>(null)
@@ -330,6 +333,9 @@ export default function UpgradesScreen({ onBack, purchasedUpgrades = [] }: Props
                     cursor: state === 'available' ? 'pointer' : 'default',
                     transition: 'border-color 0.15s, background 0.15s',
                     zIndex: 99
+                  }}
+                  onClick={() => {
+                    if (state === 'available') onPurchase(node.id)
                   }}
                   onMouseEnter={e => {
                     if (state === 'available') {

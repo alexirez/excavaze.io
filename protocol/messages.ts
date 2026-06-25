@@ -20,6 +20,10 @@ export interface WelcomeMessage {
   type: 'welcome'
   id: number
   gems: number
+  greenCores: number
+  purpleCores: number
+  yellowCores: number
+  upgrades: string[]
 }
 
 export interface LevelUpMessage {
