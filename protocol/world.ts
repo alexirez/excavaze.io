@@ -8,7 +8,7 @@ let nextPlayerId = 0
 let nextSquareId = 0
 const chunkHeat = new Float32Array(CHUNK_ROWS * CHUNK_COLS)
 
-export function spawnSquaresOnStartup(squares: Map<number, ServerSquare>) { // Only called on server startup, afterwards use fillMapSquares()
+export function spawnSquaresOnStartup(squares: Map<number, ServerSquare>, chunkToSquares: Map<number, Set<number>>) { // Only called on server startup, afterwards use fillMapSquares()
   const chunkW = WORLD_WIDTH / CHUNK_COLS
   const chunkH = WORLD_HEIGHT / CHUNK_ROWS
 
@@ -31,6 +31,8 @@ export function spawnSquaresOnStartup(squares: Map<number, ServerSquare>) { // O
           rotationSpeed: Math.max(-MAX_SQR_ROT_SPEED, Math.min(MAX_SQR_ROT_SPEED, 
             (Math.random() - 0.5) * 2 * SQR_BASE_ROT_SPEED))
         })
+        const chunkIndex = row * CHUNK_COLS + col
+        chunkToSquares.get(chunkIndex)?.add(id)
       }
     }
   }
@@ -178,7 +180,7 @@ function spawnBot(x: number, y: number, players: Map<number, ServerPlayer>) {
   const dangerLevel = DANGER_MAP[getChunkIndex(x, y)]
   const strengthMultiplier = dangerLevel * Math.random()
   const radius = 20 + 12 * (strengthMultiplier)
-  const id = nextPlayerId++
+  const id = assignNextPlayerId()
   players.set(id, {
     socket: null,
     state: {

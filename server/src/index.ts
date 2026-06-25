@@ -27,7 +27,7 @@ const chunkToSquares = new Map<number, Set<number>>()
 for (let i = 0; i < CHUNK_ROWS * CHUNK_COLS; i++)
   chunkToSquares.set(i, new Set())
 
-spawnSquaresOnStartup(squares)
+spawnSquaresOnStartup(squares, chunkToSquares)
 
 console.log('')
 wss.on('connection', (socket) => {
