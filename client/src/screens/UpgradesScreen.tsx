@@ -6,7 +6,7 @@ interface Props {
   online: boolean
   gems: number
   purchasedUpgrades?: string[]
-  onPurchase: (nodeId: string) => void
+  onPurchase: (nodeId: string) => Promise<boolean>
 }
 
 const CURRENCY_ICONS: Record<string, string> = {
@@ -35,6 +35,8 @@ export default function UpgradesScreen({ onBack, online, gems, purchasedUpgrades
   const containerRef = useRef<HTMLDivElement>(null)
   const [, forceUpdate] = useState(0)
   const [zoom, setZoom] = useState(1)
+  const [insufficientFunds, setInsufficientFunds] = useState(false)
+  const toastTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const baseCanvasW = Math.max(...UPGRADE_NODES.map(n => n.x)) + 200 + CANVAS_PAD
   const baseCanvasH = Math.max(...UPGRADE_NODES.map(n => n.y)) + 200 + CANVAS_PAD
@@ -100,6 +102,24 @@ export default function UpgradesScreen({ onBack, online, gems, purchasedUpgrades
   useEffect(() => {
     setTimeout(() => forceUpdate(x => x + 1), 30)
   }, [zoom])
+
+  const toastRef = useRef<HTMLDivElement>(null)
+
+  function showInsufficientFunds() {
+    if (toastTimeout.current) clearTimeout(toastTimeout.current)
+    const el = toastRef.current
+    if (!el) return
+
+    el.style.transition = 'none'
+    el.style.top = '-80px'
+    requestAnimationFrame(() => {
+      el.style.transition = 'top 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)'
+      el.style.top = '32px'
+      toastTimeout.current = setTimeout(() => {
+        el.style.top = '-80px'
+      }, 2000)
+    })
+  }
 
   function drawConnectors() {
     if (!svgRef.current || !containerRef.current) return null
@@ -188,6 +208,27 @@ export default function UpgradesScreen({ onBack, online, gems, purchasedUpgrades
         .upgrade-canvas { -ms-overflow-style: none; scrollbar-width: none; }
       `
       }</style>
+
+      <div
+        ref={toastRef}
+        style={{
+          position: 'fixed',
+          top: insufficientFunds ? 32 : -80,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(20, 10, 10, 0.95)',
+          border: '1.5px solid rgba(255, 80, 80, 0.5)',
+          borderRadius: 8,
+          padding: '12px 28px',
+          fontSize: 28,
+          letterSpacing: 2,
+          color: 'rgba(255, 100, 100, 0.9)',
+          pointerEvents: 'none',
+          zIndex: 200,
+          whiteSpace: 'nowrap',
+        }}>
+        NOT ENOUGH RESOURCES
+      </div>
 
       {/* header */}
       <div style={{
@@ -335,7 +376,11 @@ export default function UpgradesScreen({ onBack, online, gems, purchasedUpgrades
                     zIndex: 99
                   }}
                   onClick={() => {
-                    if (state === 'available') onPurchase(node.id)
+                    if (state === 'available') {
+                        onPurchase(node.id).then(success => {
+                          if (!success) showInsufficientFunds()
+                        })
+                      }
                   }}
                   onMouseEnter={e => {
                     if (state === 'available') {

@@ -51,22 +51,21 @@ export default function App() {
   return () => { cancelled = true }
 }, [online])
 
-async function handlePurchaseUpgrade(nodeId: string) {
+async function handlePurchaseUpgrade(nodeId: string): Promise<boolean> {
     if (online) {
-      // TODO: send WS message, wait for server confirmation
       socket.send(JSON.stringify({ type: 'purchase_upgrade', nodeId }))
-      return
+      return true // TODO: make it based off server response once that's implemented
     }
 
     // Offline: validate and apply locally
     const node = UPGRADE_NODES.find(n => n.id === nodeId)
-    if (!node) return
-    if (purchasedUpgrades.includes(nodeId)) return
-    if (!node.parents.every(pid => purchasedUpgrades.includes(pid))) return // Check parents are all purchased
+    if (!node) return false
+    if (purchasedUpgrades.includes(nodeId)) return false
+    if (!node.parents.every(pid => purchasedUpgrades.includes(pid))) return false // Check parents are all purchased
 
     // Check affordability (TODO: gems only for now — extend for cores later)
     for (const cost of node.cost) {
-      if (cost.currency === 'gem' && gems < cost.amount) return
+      if (cost.currency === 'gem' && gems < cost.amount) return false
     }
 
     // Apply
@@ -78,6 +77,7 @@ async function handlePurchaseUpgrade(nodeId: string) {
     setPurchasedUpgrades(newUpgrades)
     await saveOfflineGems(newGems)
     await saveOfflineUpgrades(newUpgrades)
+    return true
   }
 
   return (
