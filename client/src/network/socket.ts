@@ -97,8 +97,3 @@ export const socket = {
   connect,
   disconnect,
 }
-
-window.addEventListener('pagehide', () => {
-  shouldReconnect = false
-  current?.close()
-})

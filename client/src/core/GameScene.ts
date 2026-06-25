@@ -132,7 +132,7 @@ export class GameScene extends Phaser.Scene {
     }, 50)
 
     this.events.on('shutdown', () => {
-      console.log('[GameScene] shutdown fired')
+      console.trace('[GameScene] shutdown fired')
       this.removeSocketListener?.()
       this.removeSocketListener = null
     })

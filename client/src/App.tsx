@@ -18,37 +18,37 @@ export default function App() {
   const [purchasedUpgrades, setPurchasedUpgrades] = useState<string[]>([])
 
   useEffect(() => {
-  let cancelled = false
-  async function switchMode() {
-    phaserGame?.scene.stop('GameScene')
-    await socket.disconnect()
-    if (cancelled) return
-    if (online) {
-      socket.connect(ONLINE_SERVER_URL)
-      socket.onWelcome((id, gems, upgrades) => {
-        if (!cancelled) {
-          setGems(gems) 
-          setPurchasedUpgrades(upgrades ?? [])
-        }
-      })
-    } else {
-      socket.connect(LOCAL_SERVER_URL)
-      const [g, upgrades] = await Promise.all([
-          loadOfflineGems(),
-          loadOfflineUpgrades(),
-        ])
+    let cancelled = false
+    async function switchMode() {
+      phaserGame?.scene.stop('GameScene')
+      await socket.disconnect()
       if (cancelled) return
-      setGems(g)
-      setPurchasedUpgrades(upgrades)
-      socket.onWelcome(async (id, gems) => {
-        //
-      })
+      if (online) {
+        socket.connect(ONLINE_SERVER_URL)
+        socket.onWelcome((id, gems, upgrades) => {
+          if (!cancelled) {
+            setGems(gems) 
+            setPurchasedUpgrades(upgrades ?? [])
+          }
+        })
+      } else {
+        socket.connect(LOCAL_SERVER_URL)
+        const [g, upgrades] = await Promise.all([
+            loadOfflineGems(),
+            loadOfflineUpgrades(),
+          ])
+        if (cancelled) return
+        setGems(g)
+        setPurchasedUpgrades(upgrades)
+        socket.onWelcome(async (id, gems) => {
+          //
+        })
+      }
+      phaserGame?.scene.start('GameScene')
     }
-    phaserGame?.scene.start('GameScene')
-  }
-  switchMode()
-  return () => { cancelled = true }
-}, [online])
+    switchMode()
+    return () => { cancelled = true }
+  }, [online])
 
 async function handlePurchaseUpgrade(nodeId: string): Promise<boolean> {
     if (online) {
