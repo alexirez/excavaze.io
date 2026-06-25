@@ -10,11 +10,10 @@ import { awardXp, circleIntersectsOrientedRect, getDrillDamageOnCircle, getDrill
 
 const PORT = 3000
 const SQUARE_SPEED = 0.5  // multiplies square drifting speed
-
 let tick = 0
 
 const wss = new WebSocketServer({ port: PORT })
-console.log(`Server running on ws://localhost:${PORT}`)
+console.log(`Server running on ws://localhost:${PORT}\n`)
 
 const players = new Map<number, ServerPlayer>()
 const squares = new Map<number, ServerSquare>()
@@ -29,7 +28,6 @@ for (let i = 0; i < CHUNK_ROWS * CHUNK_COLS; i++)
 
 spawnSquaresOnStartup(squares, chunkToSquares)
 
-console.log('')
 wss.on('connection', (socket) => {
   const id = assignNextPlayerId()
   console.log(`${'\x1b[32m'}Player ${id} connected${'\x1b[0m'}`)
