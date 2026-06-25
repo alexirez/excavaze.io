@@ -40,7 +40,7 @@ export default function UpgradesScreen({ onBack, purchasedUpgrades = [] }: Props
 
   useEffect(() => {
     if (containerRef.current) {
-      containerRef.current.scrollLeft = 700  // adjust to your desired x
+      containerRef.current.scrollLeft = 200  // adjust to your desired x
       containerRef.current.scrollTop = 0   // adjust to your desired y
     }
   }, [])
@@ -279,7 +279,7 @@ export default function UpgradesScreen({ onBack, purchasedUpgrades = [] }: Props
             {/* UPGRADES label */}
             <div style={{
               position: 'absolute',
-              left: 1200,
+              left: 720,
               top: 30,
             }}>
               <div style={{ fontSize: 128, letterSpacing: 6, color: 'rgba(255,255,255,0.15)', textTransform: 'uppercase' }}>
@@ -309,7 +309,7 @@ export default function UpgradesScreen({ onBack, purchasedUpgrades = [] }: Props
                     position: 'absolute',
                     left: node.x + NODES_OFFSET_X,
                     top: node.y + NODES_OFFSET_Y,
-                    width: 160,
+                    width: 100,
                     background: state === 'purchased'
                       ? 'rgba(16,28,22,1)'
                       : state === 'available'
@@ -344,15 +344,15 @@ export default function UpgradesScreen({ onBack, purchasedUpgrades = [] }: Props
                     }
                   }}
                 >
-                  <div style={{ fontSize: 26, color: 'rgba(255,255,255,0.38)', lineHeight: 1.5, fontFamily: 'sans-serif', padding:'0px 7px 0px 7px', zIndex: 99 }}>
+                  <div style={{ fontSize: 16, color: 'rgba(255,255,255,0.38)', lineHeight: 1.5, fontFamily: 'sans-serif', padding:'0px 7px 0px 7px', zIndex: 99 }}>
                     {node.desc}
                   </div>
 
                   {state === 'purchased' && (
-                    <div style={{ fontSize: 22, paddingLeft: 7, letterSpacing: 1.5, color: 'rgba(0,255,153,0.55)' }}>✓ owned</div>
+                    <div style={{ fontSize: 16, paddingLeft: 7, letterSpacing: 1.5, color: 'rgba(0,255,153,0.55)' }}>✓ owned</div>
                   )}
                   {state === 'locked' && (
-                    <div style={{ fontSize: 16, paddingLeft: 7, letterSpacing: 1, color: 'rgba(255,255,255,0.2)' }}>🔒 locked</div>
+                    <div style={{ fontSize: 12, paddingLeft: 7, letterSpacing: 1, color: 'rgba(255,255,255,0.2)' }}>🔒 locked</div>
                   )}
                   {state === 'available' && (
                     <div style={{ display: 'flex', paddingLeft: 7, flexWrap: 'wrap', gap: 5, marginTop: 2 }}>
