@@ -38,6 +38,7 @@ function connect(url: string): void {
 }
 
 function disconnect(): Promise<void> {
+  console.log('[socket] disconnected')
   reconnectGeneration++
   shouldReconnect = false
   localId = null

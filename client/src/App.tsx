@@ -10,7 +10,7 @@ import { UPGRADE_NODES } from '../../protocol/upgrade-nodes'
 type Screen = 'startMenu' | 'game' | 'upgrades'
 
 export default function App() {
-  const [screen, setScreen] = useState<Screen>('upgrades')
+  const [screen, setScreen] = useState<Screen>('startMenu')
   const [playerName, setPlayerName] = useState('Player')
   const [isDead, setIsDead] = useState(true)
   const [online, setOnline] = useState(false)
@@ -18,6 +18,7 @@ export default function App() {
   const [purchasedUpgrades, setPurchasedUpgrades] = useState<string[]>([])
 
   useEffect(() => {
+    console.log('[App] useEffect ran, online =', online)
     let cancelled = false
     async function switchMode() {
       phaserGame?.scene.stop('GameScene')

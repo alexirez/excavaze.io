@@ -107,8 +107,8 @@ wss.on('connection', (socket) => {
         player.state.collectedPerks.push(msg.perkId)
         activateCurrentPerks(player.state)
       }
-    } catch {
-      // invalid JSON, ignore
+    } catch (e) {
+      console.error('[connection handler crash]', e)
     }
   })
 })
