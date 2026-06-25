@@ -24,7 +24,7 @@ export default function App() {
     await socket.disconnect()
     if (cancelled) return
     if (online) {
-      socket.connect(ONLINE_SERVER_URL) // gems etc arrive via 'welcome_message'
+      socket.connect(ONLINE_SERVER_URL)
       socket.onWelcome((id, gems, upgrades) => {
         if (!cancelled) {
           setGems(gems) 
@@ -33,16 +33,15 @@ export default function App() {
       })
     } else {
       socket.connect(LOCAL_SERVER_URL)
+      const [g, upgrades] = await Promise.all([
+          loadOfflineGems(),
+          loadOfflineUpgrades(),
+        ])
+      if (cancelled) return
+      setGems(g)
+      setPurchasedUpgrades(upgrades)
       socket.onWelcome(async (id, gems) => {
-        if (cancelled) return
-        const [g, upgrades] = await Promise.all([
-            loadOfflineGems(),
-            loadOfflineUpgrades(),
-          ])
-        if (!cancelled) {
-          setGems(g)
-          setPurchasedUpgrades(upgrades)
-        }
+        //
       })
     }
     phaserGame?.scene.start('GameScene')
