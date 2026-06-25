@@ -1,28 +1,17 @@
 import { WebSocketServer, WebSocket } from 'ws'
 import { ServerPlayer, ServerSquare } from './entities'
 import { WorldStateMessage, ClientMessage, DeathScreenMessage, PlayerKilledMessage } from '../../protocol/messages'
-import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, PLAYER_COLLISION_DAMAGE, MIN_OBSTACLE_SPAWN_DIST, SQR_BASE_ROT_SPEED, MAX_SQR_ROT_SPEED, KILL_SQUARE_XP_MULTIPLIER, STEAL_PLAYER_XP_MULTIPLIER, KILL_PLAYER_BASE_XP, SQR_COLLISION_BASE_DMG, SQR_COLLISION_DMG_FACTOR, COLLISION_COOLDOWN, PLAYER_BASE_RADIUS, PLAYER_BASE_SPEED } from '../../protocol/constants'
-import { DANGER_MAP, DENSITY_MAP } from './data/map'
+import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, PLAYER_COLLISION_DAMAGE, MIN_OBSTACLE_SPAWN_DIST, SQR_BASE_ROT_SPEED, MAX_SQR_ROT_SPEED, KILL_SQUARE_XP_MULTIPLIER, STEAL_PLAYER_XP_MULTIPLIER, KILL_PLAYER_BASE_XP, SQR_COLLISION_BASE_DMG, SQR_COLLISION_DMG_FACTOR, COLLISION_COOLDOWN, PLAYER_BASE_RADIUS, PLAYER_BASE_SPEED, CHUNK_ROWS, CHUNK_COLS, SHIELD_DURATION } from '../../protocol/constants'
 import { circleIntersectsTriangle, currentLevel, xpForLevel } from '../../protocol/utils'
 import { PlayerState, SquareState } from '../../protocol/types'
 import { computeBotInput } from '../../protocol/bot-behavior'
 import { activateCurrentPerks, isDrillPerk, PERK_TREE, removeDrillPerks } from '../../protocol/perks'
+import { assignNextPlayerId, fillMapSquares, getChunkIndex, getNearbySquareIds, pickPlayerSpawnPoint, spawnBots, spawnSquaresOnStartup } from '../../protocol/world'
 
 const PORT = 3000
-const MAX_PLAYER_COUNT = 20
-const CHUNK_COLS = 16
-const CHUNK_ROWS = 16
 const SQUARE_SPEED = 0.5  // multiplies square drifting speed
-const SQUARE_BASE_BOUNDING_RADIUS = 10 // used for broad phase collision
-const SHIELD_DURATION = 50
-
-const chunkHeat = new Float32Array(CHUNK_ROWS * CHUNK_COLS)
-const HEAT_SPAWN_THRESHOLD = 10
-const HEAT_RATE = 1 // per tick cycle
 
 let tick = 0
-let nextPlayerId = 0
-let nextSquareId = 0
 
 const wss = new WebSocketServer({ port: PORT })
 console.log(`Server running on ws://localhost:${PORT}`)
@@ -38,11 +27,11 @@ const chunkToSquares = new Map<number, Set<number>>()
 for (let i = 0; i < CHUNK_ROWS * CHUNK_COLS; i++)
   chunkToSquares.set(i, new Set())
 
-spawnSquaresOnStartup()
+spawnSquaresOnStartup(squares)
 
 console.log('')
 wss.on('connection', (socket) => {
-  const id = nextPlayerId++
+  const id = assignNextPlayerId()
   console.log(`${'\x1b[32m'}Player ${id} connected${'\x1b[0m'}`)
 
   players.set(id, {
@@ -91,7 +80,7 @@ wss.on('connection', (socket) => {
       } else if (msg.type === 'respawn') {
         const p = players.get(id)!
         if (p.state.alive) return
-        const { x, y } = pickPlayerSpawnPoint()
+        const { x, y } = pickPlayerSpawnPoint(players)
         p.state.name = msg.name
         p.state.xp *= 0.8
         p.state.alive = true
@@ -142,7 +131,6 @@ setInterval(() => {
     p.state.hp = Math.min(p.state.hp + p.state.hpRegenPerSec, p.state.maxHp)
   }
   
-
   // 3) Check for collisions
     for (const [idA, a] of players) { // 1. player to player collisions
       if (!a.state.alive) continue
@@ -188,7 +176,7 @@ setInterval(() => {
   for (const p of players.values()) {
     if (!p.state.alive) continue
     const chunkIndex = getChunkIndex(p.state.x, p.state.y)
-    getNearbySquareIds(chunkIndex, nearbySquareIds) // only consider 9 nearest chunks for efficient collision checking
+    getNearbySquareIds(chunkToSquares, chunkIndex, nearbySquareIds) // only consider 9 nearest chunks for efficient collision checking
     const drillReach = getDrillReach(p.state)
 
     for (const id of nearbySquareIds) {
@@ -241,15 +229,13 @@ setInterval(() => {
         if (dx * dx + dy * dy < 800 * 800) nearbyPlayers.push(other.state)
       }
       const chunkIndex = getChunkIndex(p.state.x, p.state.y)
-      getNearbySquareIds(chunkIndex, nearbySquareIds)
+      getNearbySquareIds(chunkToSquares, chunkIndex, nearbySquareIds)
       computeBotInput(p, nearbyPlayers, nearbySquareIds, squares)
     }
   }
 
   // 5) Spawn bots
-  if (tick % 50 === 0) {
-    spawnBots()
-  }
+  if (tick % 50 === 0) spawnBots(players)
 
   // 6) Process each active square
   squaresToDelete.length = 0
@@ -279,7 +265,7 @@ setInterval(() => {
 
   // 8) Spawn new obstacles to replace old
   if (tick % 10 === 0) {
-    fillMapSquares()
+    fillMapSquares(squares, chunkToSquares, players)
   }
 
   // 9) Serialize world state and send to every connected client
@@ -301,101 +287,6 @@ setInterval(() => {
     }
   }
 }, TICK_MS)
-
-function spawnSquaresOnStartup() { // Only called on server startup, afterwards use fillMapSquares()
-  const chunkW = WORLD_WIDTH / CHUNK_COLS
-  const chunkH = WORLD_HEIGHT / CHUNK_ROWS
-
-  for (let row = 0; row < CHUNK_ROWS; row++) {
-    for (let col = 0; col < CHUNK_COLS; col++) {
-      const toSpawn = DENSITY_MAP[row * CHUNK_COLS + col]
-      for (let i = 0; i < toSpawn; i++) {
-        const id = assignNextSquareId()
-        squares.set(id, {
-          state: {
-            id: id,
-            x: col * chunkW + Math.random() * chunkW,
-            y: row * chunkH + Math.random() * chunkH,
-            hp: SQUARE_BASE_HP * DANGER_MAP[row * CHUNK_COLS + col],
-            maxHp: SQUARE_BASE_HP * DANGER_MAP[row * CHUNK_COLS + col],
-            rotation: Math.random() * Math.PI * 2,
-          },
-          pathAngle: Math.random() * Math.PI * 2,
-          boundingRadius : SQUARE_BASE_BOUNDING_RADIUS * DANGER_MAP[row * CHUNK_COLS + col],
-          rotationSpeed: Math.max(-MAX_SQR_ROT_SPEED, Math.min(MAX_SQR_ROT_SPEED, 
-            (Math.random() - 0.5) * 2 * SQR_BASE_ROT_SPEED))
-        })
-      }
-    }
-  }
-}
-
-// Fill the map with squares up to the desired density
-function fillMapSquares() {
-  const chunkW = WORLD_WIDTH / CHUNK_COLS
-  const chunkH = WORLD_HEIGHT / CHUNK_ROWS
-
-  for (let row = 0; row < CHUNK_ROWS; row++) {
-    for (let col = 0; col < CHUNK_COLS; col++) {
-      const idx = row * CHUNK_COLS + col
-      const deficit = DENSITY_MAP[idx] - chunkToSquares.get(idx)!.size
-      if (deficit <= 0) { chunkHeat[idx] = 0; continue }
-      chunkHeat[idx] += HEAT_RATE * deficit
-
-      while (chunkHeat[idx] > HEAT_SPAWN_THRESHOLD) {
-        chunkHeat[idx] -= HEAT_SPAWN_THRESHOLD
-        const randX = col * chunkW + Math.random() * chunkW
-        const randY = row * chunkH + Math.random() * chunkH
-        if (!isSpawnClearOfPlayers(randX, randY, MIN_OBSTACLE_SPAWN_DIST)) continue
-        const id = assignNextSquareId()
-        squares.set(id, {
-          state: {
-            id: id,
-            x: randX,
-            y: randY,
-            hp: SQUARE_BASE_HP * DANGER_MAP[row * CHUNK_COLS + col],
-            maxHp: SQUARE_BASE_HP * DANGER_MAP[row * CHUNK_COLS + col],
-            rotation: Math.random() * Math.PI * 2,
-          },
-          pathAngle: Math.random() * Math.PI * 2,
-          boundingRadius : SQUARE_BASE_BOUNDING_RADIUS * DANGER_MAP[row * CHUNK_COLS + col],
-          rotationSpeed: Math.max(-MAX_SQR_ROT_SPEED, Math.min(MAX_SQR_ROT_SPEED, 
-            (Math.random() - 0.5) * 2 * SQR_BASE_ROT_SPEED))
-        })
-      }
-    }
-  }
-}
-
-function getChunkIndex(x: number, y: number): number {
-  const col = Math.floor(x / (WORLD_WIDTH / CHUNK_COLS))
-  const row = Math.floor(y / (WORLD_HEIGHT / CHUNK_ROWS))
-  return row * CHUNK_COLS + col
-}
-
-function getNearbySquareIds(chunkIndex: number, out: number[]): void {
-  out.length = 0
-  const col = chunkIndex % CHUNK_COLS
-  const row = Math.floor(chunkIndex / CHUNK_COLS)
-  for (let dr = -1; dr <= 1; dr++) {
-    for (let dc = -1; dc <= 1; dc++) {
-      const nc = col + dc
-      const nr = row + dr
-      if (nc >= 0 && nc < CHUNK_COLS && nr >= 0 && nr < CHUNK_ROWS) {
-        const neighbors = chunkToSquares.get(nr * CHUNK_COLS + nc)!
-        for (const id of neighbors) out.push(id)
-      }
-    }
-  }
-}
-
-function assignNextSquareId() {
-  if (nextSquareId >= 9007199254740991)
-    nextSquareId = 0
-  else
-    nextSquareId++
-  return nextSquareId
-}
 
 function getDrillReach(state: PlayerState): number {
   switch (state.drillType) {
@@ -669,17 +560,6 @@ function triangleIntersectsOrientedRect(
   return true
 }
 
-// Returns whether or not spot is available for obstacles to spawn here.
-// *Only accounts for players, not other obstacles
-function isSpawnClearOfPlayers(spawnX: number, spawnY: number, minDist: number): boolean {
-  for (const p of players.values()) {
-    const dx = p.state.x - spawnX
-    const dy = p.state.y - spawnY
-    if (dx * dx + dy * dy < (minDist + p.state.radius)**2) return false
-  }
-  return true
-}
-
 function killPlayer(killer: ServerPlayer, victim: ServerPlayer, cause: 'player' | 'drill') {
   if (!victim.state.alive) return
   victim.state.alive = false
@@ -730,132 +610,4 @@ function awardXp(player: ServerPlayer, amount: number) { // TODO: make xp cap be
   player.state.xp += amount
   if (currentLevel(player.state.xp) >= 7)
     player.state.xp = xpForLevel(7) - 1
-}
-
-const BOT_SPAWN_RADIUS = 1200
-
-function spawnBotForPlayer(player: PlayerState) {
-  let bestX = WORLD_WIDTH / 2, bestY = WORLD_HEIGHT / 2, bestScore = -1
-
-  for (let i = 0; i < 30; i++) {
-    const dx = (i/15 - 0.5) * 2 * BOT_SPAWN_RADIUS
-    const dy = (i % 2 === 0 ? 1 : -1) * (BOT_SPAWN_RADIUS - Math.abs(dx))
-    const x = Math.max(WORLD_PADDING, Math.min(WORLD_WIDTH - WORLD_PADDING, player.x + dx))
-    const y = Math.max(WORLD_PADDING, Math.min(WORLD_HEIGHT - WORLD_PADDING, player.y + dy))
-    const score = spawnPointScore(x, y, true)
-    if (score > bestScore) { bestX = x; bestY = y; bestScore = score }
-  }
-
-  spawnBot(bestX, bestY)
-}
-
-function pickPlayerSpawnPoint(): { x: number, y: number } {
-  let bestX = WORLD_WIDTH / 2, bestY = WORLD_HEIGHT / 2, bestScore = -1
-
-  for (let i = 0; i < 30; i++) {
-    const x = WORLD_PADDING + Math.random() * (WORLD_WIDTH - WORLD_PADDING * 2)
-    const y = WORLD_PADDING + Math.random() * (WORLD_HEIGHT - WORLD_PADDING * 2)
-    const score = spawnPointScore(x, y, false)
-    if (score > bestScore) { bestX = x, bestY = y, bestScore = score }
-  }
-
-  return { x: bestX, y: bestY }
-}
-
-function spawnPointScore(x: number, y: number, isBot: boolean): number {
-  const idealDist = 1200
-  const nearest = Math.sqrt(nearestPlayerDist(x, y))
-  const distScore = Math.max(0, 1 - Math.abs(nearest - idealDist) / idealDist)
-  const danger = DANGER_MAP[getChunkIndex(x, y)] + 0.001 // avoid division by zero
-
-  if (isBot) return distScore * danger
-  return distScore / danger
-}
-
-function nearestPlayerDist(x: number, y: number): number {
-  let minSqDist = Infinity
-  for (const p of players.values()) {
-    const dx = p.state.x - x
-    const dy = p.state.y - y
-    minSqDist = Math.min(minSqDist, dx * dx + dy * dy)
-  }
-  return minSqDist
-}
-
-function spawnBots() {
-  const botBudget = MAX_PLAYER_COUNT - 10
-  const currentPlayers = players.size
-  if (currentPlayers >= botBudget) return
-
-  // find the real player most deserving of a bot
-  let bestPlayer: PlayerState | null = null
-  let bestScore = -1
-  for (const p of players.values()) {
-    if (p.socket === null || !p.state.alive) continue
-    const score = currentLevel(p.state.xp) // simple for now, expand later
-    if (score > bestScore) { bestScore = score; bestPlayer = p.state }
-  }
-
-  if (bestPlayer) spawnBotForPlayer(bestPlayer)
-}
-
-function spawnBot(x: number, y: number) {
-  const dangerLevel = DANGER_MAP[getChunkIndex(x, y)]
-  const strengthMultiplier = dangerLevel * Math.random()
-  const radius = 20 + 12 * (strengthMultiplier)
-  const id = nextPlayerId++
-  players.set(id, {
-    socket: null,
-    state: {
-      id,
-      name: generateBotName(),
-      xp: 0,
-      alive: true,
-      shieldActive: true,
-      x,
-      y,
-      rotation: 0,
-      hp: PLAYER_BASE_HP * (1 + strengthMultiplier),
-      maxHp: PLAYER_BASE_HP * (1 + strengthMultiplier),
-      hpRegenPerSec: 0,
-      moveSpeedMultiplier: Math.sqrt(PLAYER_BASE_RADIUS / radius),
-      radius: radius,
-      collectedPerks: [],
-      drillType: 0,
-      drillDmgMultiplier: 0.7 + (dangerLevel - 1) * 0.1,
-      drillLengthMultiplier: 0.7 + (dangerLevel * Math.min(Math.random(), 0.2)) * 0.5
-    },
-    input: { dx: 0, dy: 0, rotation: Math.random() * Math.PI * 2 },
-    shieldTicks: SHIELD_DURATION,
-    lastCollisionTime: 0,
-    wanderAngle: Math.random() * Math.PI * 2,
-  })
-}
-
-const BOT_NAMES = [
-  'Boreworm', 'YOURENDHASCOME', 'RealPlayer', 'Cavefish', 'Rockbreaker',
-  'Deepdelver', 'Ironmaw', 'Dustcloud', 'Cobalt', 'Gravel', 'Unnamed',
-  'MasterOfTheMines', 'Pitlord', 'Bedrock', 'Quarryman',
-  'NotABot', 'TrulyHuman', 'JustPassingThrough',
-  'WhyAmIHere', 'SendHelp', 'OopsAllDrill', 'DrillOrBeGrilled',
-  'YesIAmReal', 'DefinitelyNotAI', 'Muscleman'
-]
-
-const BOT_NAME_PREFIXES = [
-  'Digger', 'Mole', 'Tunneler', 'Drillbit', 'Excavator', 'Driller', 
-  'Player', 'Pro', 'ProPlayer', 'Drill', 'Caveman', 'Rock', 'Iron', 
-  'Dust', 'Gopher', 'Pebble', 'Boulder', 'Crater'
-]
-
-function generateBotName(): string {
-  const usedNames = new Set([...players.values()].map(p => p.state.name))
-  const availableFullNames = BOT_NAMES.filter(n => !usedNames.has(n))
-
-  if (Math.random() < 0.8 && availableFullNames.length > 0)
-    return availableFullNames[Math.floor(Math.random() * availableFullNames.length)]
-  const prefix = BOT_NAME_PREFIXES[Math.floor(Math.random() * BOT_NAME_PREFIXES.length)]
-  let digits = Math.floor(1000 + Math.random() * 9000) // always 4 digits
-  const name = `${prefix}${digits}`
-  while (usedNames.has(name)) digits++
-  return `${prefix}${digits}`
 }

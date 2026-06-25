@@ -2,7 +2,15 @@ export const TICK_MS = 50
 
 export const WORLD_WIDTH = 4000
 export const WORLD_HEIGHT = 4000
+export const CHUNK_COLS = 16
+export const CHUNK_ROWS = 16
 export const WORLD_PADDING = 200
+export const MAX_PLAYER_COUNT = 20
+
+export const HEAT_SPAWN_THRESHOLD = 10
+export const HEAT_RATE = 1 // per tick cycle
+export const BOT_SPAWN_RADIUS = 1200
+export const MIN_OBSTACLE_SPAWN_DIST = 300
 
 export const COLOR_BACKGROUND = 0x444444
 export const COLOR_OUTER_BOUNDS = 0x544e4e
@@ -16,7 +24,8 @@ export const BOT_OBSTACLE_AVOIDANCE_DIST = 200
 export const SQR_COLLISION_BASE_DMG = 40
 export const SQR_COLLISION_DMG_FACTOR = 0.002
 export const PLAYER_COLLISION_DAMAGE = 80
-export const MIN_OBSTACLE_SPAWN_DIST = 300
+export const SQUARE_BASE_BOUNDING_RADIUS = 10 // used for broad phase collision
+export const SHIELD_DURATION = 50
 
 export const SQR_BASE_ROT_SPEED = 0.05
 export const MAX_SQR_ROT_SPEED = 3
