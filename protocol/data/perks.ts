@@ -1,4 +1,4 @@
-import { PLAYER_BASE_HP, PLAYER_BASE_RADIUS, PLAYER_BASE_SPEED, TICK_MS } from "../constants"
+import { PLAYER_BASE_RADIUS, TICK_MS } from "../constants"
 import { PlayerState } from "../types"
 
 export interface PerkDef {
@@ -72,15 +72,15 @@ export const PERK_TREE: Record<string, PerkDef> = {
         desc: 'Max HP +20\nPlayer size +20%',
         rarity: 'common',
         requiredPlayerLevel: 1,
-        apply: (state) => { state.maxHp += 20; state.radius += PLAYER_BASE_RADIUS * 0.2 },
+        apply: (state) => { state.maxHp += 20; state.hp += 20; state.radius += PLAYER_BASE_RADIUS * 0.2 },
     },
 
     'hp_buff_2': {
         title: 'Bastion',
-        desc: 'Max HP +60\nPlayer size +40%',
+        desc: 'Max HP +60\nPlayer size +50%',
         rarity: 'rare',
         requiredPlayerLevel: 8,
-        apply: (state) => { state.maxHp += 60; state.radius += PLAYER_BASE_RADIUS * 0.4 },
+        apply: (state) => { state.maxHp += 60; state.hp += 60; state.radius += PLAYER_BASE_RADIUS * 0.5 },
     },
 
     'hp_regen': {
@@ -93,7 +93,7 @@ export const PERK_TREE: Record<string, PerkDef> = {
 
     'hp_regen_2': {
         title: 'Nanobots',
-        desc: 'Additional +3 hp regen/sec',
+        desc: 'Additional +3 HP regen/sec',
         rarity: 'epic',
         requiredPlayerLevel: 7,
         apply: (state) => { state.hpRegenPerSec += 3 * TICK_MS / 1000 },
