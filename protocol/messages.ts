@@ -73,6 +73,11 @@ export interface PerkSelection {
   perkId: string
 }
 
-export type ClientMessage = InputMessage | RequestUpgradeMessage | RespawnMessage | PerkSelection
+export interface TryPurchaseUpgrade {
+  type: 'try_purchase_upgrade'
+  nodeId: string
+}
+
+export type ClientMessage = InputMessage | RequestUpgradeMessage | RespawnMessage | PerkSelection | TryPurchaseUpgrade
 export type ServerMessage = WelcomeMessage | WorldStateMessage | LevelUpMessage | PlayerKilledMessage 
   | SquareKilledPlayerMessage | DeathScreenMessage

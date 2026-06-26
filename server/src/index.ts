@@ -108,6 +108,12 @@ wss.on('connection', (socket) => {
         if (removeDrillPerks && isDrillPerk(msg.perkId)) removeDrillPerks(player.state)
         player.state.collectedPerks.push(msg.perkId)
         refreshStats(player.state, player.purchasedUpgrades)
+      } else if (msg.type === 'try_purchase_upgrade') {
+        // TODO: online mode runs validation check. Offline trusts client for now.
+        const p = players.get(id)!
+        if (!p.purchasedUpgrades.includes(msg.nodeId))
+          p.purchasedUpgrades.push(msg.nodeId)
+        refreshStats(p.state, p.purchasedUpgrades)
       }
     } catch (e) {
       console.error('[connection handler crash]', e)

@@ -67,6 +67,7 @@ export default function App() {
     const newGems = gems - gemCost
     const newUpgrades = [...purchasedUpgrades, nodeId]
 
+    socket.send(JSON.stringify({ type: 'try_purchase_upgrade', nodeId }))
     setGems(newGems)
     setPurchasedUpgrades(newUpgrades)
     await saveOfflineGems(newGems)
