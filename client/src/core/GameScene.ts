@@ -24,6 +24,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   create() {
+    console.log('[GameScene] create called, generation will be', GameScene.intervalGeneration + 1)
     const generation = ++GameScene.intervalGeneration
 
     // background of in-bounds area
@@ -133,6 +134,10 @@ export class GameScene extends Phaser.Scene {
 
     this.events.on('shutdown', () => {
       console.trace('[GameScene] shutdown fired')
+      if (this.inputInterval) {
+        clearInterval(this.inputInterval)
+        this.inputInterval = null
+      }
       this.removeSocketListener?.()
       this.removeSocketListener = null
     })
@@ -262,9 +267,7 @@ export class GameScene extends Phaser.Scene {
       this.squareGraphics.strokeRect(-size / 2, -size / 2, size, size)
       this.squareGraphics.restore()
     }
-  }
-
-  
+  }  
 }
 
 function getHealthColor(ratio: number): number {
