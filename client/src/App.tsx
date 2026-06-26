@@ -41,9 +41,6 @@ export default function App() {
         if (cancelled) return
         setGems(g)
         setPurchasedUpgrades(upgrades)
-        socket.onWelcome(async (id, gems) => {
-          //
-        })
       }
       phaserGame?.scene.start('GameScene')
     }
@@ -98,7 +95,7 @@ export default function App() {
           setPlayerName(name)
           setIsDead(false)
           setScreen('game')
-          socket.send(JSON.stringify({ type: 'respawn', name }))
+          socket.send(JSON.stringify({ type: 'respawn', name, upgrades: purchasedUpgrades }))
         }}
         onUpgrades={() => setScreen('upgrades')}
       />

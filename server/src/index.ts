@@ -58,7 +58,7 @@ wss.on('connection', (socket) => {
     shieldTicks: SHIELD_DURATION,
     lastCollisionTime: 0,
     wanderAngle: Math.random() * Math.PI * 2,
-    purchasedUpgrades: [] // TODO: load with indexedDB
+    purchasedUpgrades: []
   })
   // S->C: Tell this client their assigned id
   socket.send(JSON.stringify({ type: 'welcome', id, gems: 10 })) // TODO: load actual gems count for online mode
@@ -97,6 +97,8 @@ wss.on('connection', (socket) => {
         p.state.drillDmgMultiplier = 1
         p.state.drillLengthMultiplier = 1
         p.shieldTicks = SHIELD_DURATION
+        p.purchasedUpgrades = msg.upgrades ?? []
+        refreshStats(p.state, p.purchasedUpgrades)
       } else if (msg.type === 'select_perk') {
         const player = players.get(id)!
         if (!player.state.alive) return
