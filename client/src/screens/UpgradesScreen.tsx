@@ -18,7 +18,7 @@ const CURRENCY_ICONS: Record<string, string> = {
 const NODES_OFFSET_X = 80
 const NODES_OFFSET_Y = 0
 
-function getState(node: UpgradeNode, purchased: string[]): 'purchased' | 'available' | 'locked' {
+function getState(node: { id: string, parents: string[] }, purchased: string[]): 'purchased' | 'available' | 'locked' {
   if (purchased.includes(node.id)) return 'purchased'
   if (node.parents.length === 0 || node.parents.every(pid => purchased.includes(pid))) return 'available'
   return 'locked'
@@ -38,9 +38,10 @@ export default function UpgradesScreen({ onBack, online, gems, purchasedUpgrades
   const [insufficientFunds, setInsufficientFunds] = useState(false)
   const toastTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const baseCanvasW = Math.max(...UPGRADE_NODES.map(n => n.x)) + 200 + CANVAS_PAD
-  const baseCanvasH = Math.max(...UPGRADE_NODES.map(n => n.y)) + 200 + CANVAS_PAD
+  const nodes = [...UPGRADE_NODES.entries()].map(([id, node]) => ({ id, ...node }))
 
+  const baseCanvasW = Math.max(...nodes.map(n => n.x)) + 200 + CANVAS_PAD
+  const baseCanvasH = Math.max(...nodes.map(n => n.y)) + 200 + CANVAS_PAD
   const bgCanvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
@@ -126,9 +127,9 @@ export default function UpgradesScreen({ onBack, online, gems, purchasedUpgrades
     const containerRect = containerRef.current.getBoundingClientRect()
     const paths: JSX.Element[] = []
 
-    UPGRADE_NODES.forEach(node => {
+    nodes.forEach(node => {
       node.parents.forEach(pid => {
-        const parentNode = UPGRADE_NODES.find(n => n.id === pid)
+        const parentNode = nodes.find(n => n.id === pid)
         const fromEl = nodeRefs.current[pid]
         const toEl = nodeRefs.current[node.id]
         if (!fromEl || !toEl || !parentNode) return
@@ -330,7 +331,7 @@ export default function UpgradesScreen({ onBack, online, gems, purchasedUpgrades
                 upgrades
               </div>
               <div style={{ fontSize: 54, color: 'rgba(255,255,255,0.25)', letterSpacing: 2, textAlign: 'center' }}>
-                {purchasedUpgrades.length} / {UPGRADE_NODES.length} unlocked
+                {purchasedUpgrades.length} / {nodes.length} unlocked
               </div>
             </div>
 
@@ -343,7 +344,7 @@ export default function UpgradesScreen({ onBack, online, gems, purchasedUpgrades
             </svg>
 
             {/* nodes */}
-            {UPGRADE_NODES.map(node => {
+            {nodes.map(node => {
               const state = getState(node, purchasedUpgrades)
               return (
                 <div

@@ -51,24 +51,21 @@ export default function App() {
     return () => { cancelled = true }
   }, [online])
 
-async function handlePurchaseUpgrade(nodeId: string): Promise<boolean> {
+  async function handlePurchaseUpgrade(nodeId: string): Promise<boolean> {
     if (online) {
       socket.send(JSON.stringify({ type: 'purchase_upgrade', nodeId }))
-      return true // TODO: make it based off server response once that's implemented
+      return true
     }
 
-    // Offline: validate and apply locally
-    const node = UPGRADE_NODES.find(n => n.id === nodeId)
+    const node = UPGRADE_NODES.get(nodeId)
     if (!node) return false
     if (purchasedUpgrades.includes(nodeId)) return false
-    if (!node.parents.every(pid => purchasedUpgrades.includes(pid))) return false // Check parents are all purchased
+    if (!node.parents.every(pid => purchasedUpgrades.includes(pid))) return false
 
-    // Check affordability (TODO: gems only for now — extend for cores later)
     for (const cost of node.cost) {
       if (cost.currency === 'gem' && gems < cost.amount) return false
     }
 
-    // Apply
     const gemCost = node.cost.find(c => c.currency === 'gem')?.amount ?? 0
     const newGems = gems - gemCost
     const newUpgrades = [...purchasedUpgrades, nodeId]
