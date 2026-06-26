@@ -7,6 +7,7 @@ export interface UpgradeNode {
     parents: string[]
     x: number
     y: number
+    apply: (state: PlayerState) => void
 }
 
 export const UPGRADE_NODES: Map<string, UpgradeNode> = new Map([

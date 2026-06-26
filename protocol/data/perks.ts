@@ -127,22 +127,6 @@ export const PERK_TRANSITIONS: Record<string, string[]> = {
   'sawblade':       ['deathblade']
 }
 
-export function activateCurrentPerks(playerState: PlayerState) {
-  // Reset to base stats before reapplying — perks are order-dependent
-  playerState.maxHp = PLAYER_BASE_HP
-  playerState.hpRegenPerSec = 0
-  playerState.moveSpeedMultiplier = 1
-  playerState.radius = PLAYER_BASE_RADIUS
-  playerState.drillType = 0
-  playerState.drillDmgMultiplier = 1
-  playerState.drillLengthMultiplier = 1
-
-  for (const perkId of playerState.collectedPerks) {
-    const perk = PERK_TREE[perkId]
-    if (perk) perk.apply(playerState)
-  }
-}
-
 export const DRILL_PERKS = new Set(['sawblade', 'deathblade'])
 
 export function isDrillPerk(perkId: string): boolean {

@@ -4,9 +4,10 @@ import { WorldStateMessage, ClientMessage } from '../../protocol/messages'
 import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, PLAYER_COLLISION_DAMAGE, KILL_SQUARE_XP_MULTIPLIER, SQR_COLLISION_BASE_DMG, SQR_COLLISION_DMG_FACTOR, COLLISION_COOLDOWN, PLAYER_BASE_RADIUS, PLAYER_BASE_SPEED, CHUNK_ROWS, CHUNK_COLS, SHIELD_DURATION } from '../../protocol/constants'
 import { PlayerState, SquareState } from '../../protocol/types'
 import { computeBotInput } from '../../protocol/bot-behavior'
-import { activateCurrentPerks, isDrillPerk, PERK_TREE, removeDrillPerks } from '../../protocol/data/perks'
+import { isDrillPerk, PERK_TREE, removeDrillPerks } from '../../protocol/data/perks'
 import { assignNextPlayerId, fillMapSquares, getChunkIndex, getNearbySquareIds, pickPlayerSpawnPoint, spawnBots, spawnSquaresOnStartup } from '../../protocol/world'
 import { awardXp, circleIntersectsOrientedRect, getDrillDamageOnCircle, getDrillDamageOnRect, getDrillReach, killPlayer, killPlayerBySquare } from '../../protocol/combat'
+import { refreshStats } from '../../protocol/utils'
 
 const PORT = 3000
 const SQUARE_SPEED = 0.5  // multiplies square drifting speed
@@ -57,6 +58,7 @@ wss.on('connection', (socket) => {
     shieldTicks: SHIELD_DURATION,
     lastCollisionTime: 0,
     wanderAngle: Math.random() * Math.PI * 2,
+    purchasedUpgrades: [] // TODO: load with indexedDB
   })
   // S->C: Tell this client their assigned id
   socket.send(JSON.stringify({ type: 'welcome', id, gems: 10 })) // TODO: load actual gems count for online mode
@@ -103,7 +105,7 @@ wss.on('connection', (socket) => {
         if (player.state.collectedPerks.includes(msg.perkId)) return // prevent duplicates
         if (removeDrillPerks && isDrillPerk(msg.perkId)) removeDrillPerks(player.state)
         player.state.collectedPerks.push(msg.perkId)
-        activateCurrentPerks(player.state)
+        refreshStats(player.state, player.purchasedUpgrades)
       }
     } catch (e) {
       console.error('[connection handler crash]', e)
