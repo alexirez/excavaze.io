@@ -2,7 +2,6 @@ import { PLAYER_BASE_HP } from "../constants"
 import { PlayerState } from "../types"
 
 export interface UpgradeNode {
-    id: string
     desc: string
     cost: { currency: 'gem' | 'green_core' | 'purple_core' | 'yellow_core', amount: number }[]
     parents: string[]
@@ -10,7 +9,7 @@ export interface UpgradeNode {
     y: number
 }
 
-export const UPGRADE_NODES: Map<string, Omit<UpgradeNode, 'id'>> = new Map([
+export const UPGRADE_NODES: Map<string, UpgradeNode> = new Map([
     ['drill_dmg_1', {
         desc: '+1% drill damage',
         cost: [{ currency: 'gem', amount: 30 }],
