@@ -1,3 +1,7 @@
+import { PLAYER_BASE_HP, PLAYER_BASE_RADIUS } from "./constants"
+import { PERK_TREE } from "./data/perks"
+import { UPGRADE_NODES } from "./data/upgrade-nodes"
+import { PlayerState } from "./types"
 
 export function sign(p1x: number, p1y: number, p2x: number, p2y: number, p3x: number, p3y: number): number {
   return (p1x - p3x) * (p2y - p3y) - (p2x - p3x) * (p1y - p3y)
@@ -52,4 +56,26 @@ export function xpThisLevel(xp: number): number {
 
 export function xpForNextLevel(xp: number): number {
   return xpForLevel(currentLevel(xp) + 1) - xpForLevel(currentLevel(xp))
+}
+
+export function refreshStats(playerState: PlayerState, purchasedUpgrades: string[]) {
+  playerState.xpMultiplier = 1,
+  playerState.maxLevel = 7
+  playerState.maxHp = PLAYER_BASE_HP
+  playerState.hpRegenPerSec = 0
+  playerState.moveSpeedMultiplier = 1
+  playerState.radius = PLAYER_BASE_RADIUS // 1. Reset to base stats before reapplying
+  playerState.drillType = 0
+  playerState.drillDmgMultiplier = 1
+  playerState.drillLengthMultiplier = 1
+
+  for (const upgradeId of purchasedUpgrades) {
+    const upgrade = UPGRADE_NODES.get(upgradeId)
+    if (upgrade) upgrade.apply(playerState)
+  }
+
+  for (const perkId of playerState.collectedPerks) { // 3. Apply perks
+    const perk = PERK_TREE[perkId]
+    if (perk) perk.apply(playerState)
+  }
 }

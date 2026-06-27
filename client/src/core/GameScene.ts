@@ -2,7 +2,7 @@ import Phaser from 'phaser'
 import { socket, addSocketListener, getLocalId } from '../network/socket'
 import { PlayerState, SquareState } from '../../../protocol/types'
 import { ServerMessage } from '../../../protocol/messages'
-import { WORLD_WIDTH, WORLD_HEIGHT, COLOR_BACKGROUND, COLOR_OUTER_BOUNDS, WORLD_PADDING, SQUARE_BASE_HP, PLAYER_BASE_HP } from '../../../protocol/constants'
+import { WORLD_WIDTH, WORLD_HEIGHT, COLOR_BACKGROUND, COLOR_OUTER_BOUNDS, WORLD_PADDING, SQUARE_BASE_HP } from '../../../protocol/constants'
 
 export class GameScene extends Phaser.Scene {
   private enemyNameLabels: Map<number, Phaser.GameObjects.Text> = new Map()
@@ -24,6 +24,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   create() {
+    console.log('[GameScene] create called, generation will be', GameScene.intervalGeneration + 1)
     const generation = ++GameScene.intervalGeneration
 
     // background of in-bounds area
@@ -69,6 +70,8 @@ export class GameScene extends Phaser.Scene {
             id: p.id,
             name: p.name,
             xp: p.xp,
+            xpMultiplier: p.xpMultiplier,
+            maxLevel: p.maxLevel,
             alive: p.alive,
             shieldActive: p.shieldActive,
             x: p.x,
@@ -132,7 +135,11 @@ export class GameScene extends Phaser.Scene {
     }, 50)
 
     this.events.on('shutdown', () => {
-      console.log('[GameScene] shutdown fired')
+      console.trace('[GameScene] shutdown fired')
+      if (this.inputInterval) {
+        clearInterval(this.inputInterval)
+        this.inputInterval = null
+      }
       this.removeSocketListener?.()
       this.removeSocketListener = null
     })
@@ -262,9 +269,7 @@ export class GameScene extends Phaser.Scene {
       this.squareGraphics.strokeRect(-size / 2, -size / 2, size, size)
       this.squareGraphics.restore()
     }
-  }
-
-  
+  }  
 }
 
 function getHealthColor(ratio: number): number {

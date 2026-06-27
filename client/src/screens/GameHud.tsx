@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { socket, addSocketListener, getLocalId } from '../network/socket'
 import { RespawnMessage, ServerMessage } from '../../../protocol/messages'
 import { currentLevel, xpForNextLevel, xpThisLevel } from '../../../protocol/utils'
-import { PERK_TREE, RARITY_CONFIG, rollPerkChoices } from '../../../protocol/perks'
+import { PERK_TREE, RARITY_CONFIG, rollPerkChoices } from '../../../protocol/data/perks'
 
 interface KillFeedEntry {
   id: number
@@ -53,6 +53,7 @@ interface Props {
   screen: Screen
   playerName: string
   isDead: boolean
+  purchasedUpgrades: string[]
   setIsDead: (val: boolean) => void
   onHome: () => void
   onUpgrades: () => void
@@ -61,7 +62,7 @@ interface Props {
 
 let killFeedCounter = 0
 
-export default function GameHud({ screen, playerName, isDead, setIsDead, onHome, onUpgrades, onRespawn }: Props) {
+export default function GameHud({ screen, playerName, isDead, purchasedUpgrades, setIsDead, onHome, onUpgrades, onRespawn }: Props) {
   const [killFeed, setKillFeed] = useState<KillFeedEntry[]>([])
   const [xpRatio, setXpRatio] = useState(0)
   const [xpLevel, setXpLevel] = useState(1)
@@ -74,7 +75,7 @@ export default function GameHud({ screen, playerName, isDead, setIsDead, onHome,
   const [perkVisible, setPerkVisible] = useState(false)
   const [pendingCount, setPendingCount] = useState(0)
   const lastPerkChoiceTime = useRef<number>(0)
-  const perkChoicesRef = useRef<string[] | null>(null)
+  const perkChoicesRef = useRef<string[] | 'pending' | null>(null)
 
   useEffect(() => {
     if (isDead) {
@@ -99,18 +100,16 @@ export default function GameHud({ screen, playerName, isDead, setIsDead, onHome,
         const localId = getLocalId()
         const local = msg.players.find(p => p.id === localId)
         if (local) {
-          const pending = currentLevel(local.xp) - local.collectedPerks.length
+          const pending = Math.min(currentLevel(local.xp), local.maxLevel) - local.collectedPerks.length
           setPendingCount(pending)
           if (pending > 0 && !perkChoicesRef.current && Date.now() > lastPerkChoiceTime.current + 500) {
-            const choices = rollPerkChoices(local.collectedPerks)
-            setPerkChoices(choices)
-            perkChoicesRef.current = choices
-            requestAnimationFrame(() => setPerkVisible(true))
+            socket.send(JSON.stringify({ type: 'request_perk_choices' }))
+            perkChoicesRef.current = 'pending' // prevent repeated requests
           }
-          const level = currentLevel(local.xp)
-          setXpLevel(level + 1)
-          setXpRatio(xpThisLevel(local.xp) / xpForNextLevel(local.xp))
-          setXpIsMax(level >= 6)
+          const displayLevel = Math.min(currentLevel(local.xp), local.maxLevel)
+          setXpLevel(displayLevel)
+          displayLevel >= local.maxLevel ? setXpRatio(1) : setXpRatio(xpThisLevel(local.xp) / xpForNextLevel(local.xp))
+          setXpIsMax(displayLevel >= local.maxLevel)
         }
       } else if (msg.type === 'player_killed') {
         const id = killFeedCounter++
@@ -134,6 +133,10 @@ export default function GameHud({ screen, playerName, isDead, setIsDead, onHome,
         setIsDead(true)
         setKillerName(msg.killerName)
         setDeathTip(pickTip(msg.cause))
+      } else if (msg.type === 'perk_options') {
+        setPerkChoices(msg.perkOptions)
+        perkChoicesRef.current = msg.perkOptions
+        requestAnimationFrame(() => setPerkVisible(true))
       }
     }
     addSocketListener(handler)
@@ -142,7 +145,7 @@ export default function GameHud({ screen, playerName, isDead, setIsDead, onHome,
   const isGame = screen === 'game'
 
   return <>
-    {/* xp bar — game only, not when dead */}
+    {/* xp bar */}
     {isGame && !isDead && (
       <div style={{
         position: 'absolute',
@@ -215,7 +218,7 @@ export default function GameHud({ screen, playerName, isDead, setIsDead, onHome,
       </div>
     )}
 
-    {/* leaderboard — game and startMenu */}
+    {/* leaderboard */}
     <div style={{
       position: 'absolute',
       top: 20,
@@ -255,7 +258,7 @@ export default function GameHud({ screen, playerName, isDead, setIsDead, onHome,
       </div>
     </div>
 
-    {/* perk selection — game only */}
+    {/* perk selection */}
     {isGame && perkChoices && (
       <div style={{
         position: 'absolute',
@@ -327,7 +330,7 @@ export default function GameHud({ screen, playerName, isDead, setIsDead, onHome,
       </div>
     )}
 
-    {/* death screen — game only */}
+    {/* death screen */}
     {isGame && isDead && (
       <div style={{
         position: 'absolute',
@@ -389,7 +392,7 @@ export default function GameHud({ screen, playerName, isDead, setIsDead, onHome,
           </button>
           <button
             onClick={() => {
-              socket.send(JSON.stringify({ type: 'respawn', name: playerName } satisfies RespawnMessage))
+              socket.send(JSON.stringify({ type: 'respawn', name: playerName, upgrades: purchasedUpgrades } satisfies RespawnMessage))
               setIsDead(false)
               setKillFeed([])
               onRespawn()

@@ -4,7 +4,8 @@ import StartMenu from './screens/StartMenu'
 import GameHud from './screens/GameHud'
 import UpgradesScreen from './screens/UpgradesScreen'
 import { socket, ONLINE_SERVER_URL, LOCAL_SERVER_URL } from './network/socket'
-import { loadOfflineGems, saveOfflineGems } from '../storage/offlineStorage'
+import { loadOfflineGems, saveOfflineGems, loadOfflineUpgrades, saveOfflineUpgrades } from '../storage/offlineStorage'
+import { UPGRADE_NODES } from '../../protocol/data/upgrade-nodes'
 
 type Screen = 'startMenu' | 'game' | 'upgrades'
 
@@ -12,33 +13,67 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>('startMenu')
   const [playerName, setPlayerName] = useState('Player')
   const [isDead, setIsDead] = useState(true)
-  const [online, setOnline] = useState(true)
+  const [online, setOnline] = useState(false)
   const [gems, setGems] = useState(0)
+  const [purchasedUpgrades, setPurchasedUpgrades] = useState<string[]>([])
 
   useEffect(() => {
-  let cancelled = false
-  async function switchMode() {
-    phaserGame?.scene.stop('GameScene')
-    await socket.disconnect()
-    if (cancelled) return
-    if (online) {
-      socket.connect(ONLINE_SERVER_URL) // gems etc arrive via 'welcome_message'
-      socket.onWelcome((id, gems) => {
-        if (!cancelled) setGems(gems)
-      })
-    } else {
-      socket.connect(LOCAL_SERVER_URL)
-      socket.onWelcome(async (id, gems) => {
+    console.log('[App] useEffect ran, online =', online)
+    let cancelled = false
+    async function switchMode() {
+      phaserGame?.scene.stop('GameScene')
+      await socket.disconnect()
+      if (cancelled) return
+      if (online) {
+        socket.connect(ONLINE_SERVER_URL)
+        socket.onWelcome((id, gems, upgrades) => {
+          if (!cancelled) {
+            setGems(gems) 
+            setPurchasedUpgrades(upgrades ?? [])
+          }
+        })
+      } else {
+        socket.connect(LOCAL_SERVER_URL)
+        const [g, upgrades] = await Promise.all([
+            loadOfflineGems(),
+            loadOfflineUpgrades(),
+          ])
         if (cancelled) return
-        const g = await loadOfflineGems()
-        if (!cancelled) setGems(g)
-      })
+        setGems(g)
+        setPurchasedUpgrades(upgrades)
+      }
+      phaserGame?.scene.start('GameScene')
     }
-    phaserGame?.scene.start('GameScene')
+    switchMode()
+    return () => { cancelled = true }
+  }, [online])
+
+  async function handlePurchaseUpgrade(nodeId: string): Promise<boolean> {
+    if (online) {
+      socket.send(JSON.stringify({ type: 'purchase_upgrade', nodeId }))
+      return true
+    }
+
+    const node = UPGRADE_NODES.get(nodeId)
+    if (!node) return false
+    if (purchasedUpgrades.includes(nodeId)) return false
+    if (!node.parents.every(pid => purchasedUpgrades.includes(pid))) return false
+
+    for (const cost of node.cost) {
+      if (cost.currency === 'gem' && gems < cost.amount) return false
+    }
+
+    const gemCost = node.cost.find(c => c.currency === 'gem')?.amount ?? 0
+    const newGems = gems - gemCost
+    const newUpgrades = [...purchasedUpgrades, nodeId]
+
+    socket.send(JSON.stringify({ type: 'try_purchase_upgrade', nodeId }))
+    setGems(newGems)
+    setPurchasedUpgrades(newUpgrades)
+    await saveOfflineGems(newGems)
+    await saveOfflineUpgrades(newUpgrades)
+    return true
   }
-  switchMode()
-  return () => { cancelled = true }
-}, [online])
 
   return (
     <div style={{ position: 'relative', width: '100vw', height: '100vh' }}>
@@ -47,6 +82,7 @@ export default function App() {
         screen={screen}
         playerName={playerName}
         isDead={isDead}
+        purchasedUpgrades={purchasedUpgrades}
         setIsDead={setIsDead}
         onHome={() => setScreen('startMenu')}
         onUpgrades={() => setScreen('upgrades')}
@@ -61,12 +97,20 @@ export default function App() {
           setPlayerName(name)
           setIsDead(false)
           setScreen('game')
-          socket.send(JSON.stringify({ type: 'respawn', name }))
+          socket.send(JSON.stringify({ type: 'respawn', name, upgrades: purchasedUpgrades }))
         }}
         onUpgrades={() => setScreen('upgrades')}
       />
       )}
-      {screen === 'upgrades' && <UpgradesScreen onBack={() => setScreen('startMenu')} />}
+      {screen === 'upgrades' && (
+        <UpgradesScreen 
+          onBack={() => setScreen('startMenu')}
+          purchasedUpgrades={purchasedUpgrades}
+          gems={gems}
+          online={online}
+          onPurchase={handlePurchaseUpgrade}
+          />
+        )}
     </div>
   )
 }

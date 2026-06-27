@@ -78,12 +78,12 @@ export async function saveOfflineGems(diamonds: number): Promise<void> {
 }
 
 // --- Permanent upgrades ---
-export async function loadOfflinePermanentUpgrades(): Promise<string[]> {
+export async function loadOfflineUpgrades(): Promise<string[]> {
   const db = await getDB()
   return ((await db.get(STORE_NAME, 'permanentUpgrades')) as string[]) ?? [...OFFLINE_DEFAULTS.permanentUpgrades]
 }
 
-export async function saveOfflinePermanentUpgrades(upgrades: string[]): Promise<void> {
+export async function saveOfflineUpgrades(upgrades: string[]): Promise<void> {
   const db = await getDB()
   await db.put(STORE_NAME, upgrades, 'permanentUpgrades')
 }

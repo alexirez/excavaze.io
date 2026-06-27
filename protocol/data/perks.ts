@@ -1,5 +1,5 @@
-import { PLAYER_BASE_HP, PLAYER_BASE_RADIUS, PLAYER_BASE_SPEED, TICK_MS } from "./constants"
-import { PlayerState } from "./types"
+import { PLAYER_BASE_RADIUS, TICK_MS } from "../constants"
+import { PlayerState } from "../types"
 
 export interface PerkDef {
     title: string
@@ -77,10 +77,10 @@ export const PERK_TREE: Record<string, PerkDef> = {
 
     'hp_buff_2': {
         title: 'Bastion',
-        desc: 'Max HP +60\nPlayer size +40%',
+        desc: 'Max HP +60\nPlayer size +50%',
         rarity: 'rare',
         requiredPlayerLevel: 8,
-        apply: (state) => { state.maxHp += 60; state.radius += PLAYER_BASE_RADIUS * 0.4 },
+        apply: (state) => { state.maxHp += 60; state.radius += PLAYER_BASE_RADIUS * 0.5 },
     },
 
     'hp_regen': {
@@ -93,7 +93,7 @@ export const PERK_TREE: Record<string, PerkDef> = {
 
     'hp_regen_2': {
         title: 'Nanobots',
-        desc: 'Additional +3 hp regen/sec',
+        desc: 'Additional +3 HP regen/sec',
         rarity: 'epic',
         requiredPlayerLevel: 7,
         apply: (state) => { state.hpRegenPerSec += 3 * TICK_MS / 1000 },
@@ -127,20 +127,10 @@ export const PERK_TRANSITIONS: Record<string, string[]> = {
   'sawblade':       ['deathblade']
 }
 
-export function activateCurrentPerks(playerState: PlayerState) {
-  // Reset to base stats before reapplying — perks are order-dependent
-  playerState.maxHp = PLAYER_BASE_HP
-  playerState.hpRegenPerSec = 0
-  playerState.moveSpeedMultiplier = 1
-  playerState.radius = PLAYER_BASE_RADIUS
-  playerState.drillType = 0
-  playerState.drillDmgMultiplier = 1
-  playerState.drillLengthMultiplier = 1
-
-  for (const perkId of playerState.collectedPerks) {
-    const perk = PERK_TREE[perkId]
-    if (perk) perk.apply(playerState)
-  }
+// one-time side effects to apply upon choosing the perk
+export const PERK_EFFECTS: Partial<Record<string, (state: PlayerState) => void>> = {
+  'hp_buff':   (state) => { state.hp += 20 },
+  'hp_buff_2': (state) => { state.hp += 60 },
 }
 
 export const DRILL_PERKS = new Set(['sawblade', 'deathblade'])

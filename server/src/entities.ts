@@ -8,6 +8,8 @@ export interface ServerPlayer {
   shieldTicks: number
   lastCollisionTime: number
   wanderAngle: number
+  purchasedUpgrades: string[]
+  pendingPerkChoices: string[]
 }
 
 export interface ServerSquare {

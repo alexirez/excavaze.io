@@ -4,6 +4,8 @@ export interface PlayerState {
   id: number
   name: string
   xp: number
+  xpMultiplier: number
+  maxLevel: number
   alive: boolean
   shieldActive: boolean
   x: number

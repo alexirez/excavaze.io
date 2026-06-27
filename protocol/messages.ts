@@ -20,22 +20,10 @@ export interface WelcomeMessage {
   type: 'welcome'
   id: number
   gems: number
-}
-
-export interface LevelUpMessage {
-  type: 'level_up'
-  options: UpgradeOption[]
-}
-
-export interface UpgradeOption {
-  id: string  // 'drill_damage', 'drill_length', 'player_radius', etc
-  label: string
-  description: string
-}
-
-export interface RequestUpgradeMessage {
-  type: 'request_upgrade'
-  optionId: string
+  greenCores: number
+  purpleCores: number
+  yellowCores: number
+  upgrades: string[]
 }
 
 export interface PlayerKilledMessage {
@@ -61,6 +49,16 @@ export interface DeathScreenMessage {
 export interface RespawnMessage {
   type: 'respawn'
   name: string
+  upgrades: string[]
+}
+
+export interface RequestPerkChoices {
+  type: 'request_perk_choices'
+}
+
+export interface PerkOptions {
+  type: 'perk_options'
+  perkOptions: string[]
 }
 
 export interface PerkSelection {
@@ -68,6 +66,11 @@ export interface PerkSelection {
   perkId: string
 }
 
-export type ClientMessage = InputMessage | RequestUpgradeMessage | RespawnMessage | PerkSelection
-export type ServerMessage = WelcomeMessage | WorldStateMessage | LevelUpMessage | PlayerKilledMessage 
-  | SquareKilledPlayerMessage | DeathScreenMessage
+export interface TryPurchaseUpgrade {
+  type: 'try_purchase_upgrade'
+  nodeId: string
+}
+
+export type ClientMessage = InputMessage | RespawnMessage | PerkSelection | TryPurchaseUpgrade | RequestPerkChoices
+export type ServerMessage = WelcomeMessage | WorldStateMessage | PlayerKilledMessage 
+  | SquareKilledPlayerMessage | DeathScreenMessage | PerkOptions

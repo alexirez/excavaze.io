@@ -9,7 +9,7 @@ const listeners: ((event: MessageEvent) => void)[] = []
 let localId: number | null = null
 let reconnectGeneration = 0
 let reconnectTimeout: ReturnType<typeof setTimeout> | null = null
-let welcomeCallback: ((id: number, gems: number) => void) | null = null
+let welcomeCallback: ((id: number, gems: number, upgrades: string[]) => void) | null = null
 
 function connect(url: string): void {
   const generation = ++reconnectGeneration
@@ -30,7 +30,7 @@ function connect(url: string): void {
   const msg = JSON.parse(e.data) as ServerMessage
   if (msg.type === 'welcome') {
     localId = msg.id
-    welcomeCallback?.(msg.id, msg.gems)
+    welcomeCallback?.(msg.id, msg.gems, msg.upgrades ?? [])
     welcomeCallback = null
   }
   for (const listener of listeners) listener(e)
@@ -38,6 +38,7 @@ function connect(url: string): void {
 }
 
 function disconnect(): Promise<void> {
+  console.log('[socket] disconnected')
   reconnectGeneration++
   shouldReconnect = false
   localId = null
@@ -89,7 +90,7 @@ export const socket = {
     ws?.addEventListener('open', handler)
   },
 
-  onWelcome(cb: (id: number, gems: number) => void): void {
+  onWelcome(cb: (id: number, gems: number, upgrades: string[]) => void): void {
     welcomeCallback = cb
   },
 
@@ -97,8 +98,3 @@ export const socket = {
   connect,
   disconnect,
 }
-
-window.addEventListener('pagehide', () => {
-  shouldReconnect = false
-  current?.close()
-})
