@@ -70,6 +70,7 @@ export class GameScene extends Phaser.Scene {
             id: p.id,
             name: p.name,
             xp: p.xp,
+            xpMultiplier: p.xpMultiplier,
             maxLevel: p.maxLevel,
             alive: p.alive,
             shieldActive: p.shieldActive,

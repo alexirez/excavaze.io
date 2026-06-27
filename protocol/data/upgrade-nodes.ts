@@ -151,6 +151,86 @@ export const UPGRADE_NODES: Map<string, UpgradeNode> = new Map([
         x: 1560, y: 760,
         apply: (state: PlayerState) => { state.moveSpeedMultiplier += 0.01 }
     }],
+    [ 'xp_multiplier_1', {
+        desc: '+1% xp gained',
+        cost: [{ currency: 'gem', amount: 80 }],
+        parents: [],
+        x: 200,
+        y: 1400,
+        apply: (state: PlayerState) => { state.xpMultiplier += 0.01 }
+    }],
+    [ 'xp_multiplier_2', {
+        desc: '+2% xp gained',
+        cost: [{ currency: 'gem', amount: 80 }],
+        parents: ['xp_multiplier_1'],
+        x: 355,
+        y: 1450,
+        apply: (state: PlayerState) => { state.xpMultiplier += 0.01 }
+    }],
+    [ 'xp_multiplier_3', {
+        desc: '+3% xp gained',
+        cost: [{ currency: 'gem', amount: 80 }],
+        parents: ['xp_multiplier_2'],
+        x: 510,
+        y: 1400,
+        apply: (state: PlayerState) => { state.xpMultiplier += 0.01 }
+    }],
+    [ 'xp_multiplier_4', {
+        desc: '+4% xp gained',
+        cost: [{ currency: 'gem', amount: 80 }],
+        parents: ['xp_multiplier_3'],
+        x: 665,
+        y: 1450,
+        apply: (state: PlayerState) => { state.xpMultiplier += 0.01 }
+    }],
+    [ 'xp_multiplier_5', {
+        desc: '+5% xp gained',
+        cost: [{ currency: 'gem', amount: 80 }],
+        parents: ['xp_multiplier_4'],
+        x: 820,
+        y: 1425,
+        apply: (state: PlayerState) => { state.xpMultiplier += 0.01 }
+    }],
+    [ 'xp_multiplier_6', {
+        desc: '+6% xp gained',
+        cost: [{ currency: 'gem', amount: 80 }],
+        parents: ['xp_multiplier_5'],
+        x: 975,
+        y: 1450,
+        apply: (state: PlayerState) => { state.xpMultiplier += 0.01 }
+    }],
+    [ 'xp_multiplier_7', {
+        desc: '+7% xp gained',
+        cost: [{ currency: 'gem', amount: 80 }],
+        parents: ['xp_multiplier_6'],
+        x: 1130,
+        y: 1400,
+        apply: (state: PlayerState) => { state.xpMultiplier += 0.01 }
+    }],
+    [ 'xp_multiplier_8', {
+        desc: '+8% xp gained',
+        cost: [{ currency: 'gem', amount: 80 }],
+        parents: ['xp_multiplier_7'],
+        x: 1285,
+        y: 1450,
+        apply: (state: PlayerState) => { state.xpMultiplier += 0.01 }
+    }],
+    [ 'xp_multiplier_9', {
+        desc: '+9% xp gained',
+        cost: [{ currency: 'gem', amount: 80 }],
+        parents: ['xp_multiplier_8'],
+        x: 1440,
+        y: 1400,
+        apply: (state: PlayerState) => { state.xpMultiplier += 0.01 }
+    }],
+    [ 'xp_multiplier_10', {
+        desc: '+10% xp gained',
+        cost: [{ currency: 'gem', amount: 80 }],
+        parents: ['xp_multiplier_9'],
+        x: 1595,
+        y: 1450,
+        apply: (state: PlayerState) => { state.xpMultiplier += 0.01 }
+    }],
     ['max_level_1', {
         desc: '+1 Max Level',
         cost: [{ currency: 'gem', amount: 200 }],

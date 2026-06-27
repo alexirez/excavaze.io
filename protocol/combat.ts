@@ -322,6 +322,6 @@ function broadcastToAll(json: string, players: Map<number, ServerPlayer>) {
 }
 
 export function awardXp(player: ServerPlayer, amount: number) {
-  player.state.xp += amount
-  // TODO: send level_up message for sound/animation trigger
+  player.state.xp += amount * player.state.xpMultiplier
+  // TODO: possibly send level_up message for sound/animation trigger
 }
