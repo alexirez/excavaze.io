@@ -122,72 +122,52 @@ export default function UpgradesScreen({ onBack, online, gems, purchasedUpgrades
   }
 
   function drawConnectors() {
-    if (!svgRef.current || !containerRef.current) return null
-    const containerRect = containerRef.current.getBoundingClientRect()
-    const paths: JSX.Element[] = []
+  const paths: JSX.Element[] = []
+  const nodeW = 100
+  const nodeH = 60
 
-    nodes.forEach(node => {
-      node.parents.forEach(pid => {
-        const parentNode = nodes.find(n => n.id === pid)
-        const fromEl = nodeRefs.current[pid]
-        const toEl = nodeRefs.current[node.id]
-        if (!fromEl || !toEl || !parentNode) return
+  nodes.forEach(node => {
+    node.parents.forEach(pid => {
+      const parentNode = nodes.find(n => n.id === pid)
+      if (!parentNode) return
 
-        const fr = fromEl.getBoundingClientRect()
-        const tr = toEl.getBoundingClientRect()
-        const scroll = containerRef.current!
+      const ax = parentNode.x - minX + 50 + CANVAS_PAD + nodeW / 2
+      const ay = parentNode.y + NODES_OFFSET_Y + CANVAS_PAD * 0.3 + nodeH / 2
+      const bx = node.x - minX + 50 + CANVAS_PAD + nodeW / 2
+      const by = node.y + NODES_OFFSET_Y + CANVAS_PAD * 0.3 + nodeH / 2
 
-        const fx_center = (fr.left - containerRect.left + scroll.scrollLeft) / zoom + fr.width / zoom / 2
-        const fy_center = (fr.top - containerRect.top + scroll.scrollTop) / zoom + fr.height / zoom / 2
-        const tx_center = (tr.left - containerRect.left + scroll.scrollLeft) / zoom + tr.width / zoom / 2
-        const ty_center = (tr.top - containerRect.top + scroll.scrollTop) / zoom + tr.height / zoom / 2
+      const dx = bx - ax
+      const dy = by - ay
 
-        const dx = tx_center - fx_center
-        const dy = ty_center - fy_center
+      let fx, fy, tx, ty
+      if (Math.abs(dy) >= Math.abs(dx)) {
+        // primarily vertical
+        fx = ax; tx = bx
+        fy = dy > 0 ? ay + nodeH / 2 : ay - nodeH / 2
+        ty = dy > 0 ? by - nodeH / 2 : by + nodeH / 2
+      } else {
+        // primarily horizontal
+        fy = ay; ty = by
+        fx = dx > 0 ? ax + nodeW / 2 : ax - nodeW / 2
+        tx = dx > 0 ? bx - nodeW / 2 : bx + nodeW / 2
+      }
 
-        let fx, fy, tx, ty
-        if (Math.abs(dy) >= Math.abs(dx)) {
-          // primarily vertical — connect top/bottom
-          if (dy > 0) {
-            // child is below
-            fx = fx_center; fy = fy_center + fr.height / zoom / 2
-            tx = tx_center; ty = ty_center - tr.height / zoom / 2
-          } else {
-            // child is above
-            fx = fx_center; fy = fy_center - fr.height / zoom / 2
-            tx = tx_center; ty = ty_center + tr.height / zoom / 2
-          }
-        } else {
-          // primarily horizontal — connect left/right
-          if (dx > 0) {
-            // child is to the right
-            fx = fx_center + fr.width / zoom / 2; fy = fy_center
-            tx = tx_center - tr.width / zoom / 2; ty = ty_center
-          } else {
-            // child is to the left
-            fx = fx_center - fr.width / zoom / 2; fy = fy_center
-            tx = tx_center + tr.width / zoom / 2; ty = ty_center
-          }
-        }
+      const parentState = getState(parentNode, purchasedUpgrades)
+      const color = parentState === 'purchased' ? 'rgba(0,255,153,0.35)' : 'rgba(255,255,255,0.22)'
 
-        const cy = (fy + ty) / 2
-        const parentState = getState(parentNode, purchasedUpgrades)
-        const active = parentState === 'purchased'
-        const color = active ? 'rgba(0,255,153,0.35)' : 'rgba(255,255,255,0.22)'
-
-        paths.push(
-          <path
-            key={`${pid}-${node.id}`}
-            d={`M${fx},${fy} C${fx},${cy} ${tx},${cy} ${tx},${ty}`}
-            stroke={color}
-            strokeWidth={2.5}
-            fill="none"
-          />
-        )
-      })
+      paths.push(
+        <line
+          key={`${pid}-${node.id}`}
+          x1={fx} y1={fy}
+          x2={tx} y2={ty}
+          stroke={color}
+          strokeWidth={2.5}
+        />
+      )
     })
-    return paths
-  }
+  })
+  return paths
+}
 
   function handleZoom(dir: 1 | -1) {
     const container = containerRef.current
