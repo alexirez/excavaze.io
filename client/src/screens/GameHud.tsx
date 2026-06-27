@@ -75,7 +75,7 @@ export default function GameHud({ screen, playerName, isDead, purchasedUpgrades,
   const [perkVisible, setPerkVisible] = useState(false)
   const [pendingCount, setPendingCount] = useState(0)
   const lastPerkChoiceTime = useRef<number>(0)
-  const perkChoicesRef = useRef<string[] | null>(null)
+  const perkChoicesRef = useRef<string[] | 'pending' | null>(null)
 
   useEffect(() => {
     if (isDead) {
@@ -100,13 +100,11 @@ export default function GameHud({ screen, playerName, isDead, purchasedUpgrades,
         const localId = getLocalId()
         const local = msg.players.find(p => p.id === localId)
         if (local) {
-          const pending = currentLevel(local.xp) - local.collectedPerks.length
+          const pending = Math.min(currentLevel(local.xp), local.maxLevel) - local.collectedPerks.length
           setPendingCount(pending)
           if (pending > 0 && !perkChoicesRef.current && Date.now() > lastPerkChoiceTime.current + 500) {
-            const choices = rollPerkChoices(local.collectedPerks)
-            setPerkChoices(choices)
-            perkChoicesRef.current = choices
-            requestAnimationFrame(() => setPerkVisible(true))
+            socket.send(JSON.stringify({ type: 'request_perk_choices' }))
+            perkChoicesRef.current = 'pending' // prevent repeated requests
           }
           const level = currentLevel(local.xp)
           setXpLevel(level + 1)
@@ -135,6 +133,10 @@ export default function GameHud({ screen, playerName, isDead, purchasedUpgrades,
         setIsDead(true)
         setKillerName(msg.killerName)
         setDeathTip(pickTip(msg.cause))
+      } else if (msg.type === 'perk_options') {
+        setPerkChoices(msg.perkOptions)
+        perkChoicesRef.current = msg.perkOptions
+        requestAnimationFrame(() => setPerkVisible(true))
       }
     }
     addSocketListener(handler)
@@ -143,7 +145,7 @@ export default function GameHud({ screen, playerName, isDead, purchasedUpgrades,
   const isGame = screen === 'game'
 
   return <>
-    {/* xp bar — game only, not when dead */}
+    {/* xp bar */}
     {isGame && !isDead && (
       <div style={{
         position: 'absolute',
@@ -216,7 +218,7 @@ export default function GameHud({ screen, playerName, isDead, purchasedUpgrades,
       </div>
     )}
 
-    {/* leaderboard — game and startMenu */}
+    {/* leaderboard */}
     <div style={{
       position: 'absolute',
       top: 20,
@@ -256,7 +258,7 @@ export default function GameHud({ screen, playerName, isDead, purchasedUpgrades,
       </div>
     </div>
 
-    {/* perk selection — game only */}
+    {/* perk selection */}
     {isGame && perkChoices && (
       <div style={{
         position: 'absolute',
@@ -328,7 +330,7 @@ export default function GameHud({ screen, playerName, isDead, purchasedUpgrades,
       </div>
     )}
 
-    {/* death screen — game only */}
+    {/* death screen */}
     {isGame && isDead && (
       <div style={{
         position: 'absolute',

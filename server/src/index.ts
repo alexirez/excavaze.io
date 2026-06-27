@@ -4,10 +4,10 @@ import { WorldStateMessage, ClientMessage } from '../../protocol/messages'
 import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, PLAYER_COLLISION_DAMAGE, KILL_SQUARE_XP_MULTIPLIER, SQR_COLLISION_BASE_DMG, SQR_COLLISION_DMG_FACTOR, COLLISION_COOLDOWN, PLAYER_BASE_RADIUS, PLAYER_BASE_SPEED, CHUNK_ROWS, CHUNK_COLS, SHIELD_DURATION } from '../../protocol/constants'
 import { PlayerState, SquareState } from '../../protocol/types'
 import { computeBotInput } from '../../protocol/bot-behavior'
-import { isDrillPerk, PERK_EFFECTS, PERK_TREE, removeDrillPerks } from '../../protocol/data/perks'
+import { isDrillPerk, PERK_EFFECTS, PERK_TREE, removeDrillPerks, rollPerkChoices } from '../../protocol/data/perks'
 import { assignNextPlayerId, fillMapSquares, getChunkIndex, getNearbySquareIds, pickPlayerSpawnPoint, spawnBots, spawnSquaresOnStartup } from '../../protocol/world'
 import { awardXp, circleIntersectsOrientedRect, getDrillDamageOnCircle, getDrillDamageOnRect, getDrillReach, killPlayer, killPlayerBySquare } from '../../protocol/combat'
-import { refreshStats } from '../../protocol/utils'
+import { currentLevel, refreshStats } from '../../protocol/utils'
 
 const PORT = 3000
 const SQUARE_SPEED = 0.5  // multiplies square drifting speed
@@ -89,34 +89,35 @@ wss.on('connection', (socket) => {
         p.state.shieldActive = true
         p.state.x = x
         p.state.y = y
-        p.state.hp = PLAYER_BASE_HP
-        p.state.maxHp = PLAYER_BASE_HP
-        p.state.hpRegenPerSec = 0
-        p.state.moveSpeedMultiplier = 1
-        p.state.radius = PLAYER_BASE_RADIUS
         p.state.collectedPerks = []
-        p.state.drillType = 0
-        p.state.drillDmgMultiplier = 1
-        p.state.drillLengthMultiplier = 1
         p.shieldTicks = SHIELD_DURATION
         p.purchasedUpgrades = msg.upgrades ?? []
         refreshStats(p.state, p.purchasedUpgrades)
       } else if (msg.type === 'select_perk') {
         const player = players.get(id)!
         if (!player.state.alive) return
+        if (!player.pendingPerkChoices.includes(msg.perkId)) return
+        player.pendingPerkChoices = []
         const perk = PERK_TREE[msg.perkId]
         if (!perk) return
-        if (player.state.collectedPerks.includes(msg.perkId)) return // prevent duplicates
-        if (removeDrillPerks && isDrillPerk(msg.perkId)) removeDrillPerks(player.state)
+        if (player.state.collectedPerks.includes(msg.perkId)) return
+        if (isDrillPerk(msg.perkId)) removeDrillPerks(player.state)
         player.state.collectedPerks.push(msg.perkId)
         refreshStats(player.state, player.purchasedUpgrades)
         PERK_EFFECTS[msg.perkId]?.(player.state) // one-time, not recalculated
       } else if (msg.type === 'try_purchase_upgrade') {
-        // TODO: online mode runs validation check. Offline trusts client for now.
         const p = players.get(id)!
         if (!p.purchasedUpgrades.includes(msg.nodeId))
           p.purchasedUpgrades.push(msg.nodeId)
         refreshStats(p.state, p.purchasedUpgrades)
+      } else if (msg.type === 'request_perk_choices') {
+        const player = players.get(id)!
+        if (!player.state.alive) return
+        const pendingPerksCount = Math.min(currentLevel(player.state.xp), player.state.maxLevel) - player.state.collectedPerks.length
+        if (pendingPerksCount <= 0) return
+        const choices = rollPerkChoices(player.state.collectedPerks)
+        player.pendingPerkChoices = choices
+        player.socket?.send(JSON.stringify({ type: 'perk_options', perkOptions: choices }))
       }
     } catch (e) {
       console.error('[connection handler crash]', e)
