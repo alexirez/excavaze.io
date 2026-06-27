@@ -100,11 +100,7 @@ export default function UpgradesScreen({ onBack, online, gems, purchasedUpgrades
   }, [])
 
   useEffect(() => {
-    setTimeout(() => forceUpdate(x => x + 1), 50)
-  }, [])
-
-  useEffect(() => {
-    setTimeout(() => forceUpdate(x => x + 1), 30)
+    forceUpdate(x => x + 1)
   }, [zoom])
 
   const toastRef = useRef<HTMLDivElement>(null)
@@ -194,26 +190,27 @@ export default function UpgradesScreen({ onBack, online, gems, purchasedUpgrades
   }
 
   function handleZoom(dir: 1 | -1) {
-  const container = containerRef.current
-  if (!container) return
+    const container = containerRef.current
+    if (!container) return
 
-  const newZoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, +(zoom + dir * ZOOM_STEP).toFixed(1)))
+    const newZoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, +(zoom + dir * ZOOM_STEP).toFixed(1)))
 
-  // center in terms of content (node-space), not canvas-space
-  // subtract current CANVAS_PAD to get into node-space
-  const currentPad = Math.max(400, window.innerWidth * 0.5 / zoom)
-  const newPad = Math.max(400, window.innerWidth * 0.5 / newZoom)
+    // center in terms of content (node-space), not canvas-space
+    // subtract current CANVAS_PAD to get into node-space
+    const currentPad = Math.max(400, window.innerWidth * 0.5 / zoom)
+    const newPad = Math.max(400, window.innerWidth * 0.5 / newZoom)
 
-  const centerXInContent = (container.scrollLeft + container.clientWidth / 2) / zoom - currentPad
-  const centerYInContent = (container.scrollTop + container.clientHeight / 2) / zoom - currentPad * 0.3
+    const centerXInContent = (container.scrollLeft + container.clientWidth / 2) / zoom - currentPad
+    const centerYInContent = (container.scrollTop + container.clientHeight / 2) / zoom - currentPad * 0.3
 
-  setZoom(newZoom)
+    setZoom(newZoom)
 
-  requestAnimationFrame(() => {
-    container.scrollLeft = (centerXInContent + newPad) * newZoom - container.clientWidth / 2
-    container.scrollTop = (centerYInContent + newPad * 0.3) * newZoom - container.clientHeight / 2
-  })
-}
+    requestAnimationFrame(() => {
+      container.scrollLeft = (centerXInContent + newPad) * newZoom - container.clientWidth / 2
+      container.scrollTop = (centerYInContent + newPad * 0.3) * newZoom - container.clientHeight / 2
+      forceUpdate(x => x + 1)
+    })
+  }
 
   return (
     <div style={{
