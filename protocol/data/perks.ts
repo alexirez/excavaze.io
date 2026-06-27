@@ -72,7 +72,7 @@ export const PERK_TREE: Record<string, PerkDef> = {
         desc: 'Max HP +20\nPlayer size +20%',
         rarity: 'common',
         requiredPlayerLevel: 1,
-        apply: (state) => { state.maxHp += 20; state.hp += 20; state.radius += PLAYER_BASE_RADIUS * 0.2 },
+        apply: (state) => { state.maxHp += 20; state.radius += PLAYER_BASE_RADIUS * 0.2 },
     },
 
     'hp_buff_2': {
@@ -80,7 +80,7 @@ export const PERK_TREE: Record<string, PerkDef> = {
         desc: 'Max HP +60\nPlayer size +50%',
         rarity: 'rare',
         requiredPlayerLevel: 8,
-        apply: (state) => { state.maxHp += 60; state.hp += 60; state.radius += PLAYER_BASE_RADIUS * 0.5 },
+        apply: (state) => { state.maxHp += 60; state.radius += PLAYER_BASE_RADIUS * 0.5 },
     },
 
     'hp_regen': {
@@ -125,6 +125,12 @@ export const PERK_TRANSITIONS: Record<string, string[]> = {
   'hp_regen':       ['hp_regen_2'],
   'move_speed':     ['move_speed_2'],
   'sawblade':       ['deathblade']
+}
+
+// one-time side effects to apply upon choosing the perk
+export const PERK_EFFECTS: Partial<Record<string, (state: PlayerState) => void>> = {
+  'hp_buff':   (state) => { state.hp += 20 },
+  'hp_buff_2': (state) => { state.hp += 60 },
 }
 
 export const DRILL_PERKS = new Set(['sawblade', 'deathblade'])

@@ -4,7 +4,7 @@ import { WorldStateMessage, ClientMessage } from '../../protocol/messages'
 import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, PLAYER_COLLISION_DAMAGE, KILL_SQUARE_XP_MULTIPLIER, SQR_COLLISION_BASE_DMG, SQR_COLLISION_DMG_FACTOR, COLLISION_COOLDOWN, PLAYER_BASE_RADIUS, PLAYER_BASE_SPEED, CHUNK_ROWS, CHUNK_COLS, SHIELD_DURATION } from '../../protocol/constants'
 import { PlayerState, SquareState } from '../../protocol/types'
 import { computeBotInput } from '../../protocol/bot-behavior'
-import { isDrillPerk, PERK_TREE, removeDrillPerks } from '../../protocol/data/perks'
+import { isDrillPerk, PERK_EFFECTS, PERK_TREE, removeDrillPerks } from '../../protocol/data/perks'
 import { assignNextPlayerId, fillMapSquares, getChunkIndex, getNearbySquareIds, pickPlayerSpawnPoint, spawnBots, spawnSquaresOnStartup } from '../../protocol/world'
 import { awardXp, circleIntersectsOrientedRect, getDrillDamageOnCircle, getDrillDamageOnRect, getDrillReach, killPlayer, killPlayerBySquare } from '../../protocol/combat'
 import { refreshStats } from '../../protocol/utils'
@@ -108,6 +108,7 @@ wss.on('connection', (socket) => {
         if (removeDrillPerks && isDrillPerk(msg.perkId)) removeDrillPerks(player.state)
         player.state.collectedPerks.push(msg.perkId)
         refreshStats(player.state, player.purchasedUpgrades)
+        PERK_EFFECTS[msg.perkId]?.(player.state) // one-time, not recalculated
       } else if (msg.type === 'try_purchase_upgrade') {
         // TODO: online mode runs validation check. Offline trusts client for now.
         const p = players.get(id)!
