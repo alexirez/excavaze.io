@@ -321,7 +321,7 @@ function broadcastToAll(json: string, players: Map<number, ServerPlayer>) {
   }
 }
 
-export function awardXp(player: ServerPlayer, amount: number) { // TODO: make xp cap be based on account progression instead of always level 7 as max
+export function awardXp(player: ServerPlayer, amount: number) {
   if (currentLevel(player.state.xp) >= 7) return
   player.state.xp += amount
   if (currentLevel(player.state.xp) >= 7)

@@ -82,6 +82,7 @@ export default function App() {
         screen={screen}
         playerName={playerName}
         isDead={isDead}
+        purchasedUpgrades={purchasedUpgrades}
         setIsDead={setIsDead}
         onHome={() => setScreen('startMenu')}
         onUpgrades={() => setScreen('upgrades')}
