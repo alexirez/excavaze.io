@@ -43,7 +43,7 @@ export default function UpgradesScreen({ onBack, online, gems, purchasedUpgrades
   const nodes = [...UPGRADE_NODES.entries()].map(([id, node]) => ({ id, ...node }))
   const minX = Math.min(...nodes.map(n => n.x)) // used to auto-center node tree
 
-  const baseCanvasW = Math.max(...nodes.map(n => n.x)) + CANVAS_PAD * 2
+  const baseCanvasW = Math.max(...nodes.map(n => n.x)) - minX + CANVAS_PAD * 2
   const baseCanvasH = Math.max(...nodes.map(n => n.y)) + CANVAS_PAD
   const bgCanvasRef = useRef<HTMLCanvasElement>(null)
 
@@ -328,8 +328,8 @@ export default function UpgradesScreen({ onBack, online, gems, purchasedUpgrades
             {/* UPGRADES label */}
             <div style={{
               position: 'absolute',
-              left: baseCanvasW * 0.5 - 100 - minX,
-              top: 30 + NODES_OFFSET_Y + CANVAS_PAD * 0.3,
+              left: baseCanvasW * 0.5 - 225,
+              top: NODES_OFFSET_Y + CANVAS_PAD * 0.3,
             }}>
               <div style={{ fontSize: 128, letterSpacing: 6, color: 'rgba(255,255,255,0.15)', textTransform: 'uppercase' }}>
                 upgrades
