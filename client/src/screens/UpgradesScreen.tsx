@@ -47,10 +47,10 @@ export default function UpgradesScreen({ onBack, online, gems, purchasedUpgrades
   const baseCanvasH = Math.max(...nodes.map(n => n.y)) + CANVAS_PAD
   const bgCanvasRef = useRef<HTMLCanvasElement>(null)
 
-  useEffect(() => {
+  useEffect(() => { // initial camera position
     if (containerRef.current) {
-      containerRef.current.scrollLeft = 200
-      containerRef.current.scrollTop = 0
+      containerRef.current.scrollLeft = 750
+      containerRef.current.scrollTop = 300
     }
   }, [])
 
