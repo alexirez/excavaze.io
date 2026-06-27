@@ -106,10 +106,10 @@ export default function GameHud({ screen, playerName, isDead, purchasedUpgrades,
             socket.send(JSON.stringify({ type: 'request_perk_choices' }))
             perkChoicesRef.current = 'pending' // prevent repeated requests
           }
-          const level = currentLevel(local.xp)
-          setXpLevel(level + 1)
-          setXpRatio(xpThisLevel(local.xp) / xpForNextLevel(local.xp))
-          setXpIsMax(level >= local.maxLevel - 1)
+          const displayLevel = Math.min(currentLevel(local.xp), local.maxLevel)
+          setXpLevel(displayLevel)
+          displayLevel >= local.maxLevel ? setXpRatio(1) : setXpRatio(xpThisLevel(local.xp) / xpForNextLevel(local.xp))
+          setXpIsMax(displayLevel >= local.maxLevel)
         }
       } else if (msg.type === 'player_killed') {
         const id = killFeedCounter++

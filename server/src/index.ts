@@ -38,7 +38,7 @@ wss.on('connection', (socket) => {
     state: {
       id,
       name: 'Player',
-      xp: 0,
+      xp: 5000,
       maxLevel: 7,
       alive: false,
       shieldActive: false,
