@@ -15,8 +15,6 @@ const CURRENCY_ICONS: Record<string, string> = {
   purple_core: '/assets/purple-core.svg',
   yellow_core: '/assets/yellow-core.svg',
 }
-const NODES_OFFSET_X = 80
-const NODES_OFFSET_Y = 0
 
 function getState(node: { id: string, parents: string[] }, purchased: string[]): 'purchased' | 'available' | 'locked' {
   if (purchased.includes(node.id)) return 'purchased'
@@ -24,7 +22,6 @@ function getState(node: { id: string, parents: string[] }, purchased: string[]):
   return 'locked'
 }
 
-const CANVAS_PAD = 400
 const ZOOM_STEP = 0.1
 const ZOOM_MIN = 0.5
 const ZOOM_MAX = 1.6
@@ -38,16 +35,22 @@ export default function UpgradesScreen({ onBack, online, gems, purchasedUpgrades
   const [insufficientFunds, setInsufficientFunds] = useState(false)
   const toastTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const nodes = [...UPGRADE_NODES.entries()].map(([id, node]) => ({ id, ...node }))
+  const CANVAS_PAD = Math.max(400, window.innerWidth * 0.5 / zoom)
+  
+  const NODES_OFFSET_X = 80
+  const NODES_OFFSET_Y = 100 * zoom
 
-  const baseCanvasW = Math.max(...nodes.map(n => n.x)) + 200 + CANVAS_PAD
-  const baseCanvasH = Math.max(...nodes.map(n => n.y)) + 200 + CANVAS_PAD
+  const nodes = [...UPGRADE_NODES.entries()].map(([id, node]) => ({ id, ...node }))
+  const minX = Math.min(...nodes.map(n => n.x)) // used to auto-center node tree
+
+  const baseCanvasW = Math.max(...nodes.map(n => n.x)) + CANVAS_PAD * 2
+  const baseCanvasH = Math.max(...nodes.map(n => n.y)) + CANVAS_PAD
   const bgCanvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
     if (containerRef.current) {
-      containerRef.current.scrollLeft = 200  // adjust to your desired x
-      containerRef.current.scrollTop = 0   // adjust to your desired y
+      containerRef.current.scrollLeft = 200
+      containerRef.current.scrollTop = 0
     }
   }, [])
 
@@ -191,7 +194,21 @@ export default function UpgradesScreen({ onBack, online, gems, purchasedUpgrades
   }
 
   function handleZoom(dir: 1 | -1) {
-    setZoom(z => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, +(z + dir * ZOOM_STEP).toFixed(1))))
+    const container = containerRef.current
+    if (!container) return
+    
+    // capture center before zoom
+    const centerX = (container.scrollLeft + container.clientWidth / 2) * zoom
+    const centerY = (container.scrollTop + container.clientHeight / 2) * zoom
+    
+    const newZoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, +(zoom + dir * ZOOM_STEP).toFixed(1)))
+    setZoom(newZoom)
+    
+    // restore center after zoom — needs to run after re-render
+    requestAnimationFrame(() => {
+      container.scrollLeft = centerX * newZoom - container.clientWidth / 2
+      container.scrollTop = centerY * newZoom - container.clientHeight / 2
+    })
   }
 
   return (
@@ -298,7 +315,12 @@ export default function UpgradesScreen({ onBack, online, gems, purchasedUpgrades
         ref={containerRef}
         className="upgrade-canvas"
         onScroll={() => forceUpdate(x => x + 1)}
-        style={{ flex: 1, overflow: 'scroll', position: 'relative', background: 'transparent', zIndex: 5}}
+        style={{ 
+          flex: 1, overflow: 'scroll', 
+          position: 'relative', 
+          background: 'transparent', 
+          zIndex: 5
+        }}
       >
         <canvas
         ref={bgCanvasRef}
@@ -316,7 +338,8 @@ export default function UpgradesScreen({ onBack, online, gems, purchasedUpgrades
           {/* scaled inner canvas */}
           <div style={{
             position: 'absolute', top: 0, left: 0,
-            width: baseCanvasW, height: baseCanvasH,
+            width: Math.max(baseCanvasW * zoom, window.innerWidth),
+            height: Math.max(baseCanvasH * zoom, window.innerHeight),
             transform: `scale(${zoom})`,
             transformOrigin: '0 0',
           }}>
@@ -324,8 +347,8 @@ export default function UpgradesScreen({ onBack, online, gems, purchasedUpgrades
             {/* UPGRADES label */}
             <div style={{
               position: 'absolute',
-              left: 720,
-              top: 30,
+              left: baseCanvasW * 0.5 - 100 - minX,
+              top: 30 + NODES_OFFSET_Y,
             }}>
               <div style={{ fontSize: 128, letterSpacing: 6, color: 'rgba(255,255,255,0.15)', textTransform: 'uppercase' }}>
                 upgrades
@@ -343,7 +366,7 @@ export default function UpgradesScreen({ onBack, online, gems, purchasedUpgrades
               {drawConnectors()}
             </svg>
 
-            {/* nodes */}
+            {/* procedural nodes */}
             {nodes.map(node => {
               const state = getState(node, purchasedUpgrades)
               return (
@@ -352,7 +375,7 @@ export default function UpgradesScreen({ onBack, online, gems, purchasedUpgrades
                   ref={el => { nodeRefs.current[node.id] = el }}
                   style={{
                     position: 'absolute',
-                    left: node.x + NODES_OFFSET_X,
+                    left: node.x - minX + 50 + CANVAS_PAD,
                     top: node.y + NODES_OFFSET_Y,
                     width: 100,
                     background: state === 'purchased'
