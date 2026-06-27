@@ -109,7 +109,7 @@ export default function GameHud({ screen, playerName, isDead, purchasedUpgrades,
           const level = currentLevel(local.xp)
           setXpLevel(level + 1)
           setXpRatio(xpThisLevel(local.xp) / xpForNextLevel(local.xp))
-          setXpIsMax(level >= 6)
+          setXpIsMax(level >= local.maxLevel - 1)
         }
       } else if (msg.type === 'player_killed') {
         const id = killFeedCounter++

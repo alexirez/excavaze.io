@@ -322,8 +322,6 @@ function broadcastToAll(json: string, players: Map<number, ServerPlayer>) {
 }
 
 export function awardXp(player: ServerPlayer, amount: number) {
-  if (currentLevel(player.state.xp) >= 7) return
   player.state.xp += amount
-  if (currentLevel(player.state.xp) >= 7)
-    player.state.xp = xpForLevel(7) - 1
+  // TODO: send level_up message for sound/animation trigger
 }
