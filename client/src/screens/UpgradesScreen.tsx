@@ -194,22 +194,26 @@ export default function UpgradesScreen({ onBack, online, gems, purchasedUpgrades
   }
 
   function handleZoom(dir: 1 | -1) {
-    const container = containerRef.current
-    if (!container) return
-    
-    // capture center before zoom
-    const centerX = (container.scrollLeft + container.clientWidth / 2) * zoom
-    const centerY = (container.scrollTop + container.clientHeight / 2) * zoom
-    
-    const newZoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, +(zoom + dir * ZOOM_STEP).toFixed(1)))
-    setZoom(newZoom)
-    
-    // restore center after zoom — needs to run after re-render
-    requestAnimationFrame(() => {
-      container.scrollLeft = centerX * newZoom - container.clientWidth / 2
-      container.scrollTop = centerY * newZoom - container.clientHeight / 2
-    })
-  }
+  const container = containerRef.current
+  if (!container) return
+
+  const newZoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, +(zoom + dir * ZOOM_STEP).toFixed(1)))
+
+  // center in terms of content (node-space), not canvas-space
+  // subtract current CANVAS_PAD to get into node-space
+  const currentPad = Math.max(400, window.innerWidth * 0.5 / zoom)
+  const newPad = Math.max(400, window.innerWidth * 0.5 / newZoom)
+
+  const centerXInContent = (container.scrollLeft + container.clientWidth / 2) / zoom - currentPad
+  const centerYInContent = (container.scrollTop + container.clientHeight / 2) / zoom - currentPad * 0.3
+
+  setZoom(newZoom)
+
+  requestAnimationFrame(() => {
+    container.scrollLeft = (centerXInContent + newPad) * newZoom - container.clientWidth / 2
+    container.scrollTop = (centerYInContent + newPad * 0.3) * newZoom - container.clientHeight / 2
+  })
+}
 
   return (
     <div style={{
