@@ -348,7 +348,7 @@ export default function UpgradesScreen({ onBack, online, gems, purchasedUpgrades
             <div style={{
               position: 'absolute',
               left: baseCanvasW * 0.5 - 100 - minX,
-              top: 30 + NODES_OFFSET_Y,
+              top: 30 + NODES_OFFSET_Y + CANVAS_PAD * 0.3,
             }}>
               <div style={{ fontSize: 128, letterSpacing: 6, color: 'rgba(255,255,255,0.15)', textTransform: 'uppercase' }}>
                 upgrades
@@ -376,7 +376,7 @@ export default function UpgradesScreen({ onBack, online, gems, purchasedUpgrades
                   style={{
                     position: 'absolute',
                     left: node.x - minX + 50 + CANVAS_PAD,
-                    top: node.y + NODES_OFFSET_Y,
+                    top: node.y + NODES_OFFSET_Y + CANVAS_PAD * 0.3,
                     width: 100,
                     background: state === 'purchased'
                       ? 'rgba(16,28,22,1)'
