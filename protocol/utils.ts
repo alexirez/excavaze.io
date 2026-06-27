@@ -59,6 +59,7 @@ export function xpForNextLevel(xp: number): number {
 }
 
 export function refreshStats(playerState: PlayerState, purchasedUpgrades: string[]) {
+  playerState.maxLevel = 7
   playerState.maxHp = PLAYER_BASE_HP
   playerState.hpRegenPerSec = 0
   playerState.moveSpeedMultiplier = 1

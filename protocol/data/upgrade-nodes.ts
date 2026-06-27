@@ -151,4 +151,60 @@ export const UPGRADE_NODES: Map<string, UpgradeNode> = new Map([
         x: 1560, y: 760,
         apply: (state: PlayerState) => { state.moveSpeedMultiplier += 0.01 }
     }],
+    ['max_level_1', {
+        desc: '+1 Max Level',
+        cost: [{ currency: 'gem', amount: 200 }],
+        parents: [],
+        x: 450,
+        y: 1150,
+        apply: (state: PlayerState) => { state.maxLevel += 1 }
+    }],
+    ['max_level_2', {
+        desc: '+3 Max Level',
+        cost: [{ currency: 'gem', amount: 460 }],
+        parents: ['max_level_1'],
+        x: 600,
+        y: 1200,
+        apply: (state: PlayerState) => { state.maxLevel += 2 }
+    }],
+    ['max_level_3', {
+        desc: '+5 Max Level',
+        cost: [{ currency: 'gem', amount: 900 }],
+        parents: ['max_level_2'],
+        x: 750,
+        y: 1150,
+        apply: (state: PlayerState) => { state.maxLevel += 2 }
+    }],
+    ['max_level_4', {
+        desc: '+7 Max Level',
+        cost: [{ currency: 'gem', amount: 1200 }],
+        parents: ['max_level_3'],
+        x: 900,
+        y: 1200,
+        apply: (state: PlayerState) => { state.maxLevel += 2 }
+    }],
+    ['max_level_5', {
+        desc: '+9 Max Level',
+        cost: [{ currency: 'gem', amount: 1350 }],
+        parents: ['max_level_4'],
+        x: 1050,
+        y: 1150,
+        apply: (state: PlayerState) => { state.maxLevel += 2 }
+    }],
+    ['max_level_6', {
+        desc: '+11 Max Level',
+        cost: [{ currency: 'gem', amount: 1500 }],
+        parents: ['max_level_5'],
+        x: 1200,
+        y: 1200,
+        apply: (state: PlayerState) => { state.maxLevel += 2 }
+    }],
+    ['max_level_7', {
+        desc: '+13 Max Level',
+        cost: [{ currency: 'gem', amount: 1750 }],
+        parents: ['max_level_6'],
+        x: 1350,
+        y: 1150,
+        apply: (state: PlayerState) => { state.maxLevel += 2 }
+    }],
 ])

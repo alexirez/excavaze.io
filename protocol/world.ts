@@ -187,6 +187,7 @@ function spawnBot(x: number, y: number, players: Map<number, ServerPlayer>) {
       id,
       name: generateBotName(players),
       xp: 0,
+      maxLevel: 7,
       alive: true,
       shieldActive: true,
       x,
