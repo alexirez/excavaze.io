@@ -207,7 +207,8 @@ function spawnBot(x: number, y: number, players: Map<number, ServerPlayer>) {
     shieldTicks: SHIELD_DURATION,
     lastCollisionTime: 0,
     wanderAngle: Math.random() * Math.PI * 2,
-    purchasedUpgrades: []
+    purchasedUpgrades: [],
+    pendingPerkChoices: []
   })
 }
 

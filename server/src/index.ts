@@ -59,7 +59,8 @@ wss.on('connection', (socket) => {
     shieldTicks: SHIELD_DURATION,
     lastCollisionTime: 0,
     wanderAngle: Math.random() * Math.PI * 2,
-    purchasedUpgrades: []
+    purchasedUpgrades: [],
+    pendingPerkChoices: []
   })
   // S->C: Tell this client their assigned id
   socket.send(JSON.stringify({ type: 'welcome', id, gems: 10 })) // TODO: load actual gems count for online mode

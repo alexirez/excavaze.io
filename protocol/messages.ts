@@ -26,22 +26,6 @@ export interface WelcomeMessage {
   upgrades: string[]
 }
 
-export interface LevelUpMessage {
-  type: 'level_up'
-  options: UpgradeOption[]
-}
-
-export interface UpgradeOption {
-  id: string  // 'drill_damage', 'drill_length', 'player_radius', etc
-  label: string
-  description: string
-}
-
-export interface RequestUpgradeMessage {
-  type: 'request_upgrade'
-  optionId: string
-}
-
 export interface PlayerKilledMessage {
   type: 'player_killed'
   killerId: number
@@ -68,6 +52,15 @@ export interface RespawnMessage {
   upgrades: string[]
 }
 
+export interface RequestPerkChoices {
+  type: 'request_perk_choices'
+}
+
+export interface PerkOptions {
+  type: 'perk_options'
+  perkOptions: string[]
+}
+
 export interface PerkSelection {
   type: 'select_perk'
   perkId: string
@@ -78,6 +71,6 @@ export interface TryPurchaseUpgrade {
   nodeId: string
 }
 
-export type ClientMessage = InputMessage | RequestUpgradeMessage | RespawnMessage | PerkSelection | TryPurchaseUpgrade
-export type ServerMessage = WelcomeMessage | WorldStateMessage | LevelUpMessage | PlayerKilledMessage 
-  | SquareKilledPlayerMessage | DeathScreenMessage
+export type ClientMessage = InputMessage | RespawnMessage | PerkSelection | TryPurchaseUpgrade | RequestPerkChoices
+export type ServerMessage = WelcomeMessage | WorldStateMessage | PlayerKilledMessage 
+  | SquareKilledPlayerMessage | DeathScreenMessage | PerkOptions

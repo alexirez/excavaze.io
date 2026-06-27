@@ -9,6 +9,7 @@ export interface ServerPlayer {
   lastCollisionTime: number
   wanderAngle: number
   purchasedUpgrades: string[]
+  pendingPerkChoices: string[]
 }
 
 export interface ServerSquare {
