@@ -93,6 +93,7 @@ wss.on('connection', (socket) => {
         p.shieldTicks = SHIELD_DURATION
         p.purchasedUpgrades = msg.upgrades ?? []
         refreshStats(p.state, p.purchasedUpgrades)
+        p.state.hp = p.state.maxHp // needed for max hp upgrades
       } else if (msg.type === 'select_perk') {
         const player = players.get(id)!
         if (!player.state.alive) return
