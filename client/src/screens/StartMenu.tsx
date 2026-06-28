@@ -28,6 +28,7 @@ export default function StartMenu({ onPlay, onUpgrades, online, setOnline, gems 
   const [name, setName] = useState('')
   const [tip, setTip] = useState(() => pickTip('general'))
   const [tipVisible, setTipVisible] = useState(true)
+  const [tipSpacing, setTipSpacing] = useState(1)
   const [tipTransition, setTipTransition] = useState<'ease-in' | 'ease-out'>('ease-out')
   const [showStarConfirm, setShowStarConfirm] = useState(false)
   const nameInputRef = useRef<HTMLInputElement>(null)
@@ -47,11 +48,13 @@ export default function StartMenu({ onPlay, onUpgrades, online, setOnline, gems 
     const interval = setInterval(() => {
       setTipTransition('ease-in')
       setTipVisible(false)
+      setTipSpacing(4)  // spread out as it shrinks
       setTimeout(() => {
         setTip(current => pickDifferentTip('general', current))
         setTipTransition('ease-out')
         setTipVisible(true)
-      }, 300)
+        setTipSpacing(1)
+      }, 200)
     }, 5000)
     return () => clearInterval(interval)
   }, [])
@@ -278,9 +281,11 @@ export default function StartMenu({ onPlay, onUpgrades, online, setOnline, gems 
           <div style={{
             fontSize: tipVisible ? 12 : 4,
             color: 'rgba(255,255,255,0.55)', 
+            minHeight: 40,
             lineHeight: 1.7, 
-            transition: `font-size 0.3s ${tipTransition}`, }}
-            >
+            letterSpacing: tipSpacing,
+            transition: `font-size 0.2s ${tipTransition}, letter-spacing 0.2s ${tipTransition}`,
+            }}>
             {stripTipPrefix(tip)}
           </div>
         </div>
