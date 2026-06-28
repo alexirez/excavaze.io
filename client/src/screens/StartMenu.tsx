@@ -27,6 +27,8 @@ const LOCAL_SERVER_URL = 'wss://localhost:3000'
 export default function StartMenu({ onPlay, onUpgrades, online, setOnline, gems }: Props) {
   const [name, setName] = useState('')
   const [tip, setTip] = useState(() => pickTip('general'))
+  const [tipVisible, setTipVisible] = useState(true)
+  const [tipTransition, setTipTransition] = useState<'ease-in' | 'ease-out'>('ease-out')
   const [showStarConfirm, setShowStarConfirm] = useState(false)
   const nameInputRef = useRef<HTMLInputElement>(null)
   const [nameError, setNameError] = useState(false)
@@ -43,7 +45,13 @@ export default function StartMenu({ onPlay, onUpgrades, online, setOnline, gems 
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setTip(current => pickDifferentTip('general', current))
+      setTipTransition('ease-in')
+      setTipVisible(false)
+      setTimeout(() => {
+        setTip(current => pickDifferentTip('general', current))
+        setTipTransition('ease-out')
+        setTipVisible(true)
+      }, 300)
     }, 5000)
     return () => clearInterval(interval)
   }, [])
@@ -264,8 +272,15 @@ export default function StartMenu({ onPlay, onUpgrades, online, setOnline, gems 
           background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.07)',
           borderRadius: 8, padding: '14px 16px', marginBottom: 10,
         }}>
-          <div style={{ fontSize: 10, letterSpacing: 2, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', marginBottom: 6 }}>tip</div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', lineHeight: 1.7 }}>
+          <div style={{ fontSize: 10, letterSpacing: 2, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', marginBottom: 6 }}>
+            tip
+          </div>
+          <div style={{
+            fontSize: tipVisible ? 12 : 4,
+            color: 'rgba(255,255,255,0.55)', 
+            lineHeight: 1.7, 
+            transition: `font-size 0.3s ${tipTransition}`, }}
+            >
             {stripTipPrefix(tip)}
           </div>
         </div>
