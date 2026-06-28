@@ -34,3 +34,12 @@ export function pickTip(cause: 'general' | 'player' | 'drill' | 'square'): strin
 export function stripTipPrefix(tip: string): string {
   return tip.startsWith('Tip: ') ? tip.slice(5) : tip
 }
+
+export function pickDifferentTip(cause: 'general' | 'player' | 'drill' | 'square', current: string): string {
+  const pools = { general: TIPS_GENERAL, player: TIPS_PLAYER, drill: TIPS_DRILL, square: TIPS_SQUARE }
+  const pool = pools[cause]
+  if (pool.length <= 1) return current
+  let pick: string
+  do { pick = pool[Math.floor(Math.random() * pool.length)] } while (pick === current)
+  return pick
+}

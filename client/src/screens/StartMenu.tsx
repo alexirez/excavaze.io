@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { phaserGame } from '../core/PhaserGame'
 import { loadOfflineUsername, saveOfflineUsername } from '../../storage/offlineStorage'
-import { pickTip, stripTipPrefix } from '../../../protocol/data/tips'
+import { pickTip, stripTipPrefix, pickDifferentTip } from '../../../protocol/data/tips'
 
 const shakeStyle = `
   @keyframes shake {
@@ -39,6 +39,13 @@ export default function StartMenu({ onPlay, onUpgrades, online, setOnline, gems 
     loadOfflineUsername()
       .then(username => { if (username) setName(username) })
       .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTip(current => pickDifferentTip('general', current))
+    }, 5000)
+    return () => clearInterval(interval)
   }, [])
 
   const persistName = () => {
