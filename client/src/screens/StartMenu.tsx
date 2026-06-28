@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { phaserGame } from '../core/PhaserGame'
 import { loadOfflineUsername, saveOfflineUsername } from '../../storage/offlineStorage'
-import { pickTip } from '../../../protocol/data/tips'
+import { pickTip, stripTipPrefix } from '../../../protocol/data/tips'
 
 const shakeStyle = `
   @keyframes shake {
@@ -259,7 +259,7 @@ export default function StartMenu({ onPlay, onUpgrades, online, setOnline, gems 
         }}>
           <div style={{ fontSize: 10, letterSpacing: 2, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', marginBottom: 6 }}>tip</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', lineHeight: 1.7 }}>
-            {tip}
+            {stripTipPrefix(tip)}
           </div>
         </div>
 

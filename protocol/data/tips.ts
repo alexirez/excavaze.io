@@ -30,3 +30,7 @@ export function pickTip(cause: 'general' | 'player' | 'drill' | 'square'): strin
   const pool = pools[cause]
   return pool[Math.floor(Math.random() * pool.length)]
 }
+
+export function stripTipPrefix(tip: string): string {
+  return tip.startsWith('Tip: ') ? tip.slice(5) : tip
+}
