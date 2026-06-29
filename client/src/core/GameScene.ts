@@ -101,6 +101,9 @@ export class GameScene extends Phaser.Scene {
             rotation: square.rotation
           })
         }
+      } else if (msg.type === 'player_update') {
+        const cp = clientPlayers.get(msg.id)
+        if (cp) Object.assign(cp, msg.changes)
       }
     }
     this.removeSocketListener = addSocketListener(handler)

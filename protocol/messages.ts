@@ -1,3 +1,4 @@
+import { ClientPlayer } from '../client/src/entities'
 import { PlayerState, SquareState } from './types'
 
 // C->S: Client tells server what inputs are being held this tick
@@ -52,6 +53,12 @@ export interface RespawnMessage {
   upgrades: string[]
 }
 
+export interface PlayerUpdateMessage {
+  type: 'player_update'
+  id: number
+  changes: Partial<Omit<ClientPlayer, 'snapshot'>>
+}
+
 export interface RequestPerkChoices {
   type: 'request_perk_choices'
 }
@@ -71,6 +78,6 @@ export interface TryPurchaseUpgrade {
   nodeId: string
 }
 
-export type ClientMessage = InputMessage | RespawnMessage | PerkSelection | TryPurchaseUpgrade | RequestPerkChoices
+export type ClientMessage = InputMessage | RespawnMessage | PlayerUpdateMessage | PerkSelection | TryPurchaseUpgrade | RequestPerkChoices
 export type ServerMessage = WelcomeMessage | WorldStateMessage | PlayerKilledMessage 
   | SquareKilledPlayerMessage | DeathScreenMessage | PerkOptions
