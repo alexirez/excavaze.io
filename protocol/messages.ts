@@ -47,10 +47,30 @@ export interface DeathScreenMessage {
   cause: 'player' | 'drill' | 'square'
 }
 
-export interface RespawnMessage {
-  type: 'respawn'
+// C->S: client wants to respawn
+export interface ClientRespawnMessage {
+  type: 'client_respawn'
   name: string
   upgrades: string[]
+}
+
+// S->C: a player has spawned or respawned
+export interface ServerRespawnMessage {
+  type: 'player_respawn'
+  id: number
+  name: string
+  bodyColor: number
+  borderColor: number
+  xpMultiplier: number
+  maxLevel: number
+  maxHp: number
+  hpRegenPerSec: number
+  moveSpeedMultiplier: number
+  radius: number
+  collectedPerks: string[]
+  drillType: number
+  drillDmgMultiplier: number
+  drillLengthMultiplier: number
 }
 
 export interface PlayerUpdateMessage {
@@ -78,6 +98,6 @@ export interface TryPurchaseUpgrade {
   nodeId: string
 }
 
-export type ClientMessage = InputMessage | RespawnMessage | PlayerUpdateMessage | PerkSelection | TryPurchaseUpgrade | RequestPerkChoices
-export type ServerMessage = WelcomeMessage | WorldStateMessage | PlayerKilledMessage 
+export type ClientMessage = InputMessage | ClientRespawnMessage | PerkSelection | TryPurchaseUpgrade | RequestPerkChoices
+export type ServerMessage = WelcomeMessage | WorldStateMessage | ServerRespawnMessage | PlayerUpdateMessage | PlayerKilledMessage 
   | SquareKilledPlayerMessage | DeathScreenMessage | PerkOptions

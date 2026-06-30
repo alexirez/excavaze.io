@@ -3,10 +3,12 @@ import { socket, addSocketListener, getLocalId } from '../network/socket'
 import { PlayerState, SquareState } from '../../../protocol/types'
 import { ServerMessage } from '../../../protocol/messages'
 import { WORLD_WIDTH, WORLD_HEIGHT, COLOR_BACKGROUND, COLOR_OUTER_BOUNDS, WORLD_PADDING, SQUARE_BASE_HP } from '../../../protocol/constants'
+import { ClientPlayer } from '../entities'
 
 export class GameScene extends Phaser.Scene {
   private enemyNameLabels: Map<number, Phaser.GameObjects.Text> = new Map()
   private keys!: Record<string, Phaser.Input.Keyboard.Key>
+  private clientPlayers: Map<number, ClientPlayer> = new Map()
   private latestPlayersState: Map<number, PlayerState> = new Map()
   private latestSquaresState: Map<number, SquareState> = new Map()
   private squareGraphics!: Phaser.GameObjects.Graphics
@@ -68,24 +70,13 @@ export class GameScene extends Phaser.Scene {
         for (const p of msg.players) {
           this.latestPlayersState.set(p.id, {
             id: p.id,
-            name: p.name,
             xp: p.xp,
-            xpMultiplier: p.xpMultiplier,
-            maxLevel: p.maxLevel,
             alive: p.alive,
             shieldActive: p.shieldActive,
             x: p.x,
             y: p.y,
             rotation: p.rotation,
             hp: p.hp,
-            maxHp: p.maxHp,
-            hpRegenPerSec: p.hpRegenPerSec,
-            moveSpeedMultiplier: p.moveSpeedMultiplier,
-            radius: p.radius,
-            collectedPerks: p.collectedPerks,
-            drillType: p.drillType,
-            drillDmgMultiplier: p.drillDmgMultiplier,
-            drillLengthMultiplier: p.drillLengthMultiplier
           })
         }
 
@@ -101,8 +92,28 @@ export class GameScene extends Phaser.Scene {
             rotation: square.rotation
           })
         }
-      } else if (msg.type === 'player_update') {
-        const cp = clientPlayers.get(msg.id)
+      }
+      if (msg.type === 'player_respawn') {
+        this.clientPlayers.set(msg.id, {
+          id: msg.id,
+          name: msg.name,
+          bodyColor: msg.bodyColor,
+          borderColor: msg.borderColor,
+          xpMultiplier: msg.xpMultiplier,
+          maxLevel: msg.maxLevel,
+          maxHp: msg.maxHp,
+          hpRegenPerSec: msg.hpRegenPerSec,
+          moveSpeedMultiplier: msg.moveSpeedMultiplier,
+          radius: msg.radius,
+          collectedPerks: msg.collectedPerks,
+          drillType: msg.drillType,
+          drillDmgMultiplier: msg.drillDmgMultiplier,
+          drillLengthMultiplier: msg.drillLengthMultiplier,
+          snapshot: { id: msg.id, xp: 0, alive: false, shieldActive: false, x: 0, y: 0, rotation: 0, hp: 0 }
+        })
+      } 
+      if (msg.type === 'player_update') {
+        const cp = this.clientPlayers.get(msg.id)
         if (cp) Object.assign(cp, msg.changes)
       }
     }
