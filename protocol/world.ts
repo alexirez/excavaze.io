@@ -181,7 +181,7 @@ function spawnBot(x: number, y: number, players: Map<number, ServerPlayer>) {
   const strengthMultiplier = dangerLevel * Math.random()
   const radius = 20 + 12 * (strengthMultiplier)
   const id = assignNextPlayerId()
-  players.set(id, {
+  const bot: ServerPlayer = {
     socket: null,
     state: {
       id,
@@ -212,7 +212,30 @@ function spawnBot(x: number, y: number, players: Map<number, ServerPlayer>) {
     wanderAngle: Math.random() * Math.PI * 2,
     purchasedUpgrades: [],
     pendingPerkChoices: [],
+  }
+  players.set(id, bot)
+
+  const respawnMsg = JSON.stringify({
+    type: 'player_respawn',
+    id,
+    name: bot.name,
+    bodyColor: bot.bodyColor,
+    borderColor: bot.borderColor,
+    xpMultiplier: bot.xpMultiplier,
+    maxLevel: bot.maxLevel,
+    maxHp: bot.maxHp,
+    hpRegenPerSec: bot.hpRegenPerSec,
+    moveSpeedMultiplier: bot.moveSpeedMultiplier,
+    radius: bot.radius,
+    collectedPerks: bot.collectedPerks,
+    drillType: bot.drillType,
+    drillDmgMultiplier: bot.drillDmgMultiplier,
+    drillLengthMultiplier: bot.drillLengthMultiplier,
   })
+  for (const p of players.values()) {
+    if (p.socket?.readyState === WebSocket.OPEN)
+      p.socket.send(respawnMsg)
+  }
 }
 
 function spawnBotForPlayer(player: PlayerState, players: Map<number, ServerPlayer>) {
