@@ -4,6 +4,8 @@ import { ClientRespawnMessage, ServerMessage } from '../../../protocol/messages'
 import { currentLevel, xpForNextLevel, xpThisLevel } from '../../../protocol/utils'
 import { PERK_TREE, RARITY_CONFIG } from '../../../protocol/data/perks'
 import { pickTip } from '../../../protocol/data/tips'
+import { clientPlayers } from '../clientState'
+import { ClientPlayer } from '../entities'
 
 interface KillFeedEntry {
   id: number
@@ -44,7 +46,7 @@ export default function GameHud({ screen, playerName, isDead, purchasedUpgrades,
   const [deathVisible, setDeathVisible] = useState(false)
   const [killerName, setKillerName] = useState('')
   const [deathTip, setDeathTip] = useState('')
-  const [leaderboard, setLeaderboard] = useState<{ id: number, name: string, xp: number }[]>([])
+  const [leaderboard, setLeaderboard] = useState<ClientPlayer[]>([])
   const [perkChoices, setPerkChoices] = useState<string[] | null>(null)
   const [perkVisible, setPerkVisible] = useState(false)
   const [pendingCount, setPendingCount] = useState(0)
@@ -67,22 +69,22 @@ export default function GameHud({ screen, playerName, isDead, purchasedUpgrades,
       const msg = JSON.parse(event.data) as ServerMessage
 
       if (msg.type === 'world_state') {
-        const sorted = [...msg.players]
-          .sort((a, b) => b.xp - a.xp)
+        const sorted = [...clientPlayers.values()]
+          .sort((a, b) => b.snapshot.xp - a.snapshot.xp)
           .slice(0, 10)
         setLeaderboard(sorted)
         const localId = getLocalId()
-        const local = msg.players.find(p => p.id === localId)
+        const local = sorted.find(p => p.snapshot.id === localId)
         if (local) {
-          const pending = Math.min(currentLevel(local.xp), local.maxLevel) - local.collectedPerks.length
+          const pending = Math.min(currentLevel(local.snapshot.xp), local.maxLevel) - local.collectedPerks.length
           setPendingCount(pending)
           if (pending > 0 && !perkChoicesRef.current && Date.now() > lastPerkChoiceTime.current + 500) {
             socket.send(JSON.stringify({ type: 'request_perk_choices' }))
             perkChoicesRef.current = 'pending' // prevent repeated requests
           }
-          const displayLevel = Math.min(currentLevel(local.xp), local.maxLevel)
+          const displayLevel = Math.min(currentLevel(local.snapshot.xp), local.maxLevel)
           setXpLevel(displayLevel)
-          displayLevel >= local.maxLevel ? setXpRatio(1) : setXpRatio(xpThisLevel(local.xp) / xpForNextLevel(local.xp))
+          displayLevel >= local.maxLevel ? setXpRatio(1) : setXpRatio(xpThisLevel(local.snapshot.xp) / xpForNextLevel(local.snapshot.xp))
           setXpIsMax(displayLevel >= local.maxLevel)
         }
       } else if (msg.type === 'player_killed') {
@@ -224,7 +226,7 @@ export default function GameHud({ screen, playerName, isDead, purchasedUpgrades,
               <span style={{ width: 18, textAlign: 'right', flexShrink: 0 }}>{i + 1}.</span>
               <span style={{ flex: 1 }}>{p ? p.name : '·'}</span>
               <span style={{ textAlign: 'right', flexShrink: 0, color: p?.id === getLocalId() ? '#ffdd00' : '#aaaaaa' }}>
-                {p ? `${formatXp(p.xp)}` : ''}
+                {p ? `${formatXp(p.snapshot.xp)}` : ''}
               </span>
             </div>
           )

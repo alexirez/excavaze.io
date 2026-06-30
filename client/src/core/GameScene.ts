@@ -4,11 +4,11 @@ import { PlayerState, SquareState } from '../../../protocol/types'
 import { ServerMessage } from '../../../protocol/messages'
 import { WORLD_WIDTH, WORLD_HEIGHT, COLOR_BACKGROUND, COLOR_OUTER_BOUNDS, WORLD_PADDING, SQUARE_BASE_HP } from '../../../protocol/constants'
 import { ClientPlayer } from '../entities'
+import { clientPlayers } from '../clientState'
 
 export class GameScene extends Phaser.Scene {
   private enemyNameLabels: Map<number, Phaser.GameObjects.Text> = new Map()
   private keys!: Record<string, Phaser.Input.Keyboard.Key>
-  private clientPlayers: Map<number, ClientPlayer> = new Map()
   private latestPlayersState: Map<number, PlayerState> = new Map()
   private latestSquaresState: Map<number, SquareState> = new Map()
   private squareGraphics!: Phaser.GameObjects.Graphics
@@ -88,7 +88,7 @@ export class GameScene extends Phaser.Scene {
         }
       }
       if (msg.type === 'player_respawn') {
-        this.clientPlayers.set(msg.id, {
+        clientPlayers.set(msg.id, {
           id: msg.id,
           name: msg.name,
           bodyColor: msg.bodyColor,
@@ -107,7 +107,7 @@ export class GameScene extends Phaser.Scene {
         })
       } 
       if (msg.type === 'player_update') {
-        const cp = this.clientPlayers.get(msg.id)
+        const cp = clientPlayers.get(msg.id)
         if (cp) Object.assign(cp, msg.changes)
       }
     }
@@ -148,7 +148,7 @@ export class GameScene extends Phaser.Scene {
         clearInterval(this.inputInterval)
         this.inputInterval = null
       }
-      this.clientPlayers.clear()
+      clientPlayers.clear()
       this.enemyNameLabels.forEach(label => label.destroy())
       this.enemyNameLabels.clear()
       this.removeSocketListener?.()
@@ -163,7 +163,7 @@ export class GameScene extends Phaser.Scene {
     const localId = getLocalId()
     if (localId === null) return
     const playerState = this.latestPlayersState.get(localId)
-    const cp = this.clientPlayers.get(localId)
+    const cp = clientPlayers.get(localId)
     if (!cp) return
     this.playerGraphics.clear()
     if (playerState) {
@@ -201,7 +201,7 @@ export class GameScene extends Phaser.Scene {
     this.enemyGraphics.clear()
     for (const [id, ps] of this.latestPlayersState.entries()) {
       if (id === getLocalId()) continue
-      const cp = this.clientPlayers.get(id)
+      const cp = clientPlayers.get(id)
       if (!cp) continue
 
       this.enemyGraphics.save()
@@ -255,7 +255,7 @@ export class GameScene extends Phaser.Scene {
       if (!this.latestPlayersState.has(id) || id === getLocalId()) {
         label.destroy()
         this.enemyNameLabels.delete(id)
-        this.clientPlayers.delete(id)
+        clientPlayers.delete(id)
       }
     }
 
