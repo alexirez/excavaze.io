@@ -97,7 +97,7 @@ export default function App() {
           setPlayerName(name)
           setIsDead(false)
           setScreen('game')
-          socket.send(JSON.stringify({ type: 'respawn', name, upgrades: purchasedUpgrades }))
+          socket.send(JSON.stringify({ type: 'client_respawn', name, upgrades: purchasedUpgrades }))
         }}
         onUpgrades={() => setScreen('upgrades')}
       />

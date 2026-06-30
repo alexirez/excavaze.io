@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { socket, addSocketListener, getLocalId } from '../network/socket'
-import { RespawnMessage, ServerMessage } from '../../../protocol/messages'
+import { ClientRespawnMessage, ServerMessage } from '../../../protocol/messages'
 import { currentLevel, xpForNextLevel, xpThisLevel } from '../../../protocol/utils'
 import { PERK_TREE, RARITY_CONFIG } from '../../../protocol/data/perks'
 import { pickTip } from '../../../protocol/data/tips'
@@ -366,7 +366,7 @@ export default function GameHud({ screen, playerName, isDead, purchasedUpgrades,
           </button>
           <button
             onClick={() => {
-              socket.send(JSON.stringify({ type: 'respawn', name: playerName, upgrades: purchasedUpgrades } satisfies RespawnMessage))
+              socket.send(JSON.stringify({ type: 'client_respawn', name: playerName, upgrades: purchasedUpgrades }))
               setIsDead(false)
               setKillFeed([])
               onRespawn()
