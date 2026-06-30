@@ -10,7 +10,7 @@ import { awardXp, circleIntersectsOrientedRect, getDrillDamageOnCircle, getDrill
 import { currentLevel, refreshStats } from '../../protocol/utils'
 
 const PORT = 3000
-const SQUARE_SPEED = 0.5  // multiplies square drifting speed
+const SQUARE_SPEED = 0.5
 let tick = 0
 
 const wss = new WebSocketServer({ port: PORT })
@@ -67,6 +67,26 @@ wss.on('connection', (socket) => {
   })
   // S->C: Tell this client their assigned id
   socket.send(JSON.stringify({ type: 'welcome', id, gems: 10 })) // TODO: load actual gems count for online mode
+  for (const other of players.values()) {
+    if (!other.state.alive) continue
+    socket.send(JSON.stringify({
+      type: 'player_respawn',
+      id: other.state.id,
+      name: other.name,
+      bodyColor: other.bodyColor,
+      borderColor: other.borderColor,
+      xpMultiplier: other.xpMultiplier,
+      maxLevel: other.maxLevel,
+      maxHp: other.maxHp,
+      hpRegenPerSec: other.hpRegenPerSec,
+      moveSpeedMultiplier: other.moveSpeedMultiplier,
+      radius: other.radius,
+      collectedPerks: other.collectedPerks,
+      drillType: other.drillType,
+      drillDmgMultiplier: other.drillDmgMultiplier,
+      drillLengthMultiplier: other.drillLengthMultiplier,
+    }))
+  }
 
   socket.on('close', (code, reason) => {
     players.delete(id)
@@ -95,8 +115,30 @@ wss.on('connection', (socket) => {
         p.collectedPerks = []
         p.shieldTicks = SHIELD_DURATION
         p.purchasedUpgrades = msg.upgrades ?? []
-        refreshStats(p.state, p.purchasedUpgrades)
+        refreshStats(p, p.purchasedUpgrades)
         p.state.hp = p.maxHp // needed for max hp upgrades
+
+        const respawnMsg = JSON.stringify({
+          type: 'player_respawn',
+          id,
+          name: p.name,
+          bodyColor: p.bodyColor,
+          borderColor: p.borderColor,
+          xpMultiplier: p.xpMultiplier,
+          maxLevel: p.maxLevel,
+          maxHp: p.maxHp,
+          hpRegenPerSec: p.hpRegenPerSec,
+          moveSpeedMultiplier: p.moveSpeedMultiplier,
+          radius: p.radius,
+          collectedPerks: p.collectedPerks,
+          drillType: p.drillType,
+          drillDmgMultiplier: p.drillDmgMultiplier,
+          drillLengthMultiplier: p.drillLengthMultiplier,
+        })
+        for (const other of players.values()) {
+          if (other.socket?.readyState === WebSocket.OPEN)
+            other.socket.send(respawnMsg)
+        }
       } else if (msg.type === 'select_perk') {
         const player = players.get(id)!
         if (!player.state.alive) return
@@ -105,15 +147,15 @@ wss.on('connection', (socket) => {
         const perk = PERK_TREE[msg.perkId]
         if (!perk) return
         if (player.collectedPerks.includes(msg.perkId)) return
-        if (isDrillPerk(msg.perkId)) removeDrillPerks(player.state)
+        if (isDrillPerk(msg.perkId)) removeDrillPerks(player)
         player.collectedPerks.push(msg.perkId)
-        refreshStats(player.state, player.purchasedUpgrades)
-        PERK_EFFECTS[msg.perkId]?.(player.state) // one-time, not recalculated
+        refreshStats(player, player.purchasedUpgrades)
+        PERK_EFFECTS[msg.perkId]?.(player) // one-time, not recalculated
       } else if (msg.type === 'try_purchase_upgrade') {
         const p = players.get(id)!
         if (!p.purchasedUpgrades.includes(msg.nodeId))
           p.purchasedUpgrades.push(msg.nodeId)
-        refreshStats(p.state, p.purchasedUpgrades)
+        refreshStats(p, p.purchasedUpgrades)
       } else if (msg.type === 'request_perk_choices') {
         const player = players.get(id)!
         if (!player.state.alive) return

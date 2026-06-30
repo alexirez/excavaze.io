@@ -1,17 +1,15 @@
-import { ClientPlayer } from "../client/src/entities"
 import { ServerPlayer } from "../server/src/entities"
 import { KILL_PLAYER_BASE_XP, STEAL_PLAYER_XP_MULTIPLIER } from "./constants"
 import { DeathScreenMessage, PlayerKilledMessage } from "./messages"
-import { PlayerState } from "./types"
-import { circleIntersectsTriangle, currentLevel, xpForLevel } from "./utils"
+import { circleIntersectsTriangle } from "./utils"
 
-export function getDrillReach(cp: ClientPlayer): number {
-  switch (cp.drillType) {
-    case 0: return cp.radius + 40 * cp.drillLengthMultiplier
-    case 1: return cp.radius + 40 * cp.drillLengthMultiplier
-    case 2: return cp.radius + 30 + 30 * cp.drillLengthMultiplier + 25 + 2 * cp.drillLengthMultiplier
-    case 3: return cp.radius + 40 + 40 * cp.drillLengthMultiplier + 80
-    default: return cp.radius
+export function getDrillReach(sp: ServerPlayer): number {
+  switch (sp.drillType) {
+    case 0: return sp.radius + 40 * sp.drillLengthMultiplier
+    case 1: return sp.radius + 40 * sp.drillLengthMultiplier
+    case 2: return sp.radius + 30 + 30 * sp.drillLengthMultiplier + 25 + 2 * sp.drillLengthMultiplier
+    case 3: return sp.radius + 40 + 40 * sp.drillLengthMultiplier + 80
+    default: return sp.radius
   }
 }
 

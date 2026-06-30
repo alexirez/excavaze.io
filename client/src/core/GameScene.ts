@@ -32,16 +32,14 @@ export class GameScene extends Phaser.Scene {
     // background of in-bounds area
     this.add.rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH - WORLD_PADDING * 2.5, WORLD_HEIGHT - WORLD_PADDING * 2.5, COLOR_BACKGROUND).setDepth(-1)
 
-    // background of outer bounds
     this.cameras.main.setBackgroundColor(COLOR_OUTER_BOUNDS)
-    this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT)
+    this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT) // background of outer bounds
 
     this.cameraTarget = this.add.rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 1, 1)
     this.cameraTarget.setVisible(false)
     this.cameras.main.startFollow(this.cameraTarget)
 
-    // initialize graphics
-    this.squareHealthBarGraphics = this.add.graphics()
+    this.squareHealthBarGraphics = this.add.graphics() // initialize graphics
     this.squareHealthBarGraphics.setDepth(20)
     this.playerGraphics = this.add.graphics()
     this.playerGraphics.setDepth(99)
@@ -62,11 +60,8 @@ export class GameScene extends Phaser.Scene {
     const handler = (event: MessageEvent) => {
       const msg = JSON.parse(event.data) as ServerMessage
 
-      // Store the latest state for rendering in update()
       if (msg.type === 'world_state') {
-
-        // replace player list with newest update from server
-        this.latestPlayersState.clear()
+        this.latestPlayersState.clear() // replace player list with newest update from server
         for (const p of msg.players) {
           this.latestPlayersState.set(p.id, {
             id: p.id,
@@ -80,7 +75,6 @@ export class GameScene extends Phaser.Scene {
           })
         }
 
-        // replace squares list with newest from server
         this.latestSquaresState.clear()
         for (const square of msg.squares) {
           this.latestSquaresState.set(square.id, {

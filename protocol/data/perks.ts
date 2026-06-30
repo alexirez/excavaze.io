@@ -1,12 +1,12 @@
-import { PLAYER_BASE_RADIUS, TICK_MS } from "../constants"
-import { PlayerState } from "../types"
+import { ServerPlayer } from "../../server/src/entities"
+import { PLAYER_BASE_HP, PLAYER_BASE_RADIUS, TICK_MS } from "../constants"
 
 export interface PerkDef {
     title: string
     desc: string
     rarity: Rarity
     requiredPlayerLevel: number
-    apply: (state: PlayerState) => void
+    apply: (p: ServerPlayer) => void
 }
 
 export const RARITY_CONFIG = {
@@ -24,7 +24,7 @@ export const PERK_TREE: Record<string, PerkDef> = {
         desc: 'Drill DMG +10%',
         rarity: 'common',
         requiredPlayerLevel: 0,
-        apply: (state) => { state.drillDmgMultiplier += 0.1 }
+        apply: (p) => { p.drillDmgMultiplier += 0.1 }
     },
 
     'drill_dmg_2': {
@@ -32,7 +32,7 @@ export const PERK_TREE: Record<string, PerkDef> = {
         desc: 'Additional +20% drill DMG',
         rarity: 'rare',
         requiredPlayerLevel: 3,
-        apply: (state) => { state.drillDmgMultiplier += 0.2 },
+        apply: (p) => { p.drillDmgMultiplier += 0.2 },
     },
 
     'drill_length': {
@@ -40,7 +40,7 @@ export const PERK_TREE: Record<string, PerkDef> = {
         desc: 'Drill reach +15%',
         rarity: 'common',
         requiredPlayerLevel: 0,
-        apply: (state) => { state.drillLengthMultiplier += 0.15 },
+        apply: (p) => { p.drillLengthMultiplier += 0.15 },
     },
 
     'drill_length_2': {
@@ -48,7 +48,7 @@ export const PERK_TREE: Record<string, PerkDef> = {
         desc: 'Additional drill length +25%',
         rarity: 'rare',
         requiredPlayerLevel: 3,
-        apply: (state) => { state.drillLengthMultiplier += 0.25 },
+        apply: (p) => { p.drillLengthMultiplier += 0.25 },
     },
 
     'move_speed': {
@@ -56,7 +56,7 @@ export const PERK_TREE: Record<string, PerkDef> = {
         desc: 'Movement speed +10%',
         rarity: 'common',
         requiredPlayerLevel: 0,
-        apply: (state) => { state.moveSpeedMultiplier += 0.1 },
+        apply: (p) => { p.moveSpeedMultiplier += 0.1 },
     },
 
     'move_speed_2': {
@@ -64,7 +64,7 @@ export const PERK_TREE: Record<string, PerkDef> = {
         desc: "Additional +30% movement\nMax HP -20%",
         rarity: 'rare',
         requiredPlayerLevel: 4,
-        apply: (state) => { state.moveSpeedMultiplier += 0.3; state.maxHp -= 0.2 },
+        apply: (p) => { p.moveSpeedMultiplier += 0.3; p.maxHp -= PLAYER_BASE_HP * 0.2 },
     },
 
     'hp_buff': {
@@ -72,7 +72,7 @@ export const PERK_TREE: Record<string, PerkDef> = {
         desc: 'Max HP +20\nPlayer size +20%',
         rarity: 'common',
         requiredPlayerLevel: 1,
-        apply: (state) => { state.maxHp += 20; state.radius += PLAYER_BASE_RADIUS * 0.2 },
+        apply: (p) => { p.maxHp += 20; p.radius += PLAYER_BASE_RADIUS * 0.2 },
     },
 
     'hp_buff_2': {
@@ -80,7 +80,7 @@ export const PERK_TREE: Record<string, PerkDef> = {
         desc: 'Max HP +60\nPlayer size +50%',
         rarity: 'rare',
         requiredPlayerLevel: 8,
-        apply: (state) => { state.maxHp += 60; state.radius += PLAYER_BASE_RADIUS * 0.5 },
+        apply: (p) => { p.maxHp += 60; p.radius += PLAYER_BASE_RADIUS * 0.5 },
     },
 
     'hp_regen': {
@@ -88,7 +88,7 @@ export const PERK_TREE: Record<string, PerkDef> = {
         desc: 'Regenerate 2 HP per second',
         rarity: 'rare',
         requiredPlayerLevel: 3,
-        apply: (state) => { state.hpRegenPerSec += 2 * TICK_MS / 1000 },
+        apply: (p) => { p.hpRegenPerSec += 2 * TICK_MS / 1000 },
     },
 
     'hp_regen_2': {
@@ -96,7 +96,7 @@ export const PERK_TREE: Record<string, PerkDef> = {
         desc: 'Additional +3 HP regen/sec',
         rarity: 'epic',
         requiredPlayerLevel: 7,
-        apply: (state) => { state.hpRegenPerSec += 3 * TICK_MS / 1000 },
+        apply: (p) => { p.hpRegenPerSec += 3 * TICK_MS / 1000 },
     },
 
     'sawblade': {
@@ -104,7 +104,7 @@ export const PERK_TREE: Record<string, PerkDef> = {
         desc: 'Long range\nVery high damage',
         rarity: 'epic',
         requiredPlayerLevel: 10,
-        apply: (state) => { state.drillType = 2 },
+        apply: (p) => { p.drillType = 2 },
     },
 
     'deathblade': {
@@ -112,7 +112,7 @@ export const PERK_TREE: Record<string, PerkDef> = {
         desc: 'Giant saw blade\nLower drill DMG\nVery large damage area',
         rarity: 'legendary',
         requiredPlayerLevel: 20,
-        apply: (state) => { state.drillType = 3 },
+        apply: (p) => { p.drillType = 3 },
     },
 }
 
@@ -128,9 +128,9 @@ export const PERK_TRANSITIONS: Record<string, string[]> = {
 }
 
 // one-time side effects to apply upon choosing the perk
-export const PERK_EFFECTS: Partial<Record<string, (state: PlayerState) => void>> = {
-  'hp_buff':   (state) => { state.hp += 20 },
-  'hp_buff_2': (state) => { state.hp += 60 },
+export const PERK_EFFECTS: Partial<Record<string, (p: ServerPlayer) => void>> = {
+  'hp_buff':   (p) => { p.state.hp += 20 },
+  'hp_buff_2': (p) => { p.state.hp += 60 },
 }
 
 export const DRILL_PERKS = new Set(['sawblade', 'deathblade'])
@@ -139,8 +139,8 @@ export function isDrillPerk(perkId: string): boolean {
   return DRILL_PERKS.has(perkId)
 }
 
-export function removeDrillPerks(playerState: PlayerState) {
-  playerState.collectedPerks = playerState.collectedPerks.filter(
+export function removeDrillPerks(ServerPlayer: ServerPlayer) {
+  ServerPlayer.collectedPerks = ServerPlayer.collectedPerks.filter(
     id => !DRILL_PERKS.has(id)
   )
 }
