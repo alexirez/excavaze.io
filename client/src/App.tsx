@@ -6,6 +6,8 @@ import UpgradesScreen from './screens/UpgradesScreen'
 import { socket, ONLINE_SERVER_URL, LOCAL_SERVER_URL } from './network/socket'
 import { loadOfflineGems, saveOfflineGems, loadOfflineUpgrades, saveOfflineUpgrades } from '../storage/offlineStorage'
 import { UPGRADE_NODES } from '../../protocol/data/upgrade-nodes'
+import { PLAYER_BASE_HP, PLAYER_BASE_RADIUS } from '../../protocol/constants'
+import { clientPlayers } from './clientState'
 
 type Screen = 'startMenu' | 'game' | 'upgrades'
 
@@ -27,6 +29,24 @@ export default function App() {
       if (online) {
         socket.connect(ONLINE_SERVER_URL)
         socket.onWelcome((id, gems, upgrades) => {
+          clientPlayers.set(id, {
+          id,
+          name: '',
+          bodyColor: 0xff6b6b,
+          borderColor: 0xcc4444,
+          xpMultiplier: 1,
+          maxLevel: 7,
+          maxHp: PLAYER_BASE_HP,
+          hpRegenPerSec: 0,
+          moveSpeedMultiplier: 1,
+          radius: PLAYER_BASE_RADIUS,
+          collectedPerks: [],
+          drillType: 0,
+          drillDmgMultiplier: 1,
+          drillLengthMultiplier: 1,
+          snapshot: { id, xp: 0, alive: false, shieldActive: false, x: 0, y: 0, rotation: 0, hp: 0 }
+        })
+        phaserGame?.scene.start('GameScene')
           if (!cancelled) {
             setGems(gems) 
             setPurchasedUpgrades(upgrades ?? [])
@@ -34,15 +54,35 @@ export default function App() {
         })
       } else {
         socket.connect(LOCAL_SERVER_URL)
+        socket.onWelcome((id, gems, upgrades) => {
+          clientPlayers.set(id, {
+            id,
+            name: '',
+            bodyColor: 0xff6b6b,
+            borderColor: 0xcc4444,
+            xpMultiplier: 1,
+            maxLevel: 7,
+            maxHp: PLAYER_BASE_HP,
+            hpRegenPerSec: 0,
+            moveSpeedMultiplier: 1,
+            radius: PLAYER_BASE_RADIUS,
+            collectedPerks: [],
+            drillType: 0,
+            drillDmgMultiplier: 1,
+            drillLengthMultiplier: 1,
+            snapshot: { id, xp: 0, alive: false, shieldActive: false, x: 0, y: 0, rotation: 0, hp: 0 }
+          })
+        })
+        phaserGame?.scene.start('GameScene')
         const [g, upgrades] = await Promise.all([
             loadOfflineGems(),
             loadOfflineUpgrades(),
           ])
-        if (cancelled) return
+        if (!cancelled) {
         setGems(g)
-        setPurchasedUpgrades(upgrades)
+        setPurchasedUpgrades(upgrades ?? [])
+        }
       }
-      phaserGame?.scene.start('GameScene')
     }
     switchMode()
     return () => { cancelled = true }

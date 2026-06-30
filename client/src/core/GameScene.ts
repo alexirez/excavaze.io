@@ -26,7 +26,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   create() {
-    console.log('[GameScene] create called, generation will be', GameScene.intervalGeneration + 1)
+    console.log(`[GameScene] create() ran, generation=${GameScene.intervalGeneration + 1}`)
     const generation = ++GameScene.intervalGeneration
 
     // background of in-bounds area
