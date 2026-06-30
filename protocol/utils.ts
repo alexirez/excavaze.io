@@ -2,7 +2,6 @@ import { ServerPlayer } from "../server/src/entities"
 import { PLAYER_BASE_HP, PLAYER_BASE_RADIUS } from "./constants"
 import { PERK_TREE } from "./data/perks"
 import { UPGRADE_NODES } from "./data/upgrade-nodes"
-import { PlayerState } from "./types"
 
 export function sign(p1x: number, p1y: number, p2x: number, p2y: number, p3x: number, p3y: number): number {
   return (p1x - p3x) * (p2y - p3y) - (p2x - p3x) * (p1y - p3y)

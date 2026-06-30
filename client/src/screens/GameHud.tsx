@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { socket, addSocketListener, getLocalId } from '../network/socket'
-import { ClientRespawnMessage, ServerMessage } from '../../../protocol/messages'
+import { ServerMessage } from '../../../protocol/messages'
 import { currentLevel, xpForNextLevel, xpThisLevel } from '../../../protocol/utils'
 import { PERK_TREE, RARITY_CONFIG } from '../../../protocol/data/perks'
 import { pickTip } from '../../../protocol/data/tips'

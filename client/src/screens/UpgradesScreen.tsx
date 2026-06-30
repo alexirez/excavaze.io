@@ -1,5 +1,5 @@
 import { JSX, useEffect, useRef, useState } from 'react'
-import { UPGRADE_NODES, UpgradeNode } from '../../../protocol/data/upgrade-nodes'
+import { UPGRADE_NODES } from '../../../protocol/data/upgrade-nodes'
 
 interface Props {
   onBack: () => void

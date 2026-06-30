@@ -1,5 +1,5 @@
 import { ServerPlayer, ServerSquare } from '../server/src/entities'
-import { PlayerState, SquareState } from './types'
+import { PlayerState } from './types'
 import { BOT_OBSTACLE_AVOIDANCE_DIST, SQUARE_BASE_HP } from './constants'
 
 const _forces: { x: number, y: number }[] = Array.from({ length: 128 }, () => ({ x: 0, y: 0 }))
