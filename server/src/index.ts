@@ -37,25 +37,27 @@ wss.on('connection', (socket) => {
     socket,
     state: {
       id,
-      name: 'Player',
       xp: 5000,
-      xpMultiplier: 1,
-      maxLevel: 7,
       alive: false,
       shieldActive: false,
-      x: 0, 
+      x: 0,
       y: 0,
       rotation: 0,
       hp: PLAYER_BASE_HP,
-      maxHp: PLAYER_BASE_HP,
-      hpRegenPerSec: 0,
-      moveSpeedMultiplier: 1,
-      radius: 25,
-      collectedPerks: [],
-      drillType: 0,
-      drillDmgMultiplier: 1,
-      drillLengthMultiplier: 1
     },
+    name: 'Player',
+    bodyColor: 0xff6b6b,
+    borderColor: 0xcc4444,
+    xpMultiplier: 1,
+    maxLevel: 7,
+    maxHp: PLAYER_BASE_HP,
+    hpRegenPerSec: 0,
+    moveSpeedMultiplier: 1,
+    radius: PLAYER_BASE_RADIUS,
+    collectedPerks: [],
+    drillType: 0,
+    drillDmgMultiplier: 1,
+    drillLengthMultiplier: 1,
     input: { dx: 0, dy: 0, rotation: 0 },
     shieldTicks: SHIELD_DURATION,
     lastCollisionTime: 0,
@@ -80,21 +82,21 @@ wss.on('connection', (socket) => {
           dy: msg.dy,
           rotation: msg.rotation,
         }
-      } else if (msg.type === 'respawn') {
+      } else if (msg.type === 'client_respawn') {
         const p = players.get(id)!
         if (p.state.alive) return
         const { x, y } = pickPlayerSpawnPoint(players)
-        p.state.name = msg.name
+        p.name = msg.name
         p.state.xp *= 0.8
         p.state.alive = true
         p.state.shieldActive = true
         p.state.x = x
         p.state.y = y
-        p.state.collectedPerks = []
+        p.collectedPerks = []
         p.shieldTicks = SHIELD_DURATION
         p.purchasedUpgrades = msg.upgrades ?? []
         refreshStats(p.state, p.purchasedUpgrades)
-        p.state.hp = p.state.maxHp // needed for max hp upgrades
+        p.state.hp = p.maxHp // needed for max hp upgrades
       } else if (msg.type === 'select_perk') {
         const player = players.get(id)!
         if (!player.state.alive) return
@@ -102,9 +104,9 @@ wss.on('connection', (socket) => {
         player.pendingPerkChoices = []
         const perk = PERK_TREE[msg.perkId]
         if (!perk) return
-        if (player.state.collectedPerks.includes(msg.perkId)) return
+        if (player.collectedPerks.includes(msg.perkId)) return
         if (isDrillPerk(msg.perkId)) removeDrillPerks(player.state)
-        player.state.collectedPerks.push(msg.perkId)
+        player.collectedPerks.push(msg.perkId)
         refreshStats(player.state, player.purchasedUpgrades)
         PERK_EFFECTS[msg.perkId]?.(player.state) // one-time, not recalculated
       } else if (msg.type === 'try_purchase_upgrade') {
@@ -115,9 +117,9 @@ wss.on('connection', (socket) => {
       } else if (msg.type === 'request_perk_choices') {
         const player = players.get(id)!
         if (!player.state.alive) return
-        const pendingPerksCount = Math.min(currentLevel(player.state.xp), player.state.maxLevel) - player.state.collectedPerks.length
+        const pendingPerksCount = Math.min(currentLevel(player.state.xp), player.maxLevel) - player.collectedPerks.length
         if (pendingPerksCount <= 0) return
-        const choices = rollPerkChoices(player.state.collectedPerks)
+        const choices = rollPerkChoices(player.collectedPerks)
         player.pendingPerkChoices = choices
         player.socket?.send(JSON.stringify({ type: 'perk_options', perkOptions: choices }))
       }
@@ -134,8 +136,8 @@ setInterval(() => {
     // 1) Process player/bots input
     for (const p of players.values()) {
       if (!p.state.alive) continue
-      p.state.x = Math.max(WORLD_PADDING, Math.min(WORLD_WIDTH - WORLD_PADDING, p.state.x + p.input.dx * p.state.moveSpeedMultiplier * PLAYER_BASE_SPEED))
-      p.state.y = Math.max(WORLD_PADDING, Math.min(WORLD_HEIGHT - WORLD_PADDING, p.state.y + p.input.dy * p.state.moveSpeedMultiplier * PLAYER_BASE_SPEED))
+      p.state.x = Math.max(WORLD_PADDING, Math.min(WORLD_WIDTH - WORLD_PADDING, p.state.x + p.input.dx * p.moveSpeedMultiplier * PLAYER_BASE_SPEED))
+      p.state.y = Math.max(WORLD_PADDING, Math.min(WORLD_HEIGHT - WORLD_PADDING, p.state.y + p.input.dy * p.moveSpeedMultiplier * PLAYER_BASE_SPEED))
       p.state.rotation = p.input.rotation
 
       // 2) Process spawn shield timers + hp regen
@@ -143,7 +145,7 @@ setInterval(() => {
         p.shieldTicks--
         if (p.shieldTicks === 0) p.state.shieldActive = false
       }
-      p.state.hp = Math.min(p.state.hp + p.state.hpRegenPerSec, p.state.maxHp)
+      p.state.hp = Math.min(p.state.hp + p.hpRegenPerSec, p.maxHp)
     }
     
     // 3) Check for collisions
@@ -154,7 +156,7 @@ setInterval(() => {
           const dx = a.state.x - b.state.x
           const dy = a.state.y - b.state.y
           const dist = Math.sqrt(dx * dx + dy * dy)
-          const radiusSum = a.state.radius + b.state.radius
+          const radiusSum = a.radius + b.radius
 
           if (dist < radiusSum && dist > 0.001) {
             if (!a.state.shieldActive && Date.now() - a.lastCollisionTime >= COLLISION_COOLDOWN) {
@@ -178,11 +180,11 @@ setInterval(() => {
             if (!b.state.alive || idA === idB || b.state.shieldActive) continue
             const dx = a.state.x - b.state.x
             const dy = a.state.y - b.state.y
-            if (dx*dx + dy*dy > (aReach + b.state.radius) ** 2) continue // broadphase
+            if (dx*dx + dy*dy > (aReach + b.radius) ** 2) continue // broadphase
             b.state.hp -= getDrillDamageOnCircle(
-              a.state.x, a.state.y, a.state.rotation, a.state.radius, 
-              a.state.drillType, a.state.drillLengthMultiplier, a.state.drillDmgMultiplier,
-              b.state.x, b.state.y, b.state.radius
+              a.state.x, a.state.y, a.state.rotation, a.radius, 
+              a.drillType, a.drillLengthMultiplier, a.drillDmgMultiplier,
+              b.state.x, b.state.y, b.radius
             )
             if (b.state.hp <= 0) killPlayer(a, b, 'drill', players)
           }
@@ -208,8 +210,8 @@ setInterval(() => {
         const sqHalf = sqSize / 2
 
         square.state.hp -= getDrillDamageOnRect(
-          p.state.x, p.state.y, p.state.rotation, p.state.radius,
-          p.state.drillType, p.state.drillLengthMultiplier, p.state.drillDmgMultiplier,
+          p.state.x, p.state.y, p.state.rotation, p.radius,
+          p.drillType, p.drillLengthMultiplier, p.drillDmgMultiplier,
           square.state.x, square.state.y, square.state.rotation, sqHalf, sqHalf
         )
         if (square.state.hp <= 0)
@@ -217,7 +219,7 @@ setInterval(() => {
 
 
         if (circleIntersectsOrientedRect(
-          p.state.x, p.state.y, p.state.radius,
+          p.state.x, p.state.y, p.radius,
           square.state.x, square.state.y, square.state.rotation, sqHalf, sqHalf // 4. player + square collisions
         )) {
           square.state.hp -= PLAYER_COLLISION_DAMAGE
