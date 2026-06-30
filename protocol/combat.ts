@@ -1,16 +1,17 @@
+import { ClientPlayer } from "../client/src/entities"
 import { ServerPlayer } from "../server/src/entities"
 import { KILL_PLAYER_BASE_XP, STEAL_PLAYER_XP_MULTIPLIER } from "./constants"
 import { DeathScreenMessage, PlayerKilledMessage } from "./messages"
 import { PlayerState } from "./types"
 import { circleIntersectsTriangle, currentLevel, xpForLevel } from "./utils"
 
-export function getDrillReach(state: PlayerState): number {
-  switch (state.drillType) {
-    case 0: return state.radius + 40 * state.drillLengthMultiplier
-    case 1: return state.radius + 40 * state.drillLengthMultiplier
-    case 2: return state.radius + 30 + 30 * state.drillLengthMultiplier + 25 + 2 * state.drillLengthMultiplier
-    case 3: return state.radius + 40 + 40 * state.drillLengthMultiplier + 80
-    default: return state.radius
+export function getDrillReach(cp: ClientPlayer): number {
+  switch (cp.drillType) {
+    case 0: return cp.radius + 40 * cp.drillLengthMultiplier
+    case 1: return cp.radius + 40 * cp.drillLengthMultiplier
+    case 2: return cp.radius + 30 + 30 * cp.drillLengthMultiplier + 25 + 2 * cp.drillLengthMultiplier
+    case 3: return cp.radius + 40 + 40 * cp.drillLengthMultiplier + 80
+    default: return cp.radius
   }
 }
 
@@ -284,12 +285,12 @@ export function killPlayer(killer: ServerPlayer, victim: ServerPlayer, cause: 'p
     type: 'player_killed',
     victimId: victim.state.id,
     killerId: killer.state.id,
-    victimName: victim.state.name,
-    killerName: killer.state.name,
+    victimName: victim.name,
+    killerName: killer.name,
   } satisfies PlayerKilledMessage), players)
   victim.socket?.send(JSON.stringify({
     type: 'death_screen',
-    killerName: killer.state.name,
+    killerName: killer.name,
     cause: cause
   } satisfies DeathScreenMessage))
   if (victim.socket === null) players.delete(victim.state.id) // bots are removed immediately
@@ -302,7 +303,7 @@ export function killPlayerBySquare(victim: ServerPlayer, players: Map<number, Se
     type: 'player_killed',
     victimId: victim.state.id,
     killerId: -1,
-    victimName: victim.state.name,
+    victimName: victim.name,
     killerName: 'A Square',
   } satisfies PlayerKilledMessage), players)
   victim.socket?.send(JSON.stringify({
@@ -322,6 +323,6 @@ function broadcastToAll(json: string, players: Map<number, ServerPlayer>) {
 }
 
 export function awardXp(player: ServerPlayer, amount: number) {
-  player.state.xp += amount * player.state.xpMultiplier
+  player.state.xp += amount * player.xpMultiplier
   // TODO: possibly send level_up message for sound/animation trigger
 }

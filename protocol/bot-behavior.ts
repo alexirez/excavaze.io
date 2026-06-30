@@ -18,7 +18,7 @@ function wander(bot: ServerPlayer): { x: number, y: number } {
   return { x: Math.cos(bot.wanderAngle), y: Math.sin(bot.wanderAngle) }
 }
 
-function computeObstacleAvoidance(bot: PlayerState, nearbySquareIds: number[], squares: Map<number, ServerSquare>): { x: number, y: number } {
+function computeObstacleAvoidance(bot: ServerPlayer, nearbySquareIds: number[], squares: Map<number, ServerSquare>): { x: number, y: number } {
   // first pass: collect all force vectors
   _forceCount = 0
   for (const id of nearbySquareIds) {
@@ -26,8 +26,8 @@ function computeObstacleAvoidance(bot: PlayerState, nearbySquareIds: number[], s
     if (!sq) continue
     const sqHalf = (20 + (sq.state.maxHp / SQUARE_BASE_HP) * 10) / 2
     const avoidDist = BOT_OBSTACLE_AVOIDANCE_DIST + bot.radius + sqHalf
-    const dx = bot.x - sq.state.x
-    const dy = bot.y - sq.state.y
+    const dx = bot.state.x - sq.state.x
+    const dy = bot.state.y - sq.state.y
     const dist = Math.sqrt(dx * dx + dy * dy) - bot.radius - sqHalf
     if (dist > avoidDist || dist < 0.001) continue
     const s = Math.max(0, 1 - dist / avoidDist)
@@ -70,7 +70,7 @@ function computeObstacleAvoidance(bot: PlayerState, nearbySquareIds: number[], s
   return { x: fx / len, y: fy / len }
 }
 
-export function computeBotInput(bot: ServerPlayer, nearbyPlayers: PlayerState[], nearbySquareIds: number[], squares: Map<number, ServerSquare>) {
+export function computeBotInput(bot: ServerPlayer, nearbyPlayers: ServerPlayer[], nearbySquareIds: number[], squares: Map<number, ServerSquare>) {
   let x = 0, y = 0
 
   // find biggest nearby threat and weakest nearby target
@@ -78,9 +78,9 @@ export function computeBotInput(bot: ServerPlayer, nearbyPlayers: PlayerState[],
   let bestScore = -1
 
   for (const p of nearbyPlayers) {
-    if (p.id === bot.state.id) continue
+    if (p.state.id === bot.state.id) continue
     const currentScore = targetScore(bot, p)
-    if (currentScore > bestScore) { bestScore = currentScore; target = p }
+    if (currentScore > bestScore) { bestScore = currentScore; target = p.state }
   }
 
   if (target) {
@@ -96,7 +96,7 @@ export function computeBotInput(bot: ServerPlayer, nearbyPlayers: PlayerState[],
   x += w.x * 0.3
   y += w.y * 0.3
 
-  const avoid = computeObstacleAvoidance(bot.state, nearbySquareIds, squares)
+  const avoid = computeObstacleAvoidance(bot, nearbySquareIds, squares)
   x += avoid.x * 1.2
   y += avoid.y * 1.2
 
@@ -106,10 +106,10 @@ export function computeBotInput(bot: ServerPlayer, nearbyPlayers: PlayerState[],
   bot.input.dy = bot.input.dy * MOMENTUM + (len > 0 ? y / len : 0) * (1 - MOMENTUM)
 }
 
-function targetScore(bot: ServerPlayer, p: PlayerState): number {
-  const hpDeficit = bot.state.hp - p.hp
-  const dmgDeficit = bot.state.drillDmgMultiplier - p.drillDmgMultiplier
-  const dx = bot.state.x - p.x; const dy = bot.state.y - p.y
+function targetScore(bot: ServerPlayer, p: ServerPlayer): number {
+  const hpDeficit = bot.state.hp - p.state.hp
+  const dmgDeficit = bot.drillDmgMultiplier - p.drillDmgMultiplier
+  const dx = bot.state.x - p.state.x; const dy = bot.state.y - p.state.y
   const cubeDist = Math.abs(dx * dx * dx) + Math.abs(dy * dy * dy) // use cubed so that distance matters the most in the score
   return (hpDeficit > 0 ? hpDeficit : 0) * Math.max(0.1, 1 + dmgDeficit) / (cubeDist + 0.001)
 }

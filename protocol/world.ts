@@ -121,7 +121,7 @@ function isSpawnClearOfPlayers(players: Map<number, ServerPlayer>, spawnX: numbe
   for (const p of players.values()) {
     const dx = p.state.x - spawnX
     const dy = p.state.y - spawnY
-    if (dx * dx + dy * dy < (minDist + p.state.radius)**2) return false
+    if (dx * dx + dy * dy < (minDist + p.radius)**2) return false
   }
   return true
 }
@@ -185,31 +185,33 @@ function spawnBot(x: number, y: number, players: Map<number, ServerPlayer>) {
     socket: null,
     state: {
       id,
-      name: generateBotName(players),
       xp: 0,
-      xpMultiplier: 1,
-      maxLevel: 7,
       alive: true,
       shieldActive: true,
       x,
       y,
       rotation: 0,
       hp: PLAYER_BASE_HP * (1 + strengthMultiplier),
-      maxHp: PLAYER_BASE_HP * (1 + strengthMultiplier),
-      hpRegenPerSec: 0,
-      moveSpeedMultiplier: Math.sqrt(PLAYER_BASE_RADIUS / radius),
-      radius: radius,
-      collectedPerks: [],
-      drillType: 0,
-      drillDmgMultiplier: 0.7 + (dangerLevel - 1) * 0.1,
-      drillLengthMultiplier: 0.7 + (dangerLevel * Math.min(Math.random(), 0.2)) * 0.5
     },
-    input: { dx: 0, dy: 0, rotation: Math.random() * Math.PI * 2 },
+    name: generateBotName(players),
+    bodyColor: 0xff6b6b,
+    borderColor: 0xcc4444,
+    xpMultiplier: 1,
+    maxLevel: 7,
+    maxHp: PLAYER_BASE_HP,
+    hpRegenPerSec: 0,
+    moveSpeedMultiplier: 1,
+    radius: PLAYER_BASE_RADIUS,
+    collectedPerks: [],
+    drillType: 0,
+    drillDmgMultiplier: 1,
+    drillLengthMultiplier: 1,
+    input: { dx: 0, dy: 0, rotation: 0 },
     shieldTicks: SHIELD_DURATION,
     lastCollisionTime: 0,
     wanderAngle: Math.random() * Math.PI * 2,
     purchasedUpgrades: [],
-    pendingPerkChoices: []
+    pendingPerkChoices: [],
   })
 }
 
@@ -244,7 +246,7 @@ const BOT_NAME_PREFIXES = [
 ]
 
 function generateBotName(players: Map<number, ServerPlayer>): string {
-  const usedNames = new Set([...players.values()].map(p => p.state.name))
+  const usedNames = new Set([...players.values()].map(p => p.name))
   const availableFullNames = BOT_NAMES.filter(n => !usedNames.has(n))
 
   if (Math.random() < 0.8 && availableFullNames.length > 0)

@@ -20,7 +20,7 @@ const players = new Map<number, ServerPlayer>()
 const squares = new Map<number, ServerSquare>()
 const playerStates: PlayerState[] = []
 const squareStates: SquareState[] = []
-const nearbyPlayers: PlayerState[] = []
+const nearbyPlayers: ServerPlayer[] = []
 const nearbySquareIds: number[] = []
 const squaresToDelete: number[] = []
 const chunkToSquares = new Map<number, Set<number>>()
@@ -175,7 +175,7 @@ setInterval(() => {
 
         for (const [idA, a] of players) { // 2. player + drill collisions
           if (!a.state.alive) continue
-          const aReach = getDrillReach(a.state)
+          const aReach = getDrillReach(a)
           for (const [idB, b] of players) {
             if (!b.state.alive || idA === idB || b.state.shieldActive) continue
             const dx = a.state.x - b.state.x
@@ -194,7 +194,7 @@ setInterval(() => {
       if (!p.state.alive) continue
       const chunkIndex = getChunkIndex(p.state.x, p.state.y)
       getNearbySquareIds(chunkToSquares, chunkIndex, nearbySquareIds) // only consider 9 nearest chunks for efficient collision checking
-      const drillReach = getDrillReach(p.state)
+      const drillReach = getDrillReach(p)
 
       for (const id of nearbySquareIds) {
 
@@ -243,7 +243,7 @@ setInterval(() => {
           if (!other.state.alive) continue
           const dx = other.state.x - p.state.x
           const dy = other.state.y - p.state.y
-          if (dx * dx + dy * dy < 800 * 800) nearbyPlayers.push(other.state)
+          if (dx * dx + dy * dy < 800 * 800) nearbyPlayers.push(other)
         }
         const chunkIndex = getChunkIndex(p.state.x, p.state.y)
         getNearbySquareIds(chunkToSquares, chunkIndex, nearbySquareIds)
