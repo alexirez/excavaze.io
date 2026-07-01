@@ -143,11 +143,14 @@ export default function App() {
         setBodyColor={setBodyColor}
         borderColor={borderColor}
         setBorderColor={setBorderColor}
-        onPlay={(name, bodyColor, borderColor) => {
+        onPlay={(name, bodyColorNum, borderColorNum) => {
           setPlayerName(name)
           setIsDead(false)
           setScreen('game')
-          socket.send(JSON.stringify({ type: 'client_respawn', name, upgrades: purchasedUpgrades, bodyColor, borderColor }))
+          socket.send(JSON.stringify({
+            type: 'client_respawn', name, upgrades: purchasedUpgrades, 
+            bodyColor: bodyColorNum, borderColor: borderColorNum
+          }))
         }}
         onUpgrades={() => setScreen('upgrades')}
       />
