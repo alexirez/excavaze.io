@@ -15,6 +15,7 @@ export const COLOR_COMBOS: Record<string, ColorCombo> = {
   blush: { label: 'Blush', bodyColor: 0xf783ac, borderColor: 0xc2255c },
   white: { label: 'White', bodyColor: 0xf0f0f0, borderColor: 0xbdbdbd },
   black: { label: 'Black', bodyColor: 0xa0a0a0, borderColor: 0x2b2b2b },
+  brown: { label: 'Brown', bodyColor: 0xd2a679, borderColor: 0xa87b4f },
 }
 
 const comboKeys = Object.keys(COLOR_COMBOS)
