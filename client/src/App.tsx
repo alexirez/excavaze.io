@@ -8,6 +8,7 @@ import { loadOfflineGems, saveOfflineGems, loadOfflineUpgrades, saveOfflineUpgra
 import { UPGRADE_NODES } from '../../protocol/data/upgrade-nodes'
 import { PLAYER_BASE_HP, PLAYER_BASE_RADIUS } from '../../protocol/constants'
 import { clientPlayers } from './clientState'
+import { pickRandomColorCombo, numToHex } from '../../protocol/data/colors'
 
 type Screen = 'startMenu' | 'game' | 'upgrades'
 
@@ -18,8 +19,9 @@ export default function App() {
   const [online, setOnline] = useState(false)
   const [gems, setGems] = useState(0)
   const [purchasedUpgrades, setPurchasedUpgrades] = useState<string[]>([])
-  const [bodyColor, setBodyColor] = useState('#ff6b6b')
-  const [borderColor, setBorderColor] = useState('#cc4444')
+  const [{ bodyColor: initialBody, borderColor: initialBorder }] = useState(() => pickRandomColorCombo())
+  const [bodyColor, setBodyColor] = useState(numToHex(initialBody))
+  const [borderColor, setBorderColor] = useState(numToHex(initialBorder))
 
   useEffect(() => {
     console.log('[App] useEffect ran, online =', online)
@@ -34,8 +36,8 @@ export default function App() {
           clientPlayers.set(id, {
           id,
           name: '',
-          bodyColor: 0xff6b6b,
-          borderColor: 0xcc4444,
+          bodyColor: parseInt(bodyColor.slice(1), 16),
+          borderColor: parseInt(borderColor.slice(1), 16),
           xpMultiplier: 1,
           maxLevel: 7,
           maxHp: PLAYER_BASE_HP,
@@ -60,8 +62,8 @@ export default function App() {
           clientPlayers.set(id, {
             id,
             name: '',
-            bodyColor: 0xff6b6b,
-            borderColor: 0xcc4444,
+            bodyColor: parseInt(bodyColor.slice(1), 16),
+            borderColor: parseInt(borderColor.slice(1), 16),
             xpMultiplier: 1,
             maxLevel: 7,
             maxHp: PLAYER_BASE_HP,

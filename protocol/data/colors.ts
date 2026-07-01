@@ -22,3 +22,7 @@ export function pickRandomColorCombo(): ColorCombo {
   const key = comboKeys[Math.floor(Math.random() * comboKeys.length)]
   return COLOR_COMBOS[key]
 }
+
+export function numToHex(n: number): string {
+  return `#${n.toString(16).padStart(6, '0')}`
+}
