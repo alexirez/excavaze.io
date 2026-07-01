@@ -5,7 +5,7 @@ type Side = 'top' | 'bottom' | 'left' | 'right'
 
 interface SpeechBubbleProps {
   /** Ref to the element the bubble points at. */
-  anchorRef: RefObject<HTMLElement>
+  anchorRef: RefObject<HTMLElement | null>
   open: boolean
   onClose: () => void
   children: ReactNode

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { phaserGame } from '../core/PhaserGame'
 import { loadOfflineUsername, saveOfflineUsername } from '../../storage/offlineStorage'
 import { pickTip, stripTipPrefix, pickDifferentTip } from '../../../protocol/data/tips'
+import SpeechBubble from '../components/SpeechBubble'
 
 const shakeStyle = `
   @keyframes shake {
@@ -34,6 +35,11 @@ export default function StartMenu({ onPlay, onUpgrades, online, setOnline, gems 
   const nameInputRef = useRef<HTMLInputElement>(null)
   const [nameError, setNameError] = useState(false)
   const shakeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const brushButtonRef = useRef<HTMLButtonElement>(null)
+  const [showColorPicker, setShowColorPicker] = useState(false)
+  const [bodyColor, setBodyColor] = useState('#ff6b6b')
+  const [borderColor, setBorderColor] = useState('#cc4444')
+
 
   useEffect(() => {
     phaserGame?.input.keyboard?.clearCaptures()
@@ -246,6 +252,7 @@ export default function StartMenu({ onPlay, onUpgrades, online, setOnline, gems 
               please enter a name
             </div>
           )}
+          <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
           <button
             onClick={handlePlay}
             style={{
@@ -267,6 +274,30 @@ export default function StartMenu({ onPlay, onUpgrades, online, setOnline, gems 
           >
             play
           </button>
+
+          {/* SpeechBubble color poopup */}
+          <button
+            ref={brushButtonRef}
+            onClick={() => setShowColorPicker(v => !v)}
+            aria-label="customize colors"
+            style={{ width: 48, height: 48, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.75)' }}
+          >
+            🖌️
+          </button>
+
+          <SpeechBubble anchorRef={brushButtonRef} open={showColorPicker} onClose={() => setShowColorPicker(false)}>
+            <div style={{ display: 'flex', gap: 24, padding: '18px 20px 16px', fontFamily: "'Share Tech', monospace" }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                <div style={{ fontSize: 10, letterSpacing: 1.5, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' }}>body color</div>
+                <input type="color" value={bodyColor} onChange={e => setBodyColor(e.target.value)} style={{ width: 40, height: 40, border: '0.5px solid rgba(255,255,255,0.2)', borderRadius: 6, padding: 0, background: 'none' }} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                <div style={{ fontSize: 10, letterSpacing: 1.5, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' }}>border color</div>
+                <input type="color" value={borderColor} onChange={e => setBorderColor(e.target.value)} style={{ width: 40, height: 40, border: '0.5px solid rgba(255,255,255,0.2)', borderRadius: 6, padding: 0, background: 'none' }} />
+              </div>
+            </div>
+          </SpeechBubble>
+          </div>
         </div>
 
         {/* tip panel */}
