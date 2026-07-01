@@ -73,6 +73,7 @@ export interface ServerRespawnMessage {
   drillLengthMultiplier: number
 }
 
+// S->C: tell clients to update their rendering
 export interface PlayerUpdateMessage {
   type: 'player_update'
   id: number

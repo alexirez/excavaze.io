@@ -73,6 +73,8 @@ export class GameScene extends Phaser.Scene {
             rotation: p.rotation,
             hp: p.hp,
           })
+          const cp = clientPlayers.get(p.id)
+          if (cp) cp.snapshot = this.latestPlayersState.get(p.id)!
         }
 
         this.latestSquaresState.clear()

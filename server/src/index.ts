@@ -37,7 +37,7 @@ wss.on('connection', (socket) => {
     socket,
     state: {
       id,
-      xp: 5000,
+      xp: 0,
       alive: false,
       shieldActive: false,
       x: 0,
@@ -151,11 +151,47 @@ wss.on('connection', (socket) => {
         player.collectedPerks.push(msg.perkId)
         refreshStats(player, player.purchasedUpgrades)
         PERK_EFFECTS[msg.perkId]?.(player) // one-time, not recalculated
+        const updateMsg = JSON.stringify({
+          type: 'player_update',
+          id,
+          changes: {
+            drillType: player.drillType,
+            drillLengthMultiplier: player.drillLengthMultiplier,
+            drillDmgMultiplier: player.drillDmgMultiplier,
+            maxHp: player.maxHp,
+            moveSpeedMultiplier: player.moveSpeedMultiplier,
+            radius: player.radius,
+            hpRegenPerSec: player.hpRegenPerSec,
+            collectedPerks: player.collectedPerks,
+          }
+        })
+        for (const other of players.values()) {
+          if (other.socket?.readyState === WebSocket.OPEN)
+            other.socket.send(updateMsg)
+        }
       } else if (msg.type === 'try_purchase_upgrade') {
         const p = players.get(id)!
         if (!p.purchasedUpgrades.includes(msg.nodeId))
           p.purchasedUpgrades.push(msg.nodeId)
         refreshStats(p, p.purchasedUpgrades)
+        const updateMsg = JSON.stringify({
+          type: 'player_update',
+          id,
+          changes: {
+            drillType: p.drillType,
+            drillLengthMultiplier: p.drillLengthMultiplier,
+            drillDmgMultiplier: p.drillDmgMultiplier,
+            maxHp: p.maxHp,
+            moveSpeedMultiplier: p.moveSpeedMultiplier,
+            radius: p.radius,
+            hpRegenPerSec: p.hpRegenPerSec,
+            collectedPerks: p.collectedPerks,
+          }
+        })
+        for (const other of players.values()) {
+          if (other.socket?.readyState === WebSocket.OPEN)
+            other.socket.send(updateMsg)
+        }
       } else if (msg.type === 'request_perk_choices') {
         const player = players.get(id)!
         if (!player.state.alive) return
