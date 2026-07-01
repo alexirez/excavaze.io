@@ -85,6 +85,11 @@ export default function GameHud({ screen, playerName, isDead, purchasedUpgrades,
           if (pending > 0 && !perkChoicesRef.current && Date.now() > lastPerkChoiceTime.current + 500) {
             socket.send(JSON.stringify({ type: 'request_perk_choices' }))
             perkChoicesRef.current = 'pending' // prevent repeated requests
+            setTimeout(() => {
+              if (perkChoicesRef.current === 'pending') {
+                perkChoicesRef.current = null // no response arrived in time, allow retry
+              }
+            }, 2000)
           }
           const displayLevel = Math.min(currentLevel(local.snapshot.xp), local.maxLevel)
           setXpLevel(displayLevel)
