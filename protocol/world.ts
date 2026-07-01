@@ -3,6 +3,7 @@ import { DANGER_MAP, DENSITY_MAP } from './data/map'
 import { ServerPlayer, ServerSquare } from '../server/src/entities'
 import { PlayerState } from './types'
 import { currentLevel } from './utils'
+import { pickRandomColorCombo } from './data/colors'
 
 let nextPlayerId = 0
 let nextSquareId = 0
@@ -181,6 +182,7 @@ function spawnBot(x: number, y: number, players: Map<number, ServerPlayer>) {
   const strengthMultiplier = dangerLevel * Math.random()
   const radius = 20 + 12 * (strengthMultiplier)
   const id = assignNextPlayerId()
+  const { bodyColor, borderColor } = pickRandomColorCombo()
   const bot: ServerPlayer = {
     socket: null,
     state: {
@@ -194,8 +196,8 @@ function spawnBot(x: number, y: number, players: Map<number, ServerPlayer>) {
       hp: PLAYER_BASE_HP * (1 + strengthMultiplier),
     },
     name: generateBotName(players),
-    bodyColor: 0xff6b6b,
-    borderColor: 0xcc4444,
+    bodyColor: bodyColor,
+    borderColor: borderColor,
     xpMultiplier: 1,
     maxLevel: 7,
     maxHp: PLAYER_BASE_HP * (1 + strengthMultiplier),
