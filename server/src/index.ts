@@ -26,6 +26,7 @@ const squaresToDelete: number[] = []
 const chunkToSquares = new Map<number, Set<number>>()
 for (let i = 0; i < CHUNK_ROWS * CHUNK_COLS; i++)
   chunkToSquares.set(i, new Set())
+const cameraX = Math.random() * WORLD_WIDTH; const cameraY = Math.random() * WORLD_HEIGHT
 
 spawnSquaresOnStartup(squares, chunkToSquares)
 
@@ -66,7 +67,7 @@ wss.on('connection', (socket) => {
     pendingPerkChoices: []
   })
   // S->C: Tell this client their assigned id
-  socket.send(JSON.stringify({ type: 'welcome', id, gems: 10, greenCores: 0, purpleCores: 0, yellowCores: 0 })) // TODO: load actual gems count for online mode
+  socket.send(JSON.stringify({ type: 'welcome', id, gems: 10, greenCores: 0, purpleCores: 0, yellowCores: 0, cameraX, cameraY })) // TODO: load actual gems count for online mode
   for (const other of players.values()) {
     if (!other.state.alive) continue
     socket.send(JSON.stringify({
@@ -332,7 +333,7 @@ setInterval(() => {
     }
 
     // 5) Spawn bots
-    if (tick % 50 === 0) spawnBots(players)
+    if (tick % 50 === 0) spawnBots(players, cameraX, cameraY)
 
     // 6) Process each active square
     squaresToDelete.length = 0

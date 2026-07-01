@@ -160,7 +160,7 @@ export function nearestPlayerDist(players: Map<number, ServerPlayer>, x: number,
   return minSqDist
 }
 
-export function spawnBots(players: Map<number, ServerPlayer>) {
+export function spawnBots(players: Map<number, ServerPlayer>, cameraX: number, cameraY: number) {
   const botBudget = MAX_PLAYER_COUNT - 10
   const currentPlayers = players.size
   if (currentPlayers >= botBudget) return
@@ -175,6 +175,9 @@ export function spawnBots(players: Map<number, ServerPlayer>) {
   }
 
   if (bestPlayer) spawnBotForPlayer(bestPlayer, players)
+  else if (botBudget > 7) {
+    spawnBotNearCamera(cameraX, cameraY, players)
+  }
 }
 
 function spawnBot(x: number, y: number, players: Map<number, ServerPlayer>) {
@@ -253,6 +256,13 @@ function spawnBotForPlayer(player: PlayerState, players: Map<number, ServerPlaye
   }
 
   spawnBot(bestX, bestY, players)
+}
+
+export function spawnBotNearCamera(cameraX: number, cameraY: number, players: Map<number, ServerPlayer>, distance: number = 2000) {
+  const angle = Math.random() * Math.PI * 2
+  const x = Math.max(WORLD_PADDING, Math.min(WORLD_WIDTH - WORLD_PADDING, cameraX + Math.cos(angle) * distance))
+  const y = Math.max(WORLD_PADDING, Math.min(WORLD_HEIGHT - WORLD_PADDING, cameraY + Math.sin(angle) * distance))
+  spawnBot(x, y, players)
 }
 
 const BOT_NAMES = [

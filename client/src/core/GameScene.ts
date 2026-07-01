@@ -60,7 +60,11 @@ export class GameScene extends Phaser.Scene {
     const handler = (event: MessageEvent) => {
       const msg = JSON.parse(event.data) as ServerMessage
 
-      if (msg.type === 'world_state') {
+      if (msg.type === 'welcome') {
+        this.cameraTarget.x = msg.cameraX
+        this.cameraTarget.y = msg.cameraY
+      }
+      else if (msg.type === 'world_state') {
         this.latestPlayersState.clear() // replace player list with newest update from server
         for (const p of msg.players) {
           this.latestPlayersState.set(p.id, {

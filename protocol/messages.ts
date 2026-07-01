@@ -25,6 +25,8 @@ export interface WelcomeMessage {
   purpleCores: number
   yellowCores: number
   upgrades: string[]
+  cameraX: number
+  cameraY: number
 }
 
 export interface PlayerKilledMessage {
