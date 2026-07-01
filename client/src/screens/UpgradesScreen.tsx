@@ -331,7 +331,7 @@ export default function UpgradesScreen({ onBack, online, gems, purchasedUpgrades
               left: baseCanvasW * 0.5 - 225,
               top: NODES_OFFSET_Y + CANVAS_PAD * 0.3,
             }}>
-              <div style={{ fontSize: 128, letterSpacing: 6, color: 'rgba(255,255,255,0.15)', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: 128, letterSpacing: 6, color: 'rgba(242, 255, 0, 0.3)', textTransform: 'uppercase' }}>
                 upgrades
               </div>
               <div style={{ fontSize: 54, color: 'rgba(255,255,255,0.25)', letterSpacing: 2, textAlign: 'center' }}>
