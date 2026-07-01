@@ -179,9 +179,9 @@ export class GameScene extends Phaser.Scene {
         this.playerGraphics.fillStyle(0x2e79ff, alpha)
         this.playerGraphics.fillCircle(0, 0, cp.radius * 2.8)
       }
-      this.playerGraphics.fillStyle(0x00ff99)
+      this.playerGraphics.fillStyle(cp.bodyColor)
       this.playerGraphics.fillCircle(0, 0, cp.radius - 3)
-      this.playerGraphics.lineStyle(2, 0x00aa66, 1)
+      this.playerGraphics.lineStyle(2, cp.borderColor, 1)
       this.playerGraphics.strokeCircle(0, 0, cp.radius)
       drawDrill(this.playerGraphics, playerState, cp, 0x00cc77)
 
@@ -218,9 +218,9 @@ export class GameScene extends Phaser.Scene {
       }
 
       // body
-      this.enemyGraphics.fillStyle(0xff6b6b)
+      this.enemyGraphics.fillStyle(cp.bodyColor)
       this.enemyGraphics.fillCircle(0, 0, cp.radius)
-      this.enemyGraphics.lineStyle(6 + (cp.radius * 0.1), 0xcc4444, 1)
+      this.enemyGraphics.lineStyle(6 + (cp.radius * 0.1), cp.borderColor, 1)
       this.enemyGraphics.strokeCircle(0, 0, cp.radius - 2)
 
       // weapon — starts at edge of circle

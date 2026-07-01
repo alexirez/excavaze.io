@@ -107,6 +107,8 @@ wss.on('connection', (socket) => {
         if (p.state.alive) return
         const { x, y } = pickPlayerSpawnPoint(players)
         p.name = msg.name
+        p.bodyColor = msg.bodyColor
+        p.borderColor = msg.borderColor
         p.state.xp *= 0.8
         p.state.alive = true
         p.state.shieldActive = true

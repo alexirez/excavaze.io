@@ -15,17 +15,21 @@ const shakeStyle = `
 `
 
 interface Props {
-  onPlay: (name: string) => void
+  onPlay: (name: string, bodyColor: number, borderColor: number) => void
   onUpgrades: () => void
   online: boolean
   setOnline: React.Dispatch<React.SetStateAction<boolean>>
   gems: number
+  bodyColor: string
+  setBodyColor: React.Dispatch<React.SetStateAction<string>>
+  borderColor: string
+  setBorderColor: React.Dispatch<React.SetStateAction<string>>
 }
 
 const ONLINE_SERVER_URL = 'wss://excavaze.io'
 const LOCAL_SERVER_URL = 'wss://localhost:3000'
 
-export default function StartMenu({ onPlay, onUpgrades, online, setOnline, gems }: Props) {
+export default function StartMenu({ onPlay, onUpgrades, online, setOnline, gems, bodyColor, setBodyColor, borderColor, setBorderColor }: Props) {
   const [name, setName] = useState('')
   const [tip, setTip] = useState(() => pickTip('general'))
   const [tipVisible, setTipVisible] = useState(true)
@@ -37,9 +41,6 @@ export default function StartMenu({ onPlay, onUpgrades, online, setOnline, gems 
   const shakeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const brushButtonRef = useRef<HTMLButtonElement>(null)
   const [showColorPicker, setShowColorPicker] = useState(false)
-  const [bodyColor, setBodyColor] = useState('#ff6b6b')
-  const [borderColor, setBorderColor] = useState('#cc4444')
-
 
   useEffect(() => {
     phaserGame?.input.keyboard?.clearCaptures()
@@ -80,7 +81,7 @@ export default function StartMenu({ onPlay, onUpgrades, online, setOnline, gems 
       return
     }
     persistName()
-    onPlay(trimmed)
+    onPlay(trimmed, parseInt(bodyColor.slice(1), 16), parseInt(borderColor.slice(1), 16))
   }
 
   const handleUpgrades = () => {

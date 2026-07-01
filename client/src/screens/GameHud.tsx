@@ -30,6 +30,10 @@ interface Props {
   playerName: string
   isDead: boolean
   purchasedUpgrades: string[]
+  bodyColor: string
+  setBodyColor: React.Dispatch<React.SetStateAction<string>>
+  borderColor: string
+  setBorderColor: React.Dispatch<React.SetStateAction<string>>
   setIsDead: (val: boolean) => void
   onHome: () => void
   onUpgrades: () => void
@@ -38,7 +42,7 @@ interface Props {
 
 let killFeedCounter = 0
 
-export default function GameHud({ screen, playerName, isDead, purchasedUpgrades, setIsDead, onHome, onUpgrades, onRespawn }: Props) {
+export default function GameHud({ screen, playerName, isDead, purchasedUpgrades, bodyColor, borderColor, setIsDead, onHome, onUpgrades, onRespawn }: Props) {
   const [killFeed, setKillFeed] = useState<KillFeedEntry[]>([])
   const [xpRatio, setXpRatio] = useState(0)
   const [xpLevel, setXpLevel] = useState(1)
@@ -368,7 +372,11 @@ export default function GameHud({ screen, playerName, isDead, purchasedUpgrades,
           </button>
           <button
             onClick={() => {
-              socket.send(JSON.stringify({ type: 'client_respawn', name: playerName, upgrades: purchasedUpgrades }))
+              socket.send(JSON.stringify({
+                type: 'client_respawn', name: playerName, upgrades: purchasedUpgrades, 
+                bodyColor: parseInt(bodyColor.slice(1), 16),
+                borderColor: parseInt(borderColor.slice(1), 16), 
+              }))
               setIsDead(false)
               setKillFeed([])
               onRespawn()

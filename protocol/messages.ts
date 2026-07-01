@@ -52,6 +52,8 @@ export interface ClientRespawnMessage {
   type: 'client_respawn'
   name: string
   upgrades: string[]
+  bodyColor: number
+  borderColor: number
 }
 
 // S->C: a player has spawned or respawned

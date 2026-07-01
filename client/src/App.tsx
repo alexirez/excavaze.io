@@ -18,6 +18,8 @@ export default function App() {
   const [online, setOnline] = useState(false)
   const [gems, setGems] = useState(0)
   const [purchasedUpgrades, setPurchasedUpgrades] = useState<string[]>([])
+  const [bodyColor, setBodyColor] = useState('#ff6b6b')
+  const [borderColor, setBorderColor] = useState('#cc4444')
 
   useEffect(() => {
     console.log('[App] useEffect ran, online =', online)
@@ -123,6 +125,10 @@ export default function App() {
         playerName={playerName}
         isDead={isDead}
         purchasedUpgrades={purchasedUpgrades}
+        bodyColor={bodyColor}
+        setBodyColor={setBodyColor}
+        borderColor={borderColor}
+        setBorderColor={setBorderColor}
         setIsDead={setIsDead}
         onHome={() => setScreen('startMenu')}
         onUpgrades={() => setScreen('upgrades')}
@@ -133,11 +139,15 @@ export default function App() {
         online={online}
         setOnline={setOnline}
         gems={gems}
-        onPlay={(name) => {
+        bodyColor={bodyColor}
+        setBodyColor={setBodyColor}
+        borderColor={borderColor}
+        setBorderColor={setBorderColor}
+        onPlay={(name, bodyColor, borderColor) => {
           setPlayerName(name)
           setIsDead(false)
           setScreen('game')
-          socket.send(JSON.stringify({ type: 'client_respawn', name, upgrades: purchasedUpgrades }))
+          socket.send(JSON.stringify({ type: 'client_respawn', name, upgrades: purchasedUpgrades, bodyColor, borderColor }))
         }}
         onUpgrades={() => setScreen('upgrades')}
       />
