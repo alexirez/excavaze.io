@@ -177,7 +177,7 @@ function getDeathbladeDrillDamage(
   const bladeX = originX + Math.cos(rotation) * offset
   const bladeY = originY + Math.sin(rotation) * offset
   const dx = targetX - bladeX, dy = targetY - bladeY
-  return dx*dx + dy*dy < (80 + targetRadius) ** 2 ? 20 * drillDmgMultiplier : 0
+  return dx*dx + dy*dy < (80 + targetRadius) ** 2 ? 8 * drillDmgMultiplier : 0
 }
 
 function sawbladeDmgOnRect(
@@ -200,7 +200,7 @@ function deathbladeDmgOnRect(
   const offset = radius + 40 + 40 * drillLengthMultiplier
   const bladeX = originX + Math.cos(rotation) * offset
   const bladeY = originY + Math.sin(rotation) * offset
-  return circleIntersectsOrientedRect(bladeX, bladeY, 80, rx, ry, rRotation, rHalfW, rHalfH) ? 20 * drillDmgMultiplier : 0
+  return circleIntersectsOrientedRect(bladeX, bladeY, 80, rx, ry, rRotation, rHalfW, rHalfH) ? 8 * drillDmgMultiplier : 0
 }
 
 // returns whether or not circle is inside of the rectangle

@@ -38,7 +38,7 @@ wss.on('connection', (socket) => {
     socket,
     state: {
       id,
-      xp: 0,
+      xp: 99999,
       alive: false,
       shieldActive: false,
       x: 0,
