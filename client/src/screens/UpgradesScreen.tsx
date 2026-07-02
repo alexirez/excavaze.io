@@ -1,5 +1,5 @@
 import { JSX, useEffect, useRef, useState } from 'react'
-import { UPGRADE_NODES, UpgradeNode } from '../../../protocol/data/upgrade-nodes'
+import { UPGRADE_NODES } from '../../../protocol/data/upgrade-nodes'
 
 interface Props {
   onBack: () => void
@@ -331,7 +331,7 @@ export default function UpgradesScreen({ onBack, online, gems, purchasedUpgrades
               left: baseCanvasW * 0.5 - 225,
               top: NODES_OFFSET_Y + CANVAS_PAD * 0.3,
             }}>
-              <div style={{ fontSize: 128, letterSpacing: 6, color: 'rgba(255,255,255,0.15)', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: 128, letterSpacing: 6, color: 'rgba(255, 230, 0, 0.41)', textTransform: 'uppercase' }}>
                 upgrades
               </div>
               <div style={{ fontSize: 54, color: 'rgba(255,255,255,0.25)', letterSpacing: 2, textAlign: 'center' }}>

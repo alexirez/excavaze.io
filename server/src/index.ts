@@ -10,7 +10,7 @@ import { awardXp, circleIntersectsOrientedRect, getDrillDamageOnCircle, getDrill
 import { currentLevel, refreshStats } from '../../protocol/utils'
 
 const PORT = 3000
-const SQUARE_SPEED = 0.5  // multiplies square drifting speed
+const SQUARE_SPEED = 0.5
 let tick = 0
 
 const wss = new WebSocketServer({ port: PORT })
@@ -20,12 +20,13 @@ const players = new Map<number, ServerPlayer>()
 const squares = new Map<number, ServerSquare>()
 const playerStates: PlayerState[] = []
 const squareStates: SquareState[] = []
-const nearbyPlayers: PlayerState[] = []
+const nearbyPlayers: ServerPlayer[] = []
 const nearbySquareIds: number[] = []
 const squaresToDelete: number[] = []
 const chunkToSquares = new Map<number, Set<number>>()
 for (let i = 0; i < CHUNK_ROWS * CHUNK_COLS; i++)
   chunkToSquares.set(i, new Set())
+const cameraX = Math.random() * WORLD_WIDTH; const cameraY = Math.random() * WORLD_HEIGHT
 
 spawnSquaresOnStartup(squares, chunkToSquares)
 
@@ -37,25 +38,27 @@ wss.on('connection', (socket) => {
     socket,
     state: {
       id,
-      name: 'Player',
-      xp: 5000,
-      xpMultiplier: 1,
-      maxLevel: 7,
+      xp: 99999,
       alive: false,
       shieldActive: false,
-      x: 0, 
+      x: 0,
       y: 0,
       rotation: 0,
       hp: PLAYER_BASE_HP,
-      maxHp: PLAYER_BASE_HP,
-      hpRegenPerSec: 0,
-      moveSpeedMultiplier: 1,
-      radius: 25,
-      collectedPerks: [],
-      drillType: 0,
-      drillDmgMultiplier: 1,
-      drillLengthMultiplier: 1
     },
+    name: 'Player',
+    bodyColor: 0xff6b6b,
+    borderColor: 0xcc4444,
+    xpMultiplier: 1,
+    maxLevel: 7,
+    maxHp: PLAYER_BASE_HP,
+    hpRegenPerSec: 0,
+    moveSpeedMultiplier: 1,
+    radius: PLAYER_BASE_RADIUS,
+    collectedPerks: [],
+    drillType: 0,
+    drillDmgMultiplier: 1,
+    drillLengthMultiplier: 1,
     input: { dx: 0, dy: 0, rotation: 0 },
     shieldTicks: SHIELD_DURATION,
     lastCollisionTime: 0,
@@ -64,7 +67,27 @@ wss.on('connection', (socket) => {
     pendingPerkChoices: []
   })
   // S->C: Tell this client their assigned id
-  socket.send(JSON.stringify({ type: 'welcome', id, gems: 10 })) // TODO: load actual gems count for online mode
+  socket.send(JSON.stringify({ type: 'welcome', id, gems: 10, greenCores: 0, purpleCores: 0, yellowCores: 0, cameraX, cameraY })) // TODO: load actual gems count for online mode
+  for (const other of players.values()) {
+    if (!other.state.alive) continue
+    socket.send(JSON.stringify({
+      type: 'player_respawn',
+      id: other.state.id,
+      name: other.name,
+      bodyColor: other.bodyColor,
+      borderColor: other.borderColor,
+      xpMultiplier: other.xpMultiplier,
+      maxLevel: other.maxLevel,
+      maxHp: other.maxHp,
+      hpRegenPerSec: other.hpRegenPerSec,
+      moveSpeedMultiplier: other.moveSpeedMultiplier,
+      radius: other.radius,
+      collectedPerks: other.collectedPerks,
+      drillType: other.drillType,
+      drillDmgMultiplier: other.drillDmgMultiplier,
+      drillLengthMultiplier: other.drillLengthMultiplier,
+    }))
+  }
 
   socket.on('close', (code, reason) => {
     players.delete(id)
@@ -80,21 +103,45 @@ wss.on('connection', (socket) => {
           dy: msg.dy,
           rotation: msg.rotation,
         }
-      } else if (msg.type === 'respawn') {
+      } else if (msg.type === 'client_respawn') {
         const p = players.get(id)!
         if (p.state.alive) return
         const { x, y } = pickPlayerSpawnPoint(players)
-        p.state.name = msg.name
+        p.name = msg.name
+        p.bodyColor = msg.bodyColor
+        p.borderColor = msg.borderColor
         p.state.xp *= 0.8
         p.state.alive = true
         p.state.shieldActive = true
         p.state.x = x
         p.state.y = y
-        p.state.collectedPerks = []
+        p.collectedPerks = []
         p.shieldTicks = SHIELD_DURATION
         p.purchasedUpgrades = msg.upgrades ?? []
-        refreshStats(p.state, p.purchasedUpgrades)
-        p.state.hp = p.state.maxHp // needed for max hp upgrades
+        refreshStats(p, p.purchasedUpgrades)
+        p.state.hp = p.maxHp // needed for max hp upgrades
+
+        const respawnMsg = JSON.stringify({
+          type: 'player_respawn',
+          id,
+          name: p.name,
+          bodyColor: p.bodyColor,
+          borderColor: p.borderColor,
+          xpMultiplier: p.xpMultiplier,
+          maxLevel: p.maxLevel,
+          maxHp: p.maxHp,
+          hpRegenPerSec: p.hpRegenPerSec,
+          moveSpeedMultiplier: p.moveSpeedMultiplier,
+          radius: p.radius,
+          collectedPerks: p.collectedPerks,
+          drillType: p.drillType,
+          drillDmgMultiplier: p.drillDmgMultiplier,
+          drillLengthMultiplier: p.drillLengthMultiplier,
+        })
+        for (const other of players.values()) {
+          if (other.socket?.readyState === WebSocket.OPEN)
+            other.socket.send(respawnMsg)
+        }
       } else if (msg.type === 'select_perk') {
         const player = players.get(id)!
         if (!player.state.alive) return
@@ -102,22 +149,58 @@ wss.on('connection', (socket) => {
         player.pendingPerkChoices = []
         const perk = PERK_TREE[msg.perkId]
         if (!perk) return
-        if (player.state.collectedPerks.includes(msg.perkId)) return
-        if (isDrillPerk(msg.perkId)) removeDrillPerks(player.state)
-        player.state.collectedPerks.push(msg.perkId)
-        refreshStats(player.state, player.purchasedUpgrades)
-        PERK_EFFECTS[msg.perkId]?.(player.state) // one-time, not recalculated
+        if (player.collectedPerks.includes(msg.perkId)) return
+        if (isDrillPerk(msg.perkId)) removeDrillPerks(player)
+        player.collectedPerks.push(msg.perkId)
+        refreshStats(player, player.purchasedUpgrades)
+        PERK_EFFECTS[msg.perkId]?.(player) // one-time, not recalculated
+        const updateMsg = JSON.stringify({
+          type: 'player_update',
+          id,
+          changes: {
+            drillType: player.drillType,
+            drillLengthMultiplier: player.drillLengthMultiplier,
+            drillDmgMultiplier: player.drillDmgMultiplier,
+            maxHp: player.maxHp,
+            moveSpeedMultiplier: player.moveSpeedMultiplier,
+            radius: player.radius,
+            hpRegenPerSec: player.hpRegenPerSec,
+            collectedPerks: player.collectedPerks,
+          }
+        })
+        for (const other of players.values()) {
+          if (other.socket?.readyState === WebSocket.OPEN)
+            other.socket.send(updateMsg)
+        }
       } else if (msg.type === 'try_purchase_upgrade') {
         const p = players.get(id)!
         if (!p.purchasedUpgrades.includes(msg.nodeId))
           p.purchasedUpgrades.push(msg.nodeId)
-        refreshStats(p.state, p.purchasedUpgrades)
+        refreshStats(p, p.purchasedUpgrades)
+        const updateMsg = JSON.stringify({
+          type: 'player_update',
+          id,
+          changes: {
+            drillType: p.drillType,
+            drillLengthMultiplier: p.drillLengthMultiplier,
+            drillDmgMultiplier: p.drillDmgMultiplier,
+            maxHp: p.maxHp,
+            moveSpeedMultiplier: p.moveSpeedMultiplier,
+            radius: p.radius,
+            hpRegenPerSec: p.hpRegenPerSec,
+            collectedPerks: p.collectedPerks,
+          }
+        })
+        for (const other of players.values()) {
+          if (other.socket?.readyState === WebSocket.OPEN)
+            other.socket.send(updateMsg)
+        }
       } else if (msg.type === 'request_perk_choices') {
         const player = players.get(id)!
         if (!player.state.alive) return
-        const pendingPerksCount = Math.min(currentLevel(player.state.xp), player.state.maxLevel) - player.state.collectedPerks.length
+        const pendingPerksCount = Math.min(currentLevel(player.state.xp), player.maxLevel) - player.collectedPerks.length
         if (pendingPerksCount <= 0) return
-        const choices = rollPerkChoices(player.state.collectedPerks)
+        const choices = rollPerkChoices(player.collectedPerks)
         player.pendingPerkChoices = choices
         player.socket?.send(JSON.stringify({ type: 'perk_options', perkOptions: choices }))
       }
@@ -134,8 +217,8 @@ setInterval(() => {
     // 1) Process player/bots input
     for (const p of players.values()) {
       if (!p.state.alive) continue
-      p.state.x = Math.max(WORLD_PADDING, Math.min(WORLD_WIDTH - WORLD_PADDING, p.state.x + p.input.dx * p.state.moveSpeedMultiplier * PLAYER_BASE_SPEED))
-      p.state.y = Math.max(WORLD_PADDING, Math.min(WORLD_HEIGHT - WORLD_PADDING, p.state.y + p.input.dy * p.state.moveSpeedMultiplier * PLAYER_BASE_SPEED))
+      p.state.x = Math.max(WORLD_PADDING, Math.min(WORLD_WIDTH - WORLD_PADDING, p.state.x + p.input.dx * p.moveSpeedMultiplier * PLAYER_BASE_SPEED))
+      p.state.y = Math.max(WORLD_PADDING, Math.min(WORLD_HEIGHT - WORLD_PADDING, p.state.y + p.input.dy * p.moveSpeedMultiplier * PLAYER_BASE_SPEED))
       p.state.rotation = p.input.rotation
 
       // 2) Process spawn shield timers + hp regen
@@ -143,7 +226,7 @@ setInterval(() => {
         p.shieldTicks--
         if (p.shieldTicks === 0) p.state.shieldActive = false
       }
-      p.state.hp = Math.min(p.state.hp + p.state.hpRegenPerSec, p.state.maxHp)
+      p.state.hp = Math.min(p.state.hp + p.hpRegenPerSec, p.maxHp)
     }
     
     // 3) Check for collisions
@@ -154,7 +237,7 @@ setInterval(() => {
           const dx = a.state.x - b.state.x
           const dy = a.state.y - b.state.y
           const dist = Math.sqrt(dx * dx + dy * dy)
-          const radiusSum = a.state.radius + b.state.radius
+          const radiusSum = a.radius + b.radius
 
           if (dist < radiusSum && dist > 0.001) {
             if (!a.state.shieldActive && Date.now() - a.lastCollisionTime >= COLLISION_COOLDOWN) {
@@ -173,16 +256,16 @@ setInterval(() => {
 
         for (const [idA, a] of players) { // 2. player + drill collisions
           if (!a.state.alive) continue
-          const aReach = getDrillReach(a.state)
+          const aReach = getDrillReach(a)
           for (const [idB, b] of players) {
             if (!b.state.alive || idA === idB || b.state.shieldActive) continue
             const dx = a.state.x - b.state.x
             const dy = a.state.y - b.state.y
-            if (dx*dx + dy*dy > (aReach + b.state.radius) ** 2) continue // broadphase
+            if (dx*dx + dy*dy > (aReach + b.radius) ** 2) continue // broadphase
             b.state.hp -= getDrillDamageOnCircle(
-              a.state.x, a.state.y, a.state.rotation, a.state.radius, 
-              a.state.drillType, a.state.drillLengthMultiplier, a.state.drillDmgMultiplier,
-              b.state.x, b.state.y, b.state.radius
+              a.state.x, a.state.y, a.state.rotation, a.radius, 
+              a.drillType, a.drillLengthMultiplier, a.drillDmgMultiplier,
+              b.state.x, b.state.y, b.radius
             )
             if (b.state.hp <= 0) killPlayer(a, b, 'drill', players)
           }
@@ -192,7 +275,7 @@ setInterval(() => {
       if (!p.state.alive) continue
       const chunkIndex = getChunkIndex(p.state.x, p.state.y)
       getNearbySquareIds(chunkToSquares, chunkIndex, nearbySquareIds) // only consider 9 nearest chunks for efficient collision checking
-      const drillReach = getDrillReach(p.state)
+      const drillReach = getDrillReach(p)
 
       for (const id of nearbySquareIds) {
 
@@ -208,8 +291,8 @@ setInterval(() => {
         const sqHalf = sqSize / 2
 
         square.state.hp -= getDrillDamageOnRect(
-          p.state.x, p.state.y, p.state.rotation, p.state.radius,
-          p.state.drillType, p.state.drillLengthMultiplier, p.state.drillDmgMultiplier,
+          p.state.x, p.state.y, p.state.rotation, p.radius,
+          p.drillType, p.drillLengthMultiplier, p.drillDmgMultiplier,
           square.state.x, square.state.y, square.state.rotation, sqHalf, sqHalf
         )
         if (square.state.hp <= 0)
@@ -217,7 +300,7 @@ setInterval(() => {
 
 
         if (circleIntersectsOrientedRect(
-          p.state.x, p.state.y, p.state.radius,
+          p.state.x, p.state.y, p.radius,
           square.state.x, square.state.y, square.state.rotation, sqHalf, sqHalf // 4. player + square collisions
         )) {
           square.state.hp -= PLAYER_COLLISION_DAMAGE
@@ -241,7 +324,7 @@ setInterval(() => {
           if (!other.state.alive) continue
           const dx = other.state.x - p.state.x
           const dy = other.state.y - p.state.y
-          if (dx * dx + dy * dy < 800 * 800) nearbyPlayers.push(other.state)
+          if (dx * dx + dy * dy < 800 * 800) nearbyPlayers.push(other)
         }
         const chunkIndex = getChunkIndex(p.state.x, p.state.y)
         getNearbySquareIds(chunkToSquares, chunkIndex, nearbySquareIds)
@@ -250,7 +333,7 @@ setInterval(() => {
     }
 
     // 5) Spawn bots
-    if (tick % 50 === 0) spawnBots(players)
+    if (tick % 50 === 0) spawnBots(players, cameraX, cameraY)
 
     // 6) Process each active square
     squaresToDelete.length = 0

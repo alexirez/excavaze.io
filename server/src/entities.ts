@@ -4,6 +4,19 @@ import { PlayerState, SquareState } from '../../protocol/types'
 export interface ServerPlayer {
   socket: NodeWebSocket | null
   state: PlayerState
+  name: string
+  bodyColor: number
+  borderColor: number
+  xpMultiplier: number
+  maxLevel: number
+  maxHp: number
+  hpRegenPerSec: number
+  moveSpeedMultiplier: number
+  radius: number
+  collectedPerks: string[]
+  drillType: number
+  drillDmgMultiplier: number
+  drillLengthMultiplier: number
   input: { dx: number; dy: number; rotation: number }
   shieldTicks: number
   lastCollisionTime: number

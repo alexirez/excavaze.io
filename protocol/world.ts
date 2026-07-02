@@ -3,6 +3,7 @@ import { DANGER_MAP, DENSITY_MAP } from './data/map'
 import { ServerPlayer, ServerSquare } from '../server/src/entities'
 import { PlayerState } from './types'
 import { currentLevel } from './utils'
+import { pickRandomColorCombo } from './data/colors'
 
 let nextPlayerId = 0
 let nextSquareId = 0
@@ -121,7 +122,7 @@ function isSpawnClearOfPlayers(players: Map<number, ServerPlayer>, spawnX: numbe
   for (const p of players.values()) {
     const dx = p.state.x - spawnX
     const dy = p.state.y - spawnY
-    if (dx * dx + dy * dy < (minDist + p.state.radius)**2) return false
+    if (dx * dx + dy * dy < (minDist + p.radius)**2) return false
   }
   return true
 }
@@ -159,7 +160,7 @@ export function nearestPlayerDist(players: Map<number, ServerPlayer>, x: number,
   return minSqDist
 }
 
-export function spawnBots(players: Map<number, ServerPlayer>) {
+export function spawnBots(players: Map<number, ServerPlayer>, cameraX: number, cameraY: number) {
   const botBudget = MAX_PLAYER_COUNT - 10
   const currentPlayers = players.size
   if (currentPlayers >= botBudget) return
@@ -174,6 +175,9 @@ export function spawnBots(players: Map<number, ServerPlayer>) {
   }
 
   if (bestPlayer) spawnBotForPlayer(bestPlayer, players)
+  else if (botBudget > 7) {
+    spawnBotNearCamera(cameraX, cameraY, players)
+  }
 }
 
 function spawnBot(x: number, y: number, players: Map<number, ServerPlayer>) {
@@ -181,36 +185,62 @@ function spawnBot(x: number, y: number, players: Map<number, ServerPlayer>) {
   const strengthMultiplier = dangerLevel * Math.random()
   const radius = 20 + 12 * (strengthMultiplier)
   const id = assignNextPlayerId()
-  players.set(id, {
+  const { bodyColor, borderColor } = pickRandomColorCombo()
+  const bot: ServerPlayer = {
     socket: null,
     state: {
       id,
-      name: generateBotName(players),
       xp: 0,
-      xpMultiplier: 1,
-      maxLevel: 7,
       alive: true,
       shieldActive: true,
       x,
       y,
       rotation: 0,
       hp: PLAYER_BASE_HP * (1 + strengthMultiplier),
-      maxHp: PLAYER_BASE_HP * (1 + strengthMultiplier),
-      hpRegenPerSec: 0,
-      moveSpeedMultiplier: Math.sqrt(PLAYER_BASE_RADIUS / radius),
-      radius: radius,
-      collectedPerks: [],
-      drillType: 0,
-      drillDmgMultiplier: 0.7 + (dangerLevel - 1) * 0.1,
-      drillLengthMultiplier: 0.7 + (dangerLevel * Math.min(Math.random(), 0.2)) * 0.5
     },
-    input: { dx: 0, dy: 0, rotation: Math.random() * Math.PI * 2 },
+    name: generateBotName(players),
+    bodyColor: bodyColor,
+    borderColor: borderColor,
+    xpMultiplier: 1,
+    maxLevel: 7,
+    maxHp: PLAYER_BASE_HP * (1 + strengthMultiplier),
+    hpRegenPerSec: Math.ceil(Math.random() * 6) % 3,
+    moveSpeedMultiplier: Math.sqrt(PLAYER_BASE_RADIUS / radius),
+    radius: radius,
+    collectedPerks: [],
+    drillType: 0,
+    drillDmgMultiplier: 0.7 + (dangerLevel - 1) * 0.1,
+    drillLengthMultiplier: 0.7 + (dangerLevel * Math.min(Math.random(), 0.2)) * 0.5,
+    input: { dx: 0, dy: 0, rotation: 0 },
     shieldTicks: SHIELD_DURATION,
     lastCollisionTime: 0,
     wanderAngle: Math.random() * Math.PI * 2,
     purchasedUpgrades: [],
-    pendingPerkChoices: []
+    pendingPerkChoices: [],
+  }
+  players.set(id, bot)
+
+  const respawnMsg = JSON.stringify({
+    type: 'player_respawn',
+    id,
+    name: bot.name,
+    bodyColor: bot.bodyColor,
+    borderColor: bot.borderColor,
+    xpMultiplier: bot.xpMultiplier,
+    maxLevel: bot.maxLevel,
+    maxHp: bot.maxHp,
+    hpRegenPerSec: bot.hpRegenPerSec,
+    moveSpeedMultiplier: bot.moveSpeedMultiplier,
+    radius: bot.radius,
+    collectedPerks: bot.collectedPerks,
+    drillType: bot.drillType,
+    drillDmgMultiplier: bot.drillDmgMultiplier,
+    drillLengthMultiplier: bot.drillLengthMultiplier,
   })
+  for (const p of players.values()) {
+    if (p.socket?.readyState === WebSocket.OPEN)
+      p.socket.send(respawnMsg)
+  }
 }
 
 function spawnBotForPlayer(player: PlayerState, players: Map<number, ServerPlayer>) {
@@ -226,6 +256,13 @@ function spawnBotForPlayer(player: PlayerState, players: Map<number, ServerPlaye
   }
 
   spawnBot(bestX, bestY, players)
+}
+
+export function spawnBotNearCamera(cameraX: number, cameraY: number, players: Map<number, ServerPlayer>, distance: number = 2000) {
+  const angle = Math.random() * Math.PI * 2
+  const x = Math.max(WORLD_PADDING, Math.min(WORLD_WIDTH - WORLD_PADDING, cameraX + Math.cos(angle) * distance))
+  const y = Math.max(WORLD_PADDING, Math.min(WORLD_HEIGHT - WORLD_PADDING, cameraY + Math.sin(angle) * distance))
+  spawnBot(x, y, players)
 }
 
 const BOT_NAMES = [
@@ -244,7 +281,7 @@ const BOT_NAME_PREFIXES = [
 ]
 
 function generateBotName(players: Map<number, ServerPlayer>): string {
-  const usedNames = new Set([...players.values()].map(p => p.state.name))
+  const usedNames = new Set([...players.values()].map(p => p.name))
   const availableFullNames = BOT_NAMES.filter(n => !usedNames.has(n))
 
   if (Math.random() < 0.8 && availableFullNames.length > 0)

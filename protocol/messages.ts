@@ -1,3 +1,4 @@
+import { ClientPlayer } from '../client/src/entities'
 import { PlayerState, SquareState } from './types'
 
 // C->S: Client tells server what inputs are being held this tick
@@ -24,6 +25,8 @@ export interface WelcomeMessage {
   purpleCores: number
   yellowCores: number
   upgrades: string[]
+  cameraX: number
+  cameraY: number
 }
 
 export interface PlayerKilledMessage {
@@ -46,10 +49,39 @@ export interface DeathScreenMessage {
   cause: 'player' | 'drill' | 'square'
 }
 
-export interface RespawnMessage {
-  type: 'respawn'
+// C->S: client wants to respawn
+export interface ClientRespawnMessage {
+  type: 'client_respawn'
   name: string
   upgrades: string[]
+  bodyColor: number
+  borderColor: number
+}
+
+// S->C: a player has spawned or respawned
+export interface ServerRespawnMessage {
+  type: 'player_respawn'
+  id: number
+  name: string
+  bodyColor: number
+  borderColor: number
+  xpMultiplier: number
+  maxLevel: number
+  maxHp: number
+  hpRegenPerSec: number
+  moveSpeedMultiplier: number
+  radius: number
+  collectedPerks: string[]
+  drillType: number
+  drillDmgMultiplier: number
+  drillLengthMultiplier: number
+}
+
+// S->C: tell clients to update their rendering
+export interface PlayerUpdateMessage {
+  type: 'player_update'
+  id: number
+  changes: Partial<Omit<ClientPlayer, 'snapshot'>>
 }
 
 export interface RequestPerkChoices {
@@ -71,6 +103,6 @@ export interface TryPurchaseUpgrade {
   nodeId: string
 }
 
-export type ClientMessage = InputMessage | RespawnMessage | PerkSelection | TryPurchaseUpgrade | RequestPerkChoices
-export type ServerMessage = WelcomeMessage | WorldStateMessage | PlayerKilledMessage 
+export type ClientMessage = InputMessage | ClientRespawnMessage | PerkSelection | TryPurchaseUpgrade | RequestPerkChoices
+export type ServerMessage = WelcomeMessage | WorldStateMessage | ServerRespawnMessage | PlayerUpdateMessage | PlayerKilledMessage 
   | SquareKilledPlayerMessage | DeathScreenMessage | PerkOptions

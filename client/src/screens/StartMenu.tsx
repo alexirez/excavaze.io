@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { phaserGame } from '../core/PhaserGame'
 import { loadOfflineUsername, saveOfflineUsername } from '../../storage/offlineStorage'
+import { pickTip, stripTipPrefix, pickDifferentTip } from '../../../protocol/data/tips'
+import SpeechBubble from '../components/SpeechBubble'
 
 const shakeStyle = `
   @keyframes shake {
@@ -13,22 +15,32 @@ const shakeStyle = `
 `
 
 interface Props {
-  onPlay: (name: string) => void
+  onPlay: (name: string, bodyColor: number, borderColor: number) => void
   onUpgrades: () => void
   online: boolean
   setOnline: React.Dispatch<React.SetStateAction<boolean>>
   gems: number
+  bodyColor: string
+  setBodyColor: React.Dispatch<React.SetStateAction<string>>
+  borderColor: string
+  setBorderColor: React.Dispatch<React.SetStateAction<string>>
 }
 
 const ONLINE_SERVER_URL = 'wss://excavaze.io'
 const LOCAL_SERVER_URL = 'wss://localhost:3000'
 
-export default function StartMenu({ onPlay, onUpgrades, online, setOnline, gems }: Props) {
+export default function StartMenu({ onPlay, onUpgrades, online, setOnline, gems, bodyColor, setBodyColor, borderColor, setBorderColor }: Props) {
   const [name, setName] = useState('')
+  const [tip, setTip] = useState(() => pickTip('general'))
+  const [tipVisible, setTipVisible] = useState(true)
+  const [tipSpacing, setTipSpacing] = useState(1)
+  const [tipTransition, setTipTransition] = useState<'ease-in' | 'ease-out'>('ease-out')
   const [showStarConfirm, setShowStarConfirm] = useState(false)
   const nameInputRef = useRef<HTMLInputElement>(null)
   const [nameError, setNameError] = useState(false)
   const shakeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const brushButtonRef = useRef<HTMLButtonElement>(null)
+  const [showColorPicker, setShowColorPicker] = useState(false)
 
   useEffect(() => {
     phaserGame?.input.keyboard?.clearCaptures()
@@ -37,6 +49,21 @@ export default function StartMenu({ onPlay, onUpgrades, online, setOnline, gems 
     loadOfflineUsername()
       .then(username => { if (username) setName(username) })
       .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTipTransition('ease-in')
+      setTipVisible(false)
+      setTipSpacing(4)  // spread out as it shrinks
+      setTimeout(() => {
+        setTip(current => pickDifferentTip('general', current))
+        setTipTransition('ease-out')
+        setTipVisible(true)
+        setTipSpacing(1)
+      }, 200)
+    }, 5000)
+    return () => clearInterval(interval)
   }, [])
 
   const persistName = () => {
@@ -54,7 +81,7 @@ export default function StartMenu({ onPlay, onUpgrades, online, setOnline, gems 
       return
     }
     persistName()
-    onPlay(trimmed)
+    onPlay(trimmed, parseInt(bodyColor.slice(1), 16), parseInt(borderColor.slice(1), 16))
   }
 
   const handleUpgrades = () => {
@@ -226,6 +253,7 @@ export default function StartMenu({ onPlay, onUpgrades, online, setOnline, gems 
               please enter a name
             </div>
           )}
+          <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
           <button
             onClick={handlePlay}
             style={{
@@ -247,6 +275,30 @@ export default function StartMenu({ onPlay, onUpgrades, online, setOnline, gems 
           >
             play
           </button>
+
+          {/* SpeechBubble color poopup */}
+          <button
+            ref={brushButtonRef}
+            onClick={() => setShowColorPicker(v => !v)}
+            aria-label="customize colors"
+            style={{ width: 48, height: 48, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.75)' }}
+          >
+            🖌️
+          </button>
+
+          <SpeechBubble anchorRef={brushButtonRef} open={showColorPicker} onClose={() => setShowColorPicker(false)}>
+            <div style={{ display: 'flex', gap: 24, padding: '18px 20px 16px', fontFamily: "'Share Tech', monospace" }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                <div style={{ fontSize: 10, letterSpacing: 1.5, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' }}>body color</div>
+                <input type="color" value={bodyColor} onChange={e => setBodyColor(e.target.value)} style={{ width: 40, height: 40, border: '0.5px solid rgba(255,255,255,0.2)', borderRadius: 6, padding: 0, background: 'none' }} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                <div style={{ fontSize: 10, letterSpacing: 1.5, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' }}>border color</div>
+                <input type="color" value={borderColor} onChange={e => setBorderColor(e.target.value)} style={{ width: 40, height: 40, border: '0.5px solid rgba(255,255,255,0.2)', borderRadius: 6, padding: 0, background: 'none' }} />
+              </div>
+            </div>
+          </SpeechBubble>
+          </div>
         </div>
 
         {/* tip panel */}
@@ -255,9 +307,18 @@ export default function StartMenu({ onPlay, onUpgrades, online, setOnline, gems 
           background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.07)',
           borderRadius: 8, padding: '14px 16px', marginBottom: 10,
         }}>
-          <div style={{ fontSize: 10, letterSpacing: 2, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', marginBottom: 6 }}>tip</div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', lineHeight: 1.7 }}>
-            Avoid large players — their drills deal significantly more damage.
+          <div style={{ fontSize: 10, letterSpacing: 2, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', marginBottom: 6 }}>
+            tip
+          </div>
+          <div style={{
+            fontSize: tipVisible ? 12 : 4,
+            color: 'rgba(255,255,255,0.55)', 
+            minHeight: 40,
+            lineHeight: 1.7, 
+            letterSpacing: tipSpacing,
+            transition: `font-size 0.2s ${tipTransition}, letter-spacing 0.2s ${tipTransition}`,
+            }}>
+            {stripTipPrefix(tip)}
           </div>
         </div>
 

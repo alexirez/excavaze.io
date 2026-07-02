@@ -1,8 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { socket, addSocketListener, getLocalId } from '../network/socket'
-import { RespawnMessage, ServerMessage } from '../../../protocol/messages'
+import { ServerMessage } from '../../../protocol/messages'
 import { currentLevel, xpForNextLevel, xpThisLevel } from '../../../protocol/utils'
-import { PERK_TREE, RARITY_CONFIG, rollPerkChoices } from '../../../protocol/data/perks'
+import { PERK_TREE, RARITY_CONFIG } from '../../../protocol/data/perks'
+import { pickTip } from '../../../protocol/data/tips'
+import { clientPlayers } from '../clientState'
+import { ClientPlayer } from '../entities'
 
 interface KillFeedEntry {
   id: number
@@ -11,33 +14,6 @@ interface KillFeedEntry {
   killerName?: string
   victimName: string
   exiting: boolean
-}
-
-const TIPS_PLAYER = [
-  "Tip: Ramming into other players deals damage to both of you.",
-  "Tip: Avoid large players!.",
-]
-const TIPS_DRILL = [
-  "Tip: Your drill length can be upgraded to reach enemies from a safer distance.",
-  "Tip: Avoid large players!.",
-  "Tip: Upgrade your speed to escape hostile players",
-]
-const TIPS_SQUARE = [
-  "Tip: Bigger squares deal more damage.",
-  "Tip: Some areas are more dense than others. Dense areas are more dangerous.",
-  "You died to a square? Seriously?",
-]
-const TIPS_GENERAL = [
-  "Tip: Your player level in battle is limited based on the Max Level upgrade. Purchase upgrades to get stronger!",
-  "Tip: Larger squares give more xp."
-]
-
-function pickTip(cause: 'player' | 'drill' | 'square'): string {
-  if (Math.random() < 0.2)
-    return TIPS_GENERAL[Math.floor(Math.random() * TIPS_GENERAL.length)]
-  const pools = { player: TIPS_PLAYER, drill: TIPS_DRILL, square: TIPS_SQUARE }
-  const pool = pools[cause]
-  return pool[Math.floor(Math.random() * pool.length)]
 }
 
 function formatXp(xp: number): string {
@@ -54,6 +30,10 @@ interface Props {
   playerName: string
   isDead: boolean
   purchasedUpgrades: string[]
+  bodyColor: string
+  setBodyColor: React.Dispatch<React.SetStateAction<string>>
+  borderColor: string
+  setBorderColor: React.Dispatch<React.SetStateAction<string>>
   setIsDead: (val: boolean) => void
   onHome: () => void
   onUpgrades: () => void
@@ -62,7 +42,7 @@ interface Props {
 
 let killFeedCounter = 0
 
-export default function GameHud({ screen, playerName, isDead, purchasedUpgrades, setIsDead, onHome, onUpgrades, onRespawn }: Props) {
+export default function GameHud({ screen, playerName, isDead, purchasedUpgrades, bodyColor, borderColor, setIsDead, onHome, onUpgrades, onRespawn }: Props) {
   const [killFeed, setKillFeed] = useState<KillFeedEntry[]>([])
   const [xpRatio, setXpRatio] = useState(0)
   const [xpLevel, setXpLevel] = useState(1)
@@ -70,7 +50,7 @@ export default function GameHud({ screen, playerName, isDead, purchasedUpgrades,
   const [deathVisible, setDeathVisible] = useState(false)
   const [killerName, setKillerName] = useState('')
   const [deathTip, setDeathTip] = useState('')
-  const [leaderboard, setLeaderboard] = useState<{ id: number, name: string, xp: number }[]>([])
+  const [leaderboard, setLeaderboard] = useState<ClientPlayer[]>([])
   const [perkChoices, setPerkChoices] = useState<string[] | null>(null)
   const [perkVisible, setPerkVisible] = useState(false)
   const [pendingCount, setPendingCount] = useState(0)
@@ -93,22 +73,27 @@ export default function GameHud({ screen, playerName, isDead, purchasedUpgrades,
       const msg = JSON.parse(event.data) as ServerMessage
 
       if (msg.type === 'world_state') {
-        const sorted = [...msg.players]
-          .sort((a, b) => b.xp - a.xp)
+        const sorted = [...clientPlayers.values()]
+          .sort((a, b) => b.snapshot.xp - a.snapshot.xp)
           .slice(0, 10)
         setLeaderboard(sorted)
         const localId = getLocalId()
-        const local = msg.players.find(p => p.id === localId)
+        const local = sorted.find(p => p.snapshot.id === localId)
         if (local) {
-          const pending = Math.min(currentLevel(local.xp), local.maxLevel) - local.collectedPerks.length
+          const pending = Math.min(currentLevel(local.snapshot.xp), local.maxLevel) - local.collectedPerks.length
           setPendingCount(pending)
           if (pending > 0 && !perkChoicesRef.current && Date.now() > lastPerkChoiceTime.current + 500) {
             socket.send(JSON.stringify({ type: 'request_perk_choices' }))
             perkChoicesRef.current = 'pending' // prevent repeated requests
+            setTimeout(() => {
+              if (perkChoicesRef.current === 'pending') {
+                perkChoicesRef.current = null // no response arrived in time, allow retry
+              }
+            }, 2000)
           }
-          const displayLevel = Math.min(currentLevel(local.xp), local.maxLevel)
+          const displayLevel = Math.min(currentLevel(local.snapshot.xp), local.maxLevel)
           setXpLevel(displayLevel)
-          displayLevel >= local.maxLevel ? setXpRatio(1) : setXpRatio(xpThisLevel(local.xp) / xpForNextLevel(local.xp))
+          displayLevel >= local.maxLevel ? setXpRatio(1) : setXpRatio(xpThisLevel(local.snapshot.xp) / xpForNextLevel(local.snapshot.xp))
           setXpIsMax(displayLevel >= local.maxLevel)
         }
       } else if (msg.type === 'player_killed') {
@@ -250,7 +235,7 @@ export default function GameHud({ screen, playerName, isDead, purchasedUpgrades,
               <span style={{ width: 18, textAlign: 'right', flexShrink: 0 }}>{i + 1}.</span>
               <span style={{ flex: 1 }}>{p ? p.name : '·'}</span>
               <span style={{ textAlign: 'right', flexShrink: 0, color: p?.id === getLocalId() ? '#ffdd00' : '#aaaaaa' }}>
-                {p ? `${formatXp(p.xp)}` : ''}
+                {p ? `${formatXp(p.snapshot.xp)}` : ''}
               </span>
             </div>
           )
@@ -392,7 +377,11 @@ export default function GameHud({ screen, playerName, isDead, purchasedUpgrades,
           </button>
           <button
             onClick={() => {
-              socket.send(JSON.stringify({ type: 'respawn', name: playerName, upgrades: purchasedUpgrades } satisfies RespawnMessage))
+              socket.send(JSON.stringify({
+                type: 'client_respawn', name: playerName, upgrades: purchasedUpgrades, 
+                bodyColor: parseInt(bodyColor.slice(1), 16),
+                borderColor: parseInt(borderColor.slice(1), 16), 
+              }))
               setIsDead(false)
               setKillFeed([])
               onRespawn()

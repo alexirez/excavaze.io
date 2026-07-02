@@ -3,6 +3,8 @@ import { socket, addSocketListener, getLocalId } from '../network/socket'
 import { PlayerState, SquareState } from '../../../protocol/types'
 import { ServerMessage } from '../../../protocol/messages'
 import { WORLD_WIDTH, WORLD_HEIGHT, COLOR_BACKGROUND, COLOR_OUTER_BOUNDS, WORLD_PADDING, SQUARE_BASE_HP } from '../../../protocol/constants'
+import { ClientPlayer } from '../entities'
+import { clientPlayers } from '../clientState'
 
 export class GameScene extends Phaser.Scene {
   private enemyNameLabels: Map<number, Phaser.GameObjects.Text> = new Map()
@@ -24,22 +26,20 @@ export class GameScene extends Phaser.Scene {
   }
 
   create() {
-    console.log('[GameScene] create called, generation will be', GameScene.intervalGeneration + 1)
+    console.log(`[GameScene] create() ran, generation=${GameScene.intervalGeneration + 1}`)
     const generation = ++GameScene.intervalGeneration
 
     // background of in-bounds area
     this.add.rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH - WORLD_PADDING * 2.5, WORLD_HEIGHT - WORLD_PADDING * 2.5, COLOR_BACKGROUND).setDepth(-1)
 
-    // background of outer bounds
     this.cameras.main.setBackgroundColor(COLOR_OUTER_BOUNDS)
-    this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT)
+    this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT) // background of outer bounds
 
     this.cameraTarget = this.add.rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 1, 1)
     this.cameraTarget.setVisible(false)
     this.cameras.main.startFollow(this.cameraTarget)
 
-    // initialize graphics
-    this.squareHealthBarGraphics = this.add.graphics()
+    this.squareHealthBarGraphics = this.add.graphics() // initialize graphics
     this.squareHealthBarGraphics.setDepth(20)
     this.playerGraphics = this.add.graphics()
     this.playerGraphics.setDepth(99)
@@ -60,36 +60,27 @@ export class GameScene extends Phaser.Scene {
     const handler = (event: MessageEvent) => {
       const msg = JSON.parse(event.data) as ServerMessage
 
-      // Store the latest state for rendering in update()
-      if (msg.type === 'world_state') {
-
-        // replace player list with newest update from server
-        this.latestPlayersState.clear()
+      if (msg.type === 'welcome') {
+        this.cameraTarget.x = msg.cameraX
+        this.cameraTarget.y = msg.cameraY
+      }
+      else if (msg.type === 'world_state') {
+        this.latestPlayersState.clear() // replace player list with newest update from server
         for (const p of msg.players) {
           this.latestPlayersState.set(p.id, {
             id: p.id,
-            name: p.name,
             xp: p.xp,
-            xpMultiplier: p.xpMultiplier,
-            maxLevel: p.maxLevel,
             alive: p.alive,
             shieldActive: p.shieldActive,
             x: p.x,
             y: p.y,
             rotation: p.rotation,
             hp: p.hp,
-            maxHp: p.maxHp,
-            hpRegenPerSec: p.hpRegenPerSec,
-            moveSpeedMultiplier: p.moveSpeedMultiplier,
-            radius: p.radius,
-            collectedPerks: p.collectedPerks,
-            drillType: p.drillType,
-            drillDmgMultiplier: p.drillDmgMultiplier,
-            drillLengthMultiplier: p.drillLengthMultiplier
           })
+          const cp = clientPlayers.get(p.id)
+          if (cp) cp.snapshot = this.latestPlayersState.get(p.id)!
         }
 
-        // replace squares list with newest from server
         this.latestSquaresState.clear()
         for (const square of msg.squares) {
           this.latestSquaresState.set(square.id, {
@@ -101,6 +92,29 @@ export class GameScene extends Phaser.Scene {
             rotation: square.rotation
           })
         }
+      }
+      if (msg.type === 'player_respawn') {
+        clientPlayers.set(msg.id, {
+          id: msg.id,
+          name: msg.name,
+          bodyColor: msg.bodyColor,
+          borderColor: msg.borderColor,
+          xpMultiplier: msg.xpMultiplier,
+          maxLevel: msg.maxLevel,
+          maxHp: msg.maxHp,
+          hpRegenPerSec: msg.hpRegenPerSec,
+          moveSpeedMultiplier: msg.moveSpeedMultiplier,
+          radius: msg.radius,
+          collectedPerks: msg.collectedPerks,
+          drillType: msg.drillType,
+          drillDmgMultiplier: msg.drillDmgMultiplier,
+          drillLengthMultiplier: msg.drillLengthMultiplier,
+          snapshot: { id: msg.id, xp: 0, alive: false, shieldActive: false, x: 0, y: 0, rotation: 0, hp: 0 }
+        })
+      } 
+      if (msg.type === 'player_update') {
+        const cp = clientPlayers.get(msg.id)
+        if (cp) Object.assign(cp, msg.changes)
       }
     }
     this.removeSocketListener = addSocketListener(handler)
@@ -140,6 +154,9 @@ export class GameScene extends Phaser.Scene {
         clearInterval(this.inputInterval)
         this.inputInterval = null
       }
+      clientPlayers.clear()
+      this.enemyNameLabels.forEach(label => label.destroy())
+      this.enemyNameLabels.clear()
       this.removeSocketListener?.()
       this.removeSocketListener = null
     })
@@ -152,6 +169,8 @@ export class GameScene extends Phaser.Scene {
     const localId = getLocalId()
     if (localId === null) return
     const playerState = this.latestPlayersState.get(localId)
+    const cp = clientPlayers.get(localId)
+    if (!cp) return
     this.playerGraphics.clear()
     if (playerState) {
       this.cameraTarget.x = playerState.x
@@ -162,69 +181,71 @@ export class GameScene extends Phaser.Scene {
       if (playerState.shieldActive) {
         const alpha = 0.2 + 0.15 * Math.sin(Date.now() / 150)
         this.playerGraphics.fillStyle(0x2e79ff, alpha)
-        this.playerGraphics.fillCircle(0, 0, playerState.radius * 2.8)
+        this.playerGraphics.fillCircle(0, 0, cp.radius * 2.8)
       }
-      this.playerGraphics.fillStyle(0x00ff99)
-      this.playerGraphics.fillCircle(0, 0, playerState.radius - 3)
-      this.playerGraphics.lineStyle(2, 0x00aa66, 1)
-      this.playerGraphics.strokeCircle(0, 0, playerState.radius)
-      drawDrill(this.playerGraphics, playerState, 0x00cc77)
+      this.playerGraphics.fillStyle(cp.bodyColor)
+      this.playerGraphics.fillCircle(0, 0, cp.radius - 3)
+      this.playerGraphics.lineStyle(6, cp.borderColor, 1)
+      this.playerGraphics.strokeCircle(0, 0, cp.radius)
+      drawDrill(this.playerGraphics, playerState, cp, cp.bodyColor)
 
       this.playerGraphics.restore()
       
       // player healthbar
-      if (playerState.hp < playerState.maxHp) {
-        const ratio = Math.max(0, playerState.hp / playerState.maxHp)
+      if (playerState.hp < cp.maxHp) {
+        const ratio = Math.max(0, playerState.hp / cp.maxHp)
         const bw = 40
         const bh = 5
         this.playerGraphics.fillStyle(0x555555)
-        this.playerGraphics.fillRect(playerState.x - bw / 2, playerState.y - playerState.radius - 12, bw, bh)
+        this.playerGraphics.fillRect(playerState.x - bw / 2, playerState.y - cp.radius - 12, bw, bh)
         this.playerGraphics.fillStyle(getHealthColor(ratio))
-        this.playerGraphics.fillRect(playerState.x - bw / 2, playerState.y - playerState.radius - 12, ratio * bw, bh)
+        this.playerGraphics.fillRect(playerState.x - bw / 2, playerState.y - cp.radius - 12, ratio * bw, bh)
       }
     }
 
     // Update enemies
     this.enemyGraphics.clear()
-    for (const [id, p] of this.latestPlayersState.entries()) {
+    for (const [id, ps] of this.latestPlayersState.entries()) {
       if (id === getLocalId()) continue
+      const cp = clientPlayers.get(id)
+      if (!cp) continue
 
       this.enemyGraphics.save()
-      this.enemyGraphics.translateCanvas(p.x, p.y)
-      this.enemyGraphics.rotateCanvas(p.rotation)
+      this.enemyGraphics.translateCanvas(ps.x, ps.y)
+      this.enemyGraphics.rotateCanvas(ps.rotation)
 
       // spawn shield
-      if (p.shieldActive) {
+      if (ps.shieldActive) {
         const alpha = 0.2 + 0.15 * Math.sin(Date.now() / 150)
         this.enemyGraphics.fillStyle(0x2e79ff, alpha)
-        this.enemyGraphics.fillCircle(0, 0, p.radius * 2.8)
+        this.enemyGraphics.fillCircle(0, 0, cp.radius * 2.8)
       }
 
       // body
-      this.enemyGraphics.fillStyle(0xff6b6b)
-      this.enemyGraphics.fillCircle(0, 0, p.radius)
-      this.enemyGraphics.lineStyle(6 + (p.radius * 0.1), 0xcc4444, 1)
-      this.enemyGraphics.strokeCircle(0, 0, p.radius - 2)
+      this.enemyGraphics.fillStyle(cp.bodyColor)
+      this.enemyGraphics.fillCircle(0, 0, cp.radius)
+      this.enemyGraphics.lineStyle(6 + (cp.radius * 0.1), cp.borderColor, 1)
+      this.enemyGraphics.strokeCircle(0, 0, cp.radius - 2)
 
       // weapon — starts at edge of circle
-      drawDrill(this.enemyGraphics, p, 0xff4444)
+      drawDrill(this.enemyGraphics, ps, cp, cp.bodyColor)
 
       this.enemyGraphics.restore()
 
       // enemy healthbar
-      if (p.hp < p.maxHp) {
-        const ratio = Math.max(0, p.hp / p.maxHp)
+      if (ps.hp < cp.maxHp) {
+        const ratio = Math.max(0, ps.hp / cp.maxHp)
         const bw = 40
         const bh = 5
         this.enemyGraphics.fillStyle(0x555555)
-        this.enemyGraphics.fillRect(p.x - bw / 2, p.y - p.radius - 12, bw, bh)
+        this.enemyGraphics.fillRect(ps.x - bw / 2, ps.y - cp.radius - 12, bw, bh)
         this.enemyGraphics.fillStyle(getHealthColor(ratio))
-        this.enemyGraphics.fillRect(p.x - bw / 2, p.y - p.radius - 12, ratio * bw, bh)
+        this.enemyGraphics.fillRect(ps.x - bw / 2, ps.y - cp.radius - 12, ratio * bw, bh)
       }
 
       // enemy name label
       if (!this.enemyNameLabels.has(id)) { // create label if it doesn't exist yet
-        this.enemyNameLabels.set(id, this.add.text(0, 0, p.name, {
+        this.enemyNameLabels.set(id, this.add.text(0, 0, cp.name, {
           fontSize: '24px',
           fontFamily: 'Share Tech',
           color: '#ffffff',
@@ -232,7 +253,7 @@ export class GameScene extends Phaser.Scene {
           resolution: window.devicePixelRatio
         }).setDepth(80).setOrigin(0.5, 0))
       }
-      this.enemyNameLabels.get(id)!.setPosition(p.x, p.y + p.radius + 12)
+      this.enemyNameLabels.get(id)!.setPosition(ps.x, ps.y + cp.radius + 12)
     }
 
     // remove labels for players that disconnected
@@ -240,6 +261,7 @@ export class GameScene extends Phaser.Scene {
       if (!this.latestPlayersState.has(id) || id === getLocalId()) {
         label.destroy()
         this.enemyNameLabels.delete(id)
+        clientPlayers.delete(id)
       }
     }
 
@@ -278,19 +300,19 @@ function getHealthColor(ratio: number): number {
   return 0xff3333
 }
 
-function drawDrill(g: Phaser.GameObjects.Graphics, p: PlayerState, color: number) {
-  const drillType = p.drillType
+function drawDrill(g: Phaser.GameObjects.Graphics, p: PlayerState, cp: ClientPlayer, color: number) {
+  const drillType = cp.drillType
   switch (drillType) {
-    case 0: drawStackedTrianglesDrill(g, p, color); break
-    case 1: drawSingleTriangleDrill(g, p, color); break
-    case 2: drawSawblade(g, p, color); break
-    case 3: drawDeathblade(g, p, color); break
+    case 0: drawStackedTrianglesDrill(g, p, cp, color); break
+    case 1: drawSingleTriangleDrill(g, p, cp, color); break
+    case 2: drawSawblade(g, p, cp, color); break
+    case 3: drawDeathblade(g, p, cp, color); break
   }
 }
 
-function drawStackedTrianglesDrill(g: Phaser.GameObjects.Graphics, p: PlayerState, color: number) {
-  const totalLength = 40 * p.drillLengthMultiplier
-  const startX = p.radius // edge of player circle
+function drawStackedTrianglesDrill(g: Phaser.GameObjects.Graphics, p: PlayerState, cp: ClientPlayer, color: number) {
+  const totalLength = 40 * cp.drillLengthMultiplier
+  const startX = cp.radius // edge of player circle
   const count = Math.floor(totalLength / 6)
   const segmentLength = totalLength / count
   const baseWidth = 25
@@ -312,10 +334,10 @@ function drawStackedTrianglesDrill(g: Phaser.GameObjects.Graphics, p: PlayerStat
   }
 }
 
-function drawSingleTriangleDrill(g: Phaser.GameObjects.Graphics, p: PlayerState, color: number) {
-  const startX = p.radius
+function drawSingleTriangleDrill(g: Phaser.GameObjects.Graphics, p: PlayerState, cp: ClientPlayer, color: number) {
+  const startX = cp.radius
   const width = 10
-  const height = 40 * p.drillLengthMultiplier
+  const height = 40 * cp.drillLengthMultiplier
   g.fillStyle(color)
   g.fillTriangle(
     startX, -width,
@@ -324,9 +346,9 @@ function drawSingleTriangleDrill(g: Phaser.GameObjects.Graphics, p: PlayerState,
   )
 }
 
-function drawSawblade(g: Phaser.GameObjects.Graphics, p: PlayerState, color: number) {
-  const offset = p.radius + 25 + 25 * p.drillLengthMultiplier
-  const radius = 15 + 2 * p.drillLengthMultiplier
+function drawSawblade(g: Phaser.GameObjects.Graphics, p: PlayerState, cp: ClientPlayer, color: number) {
+  const offset = cp.radius + 25 + 25 * cp.drillLengthMultiplier
+  const radius = 15 + 2 * cp.drillLengthMultiplier
   const spokes = 9
   const angleOffset = Date.now() * 0.003
 
@@ -335,7 +357,7 @@ function drawSawblade(g: Phaser.GameObjects.Graphics, p: PlayerState, color: num
   // handle — from player edge to blade center
   const handleWidth = 6
   g.fillStyle(color)
-  g.fillRect(p.radius, -handleWidth / 2, offset - p.radius, handleWidth)
+  g.fillRect(cp.radius, -handleWidth / 2, offset - cp.radius, handleWidth)
 
   g.fillCircle(offset, 0, radius) // saw
 
@@ -352,14 +374,14 @@ function drawSawblade(g: Phaser.GameObjects.Graphics, p: PlayerState, color: num
   }
 }
 
-function drawDeathblade(g: Phaser.GameObjects.Graphics, p: PlayerState, color: number) {
-  const offset = p.radius + 40 + 40 * p.drillLengthMultiplier
+function drawDeathblade(g: Phaser.GameObjects.Graphics, p: PlayerState, cp: ClientPlayer, color: number) {
+  const offset = cp.radius + 40 + 40 * cp.drillLengthMultiplier
   const radius = 60
   const spokes = 8
   const angleOffset = Date.now() * 0.003
 
   g.fillStyle(color)
-  g.fillRect(p.radius, -4, offset - p.radius, 8) // handle
+  g.fillRect(cp.radius, -4, offset - cp.radius, 8) // handle
   g.fillCircle(offset, 0, 6)
   g.fillStyle(color, 0.7)
   g.fillCircle(offset, 0, radius) // giant saw

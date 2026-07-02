@@ -6,6 +6,9 @@ import UpgradesScreen from './screens/UpgradesScreen'
 import { socket, ONLINE_SERVER_URL, LOCAL_SERVER_URL } from './network/socket'
 import { loadOfflineGems, saveOfflineGems, loadOfflineUpgrades, saveOfflineUpgrades } from '../storage/offlineStorage'
 import { UPGRADE_NODES } from '../../protocol/data/upgrade-nodes'
+import { PLAYER_BASE_HP, PLAYER_BASE_RADIUS } from '../../protocol/constants'
+import { clientPlayers } from './clientState'
+import { pickRandomColorCombo, numToHex } from '../../protocol/data/colors'
 
 type Screen = 'startMenu' | 'game' | 'upgrades'
 
@@ -16,6 +19,9 @@ export default function App() {
   const [online, setOnline] = useState(false)
   const [gems, setGems] = useState(0)
   const [purchasedUpgrades, setPurchasedUpgrades] = useState<string[]>([])
+  const [{ bodyColor: initialBody, borderColor: initialBorder }] = useState(() => pickRandomColorCombo())
+  const [bodyColor, setBodyColor] = useState(numToHex(initialBody))
+  const [borderColor, setBorderColor] = useState(numToHex(initialBorder))
 
   useEffect(() => {
     console.log('[App] useEffect ran, online =', online)
@@ -27,6 +33,24 @@ export default function App() {
       if (online) {
         socket.connect(ONLINE_SERVER_URL)
         socket.onWelcome((id, gems, upgrades) => {
+          clientPlayers.set(id, {
+          id,
+          name: '',
+          bodyColor: parseInt(bodyColor.slice(1), 16),
+          borderColor: parseInt(borderColor.slice(1), 16),
+          xpMultiplier: 1,
+          maxLevel: 7,
+          maxHp: PLAYER_BASE_HP,
+          hpRegenPerSec: 0,
+          moveSpeedMultiplier: 1,
+          radius: PLAYER_BASE_RADIUS,
+          collectedPerks: [],
+          drillType: 0,
+          drillDmgMultiplier: 1,
+          drillLengthMultiplier: 1,
+          snapshot: { id, xp: 0, alive: false, shieldActive: false, x: 0, y: 0, rotation: 0, hp: 0 }
+        })
+        phaserGame?.scene.start('GameScene')
           if (!cancelled) {
             setGems(gems) 
             setPurchasedUpgrades(upgrades ?? [])
@@ -34,15 +58,35 @@ export default function App() {
         })
       } else {
         socket.connect(LOCAL_SERVER_URL)
+        socket.onWelcome((id, gems, upgrades) => {
+          clientPlayers.set(id, {
+            id,
+            name: '',
+            bodyColor: parseInt(bodyColor.slice(1), 16),
+            borderColor: parseInt(borderColor.slice(1), 16),
+            xpMultiplier: 1,
+            maxLevel: 7,
+            maxHp: PLAYER_BASE_HP,
+            hpRegenPerSec: 0,
+            moveSpeedMultiplier: 1,
+            radius: PLAYER_BASE_RADIUS,
+            collectedPerks: [],
+            drillType: 0,
+            drillDmgMultiplier: 1,
+            drillLengthMultiplier: 1,
+            snapshot: { id, xp: 0, alive: false, shieldActive: false, x: 0, y: 0, rotation: 0, hp: 0 }
+          })
+        })
+        phaserGame?.scene.start('GameScene')
         const [g, upgrades] = await Promise.all([
             loadOfflineGems(),
             loadOfflineUpgrades(),
           ])
-        if (cancelled) return
+        if (!cancelled) {
         setGems(g)
-        setPurchasedUpgrades(upgrades)
+        setPurchasedUpgrades(upgrades ?? [])
+        }
       }
-      phaserGame?.scene.start('GameScene')
     }
     switchMode()
     return () => { cancelled = true }
@@ -83,6 +127,10 @@ export default function App() {
         playerName={playerName}
         isDead={isDead}
         purchasedUpgrades={purchasedUpgrades}
+        bodyColor={bodyColor}
+        setBodyColor={setBodyColor}
+        borderColor={borderColor}
+        setBorderColor={setBorderColor}
         setIsDead={setIsDead}
         onHome={() => setScreen('startMenu')}
         onUpgrades={() => setScreen('upgrades')}
@@ -93,11 +141,18 @@ export default function App() {
         online={online}
         setOnline={setOnline}
         gems={gems}
-        onPlay={(name) => {
+        bodyColor={bodyColor}
+        setBodyColor={setBodyColor}
+        borderColor={borderColor}
+        setBorderColor={setBorderColor}
+        onPlay={(name, bodyColorNum, borderColorNum) => {
           setPlayerName(name)
           setIsDead(false)
           setScreen('game')
-          socket.send(JSON.stringify({ type: 'respawn', name, upgrades: purchasedUpgrades }))
+          socket.send(JSON.stringify({
+            type: 'client_respawn', name, upgrades: purchasedUpgrades, 
+            bodyColor: bodyColorNum, borderColor: borderColorNum
+          }))
         }}
         onUpgrades={() => setScreen('upgrades')}
       />

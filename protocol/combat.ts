@@ -1,16 +1,15 @@
 import { ServerPlayer } from "../server/src/entities"
 import { KILL_PLAYER_BASE_XP, STEAL_PLAYER_XP_MULTIPLIER } from "./constants"
 import { DeathScreenMessage, PlayerKilledMessage } from "./messages"
-import { PlayerState } from "./types"
-import { circleIntersectsTriangle, currentLevel, xpForLevel } from "./utils"
+import { circleIntersectsTriangle } from "./utils"
 
-export function getDrillReach(state: PlayerState): number {
-  switch (state.drillType) {
-    case 0: return state.radius + 40 * state.drillLengthMultiplier
-    case 1: return state.radius + 40 * state.drillLengthMultiplier
-    case 2: return state.radius + 30 + 30 * state.drillLengthMultiplier + 25 + 2 * state.drillLengthMultiplier
-    case 3: return state.radius + 40 + 40 * state.drillLengthMultiplier + 80
-    default: return state.radius
+export function getDrillReach(sp: ServerPlayer): number {
+  switch (sp.drillType) {
+    case 0: return sp.radius + 40 * sp.drillLengthMultiplier
+    case 1: return sp.radius + 40 * sp.drillLengthMultiplier
+    case 2: return sp.radius + 30 + 30 * sp.drillLengthMultiplier + 25 + 2 * sp.drillLengthMultiplier
+    case 3: return sp.radius + 40 + 40 * sp.drillLengthMultiplier + 80
+    default: return sp.radius
   }
 }
 
@@ -178,7 +177,7 @@ function getDeathbladeDrillDamage(
   const bladeX = originX + Math.cos(rotation) * offset
   const bladeY = originY + Math.sin(rotation) * offset
   const dx = targetX - bladeX, dy = targetY - bladeY
-  return dx*dx + dy*dy < (80 + targetRadius) ** 2 ? 20 * drillDmgMultiplier : 0
+  return dx*dx + dy*dy < (80 + targetRadius) ** 2 ? 8 * drillDmgMultiplier : 0
 }
 
 function sawbladeDmgOnRect(
@@ -201,7 +200,7 @@ function deathbladeDmgOnRect(
   const offset = radius + 40 + 40 * drillLengthMultiplier
   const bladeX = originX + Math.cos(rotation) * offset
   const bladeY = originY + Math.sin(rotation) * offset
-  return circleIntersectsOrientedRect(bladeX, bladeY, 80, rx, ry, rRotation, rHalfW, rHalfH) ? 20 * drillDmgMultiplier : 0
+  return circleIntersectsOrientedRect(bladeX, bladeY, 80, rx, ry, rRotation, rHalfW, rHalfH) ? 8 * drillDmgMultiplier : 0
 }
 
 // returns whether or not circle is inside of the rectangle
@@ -284,12 +283,12 @@ export function killPlayer(killer: ServerPlayer, victim: ServerPlayer, cause: 'p
     type: 'player_killed',
     victimId: victim.state.id,
     killerId: killer.state.id,
-    victimName: victim.state.name,
-    killerName: killer.state.name,
+    victimName: victim.name,
+    killerName: killer.name,
   } satisfies PlayerKilledMessage), players)
   victim.socket?.send(JSON.stringify({
     type: 'death_screen',
-    killerName: killer.state.name,
+    killerName: killer.name,
     cause: cause
   } satisfies DeathScreenMessage))
   if (victim.socket === null) players.delete(victim.state.id) // bots are removed immediately
@@ -302,7 +301,7 @@ export function killPlayerBySquare(victim: ServerPlayer, players: Map<number, Se
     type: 'player_killed',
     victimId: victim.state.id,
     killerId: -1,
-    victimName: victim.state.name,
+    victimName: victim.name,
     killerName: 'A Square',
   } satisfies PlayerKilledMessage), players)
   victim.socket?.send(JSON.stringify({
@@ -322,6 +321,6 @@ function broadcastToAll(json: string, players: Map<number, ServerPlayer>) {
 }
 
 export function awardXp(player: ServerPlayer, amount: number) {
-  player.state.xp += amount * player.state.xpMultiplier
+  player.state.xp += amount * player.xpMultiplier
   // TODO: possibly send level_up message for sound/animation trigger
 }
