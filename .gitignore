@@ -150,3 +150,7 @@ vite.config.ts.timestamp-*
 *.njsproj
 *.sln
 *.sw?
+
+# OS files
+.DS_Store
+Thumbs.db
