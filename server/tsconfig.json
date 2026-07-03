@@ -1,10 +1,11 @@
 {
   "compilerOptions": {
+    "types": ["node"],
     "target": "es2015",
     "module": "commonjs",
     "strict": true,
     "esModuleInterop": true,
     "rootDir": "../"
   },
-  "include": ["src", "../protocol"]
+  "include": ["src", "../protocol", "drizzle.config.ts"]
 }
