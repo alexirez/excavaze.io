@@ -67,7 +67,7 @@ wss.on('connection', (socket) => {
     pendingPerkChoices: []
   })
   // S->C: Tell this client their assigned id
-  socket.send(JSON.stringify({ type: 'welcome', id, gems: 10, greenCores: 0, purpleCores: 0, yellowCores: 0, cameraX, cameraY })) // TODO: load actual gems count for online mode
+  socket.send(JSON.stringify({ type: 'welcome', id, gems: 10, cameraX, cameraY })) // TODO: load actual gems count for online mode
   for (const other of players.values()) {
     if (!other.state.alive) continue
     socket.send(JSON.stringify({

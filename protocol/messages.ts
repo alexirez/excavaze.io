@@ -21,9 +21,6 @@ export interface WelcomeMessage {
   type: 'welcome'
   id: number
   gems: number
-  greenCores: number
-  purpleCores: number
-  yellowCores: number
   upgrades: string[]
   cameraX: number
   cameraY: number
