@@ -1,4 +1,5 @@
 import { ServerMessage } from '../../../protocol/messages'
+import { saveGuestToken } from '../../storage/offlineStorage'
 
 export const ONLINE_SERVER_URL = 'wss://excavaze.io'
 export const LOCAL_SERVER_URL = 'ws://localhost:3000'
@@ -32,6 +33,8 @@ function connect(url: string): void {
     localId = msg.id
     welcomeCallback?.(msg.id, msg.gems, msg.upgrades ?? [])
     welcomeCallback = null
+  } else if (msg.type === 'assign_guest_token') {
+    saveGuestToken(msg.token).catch(() => {})
   }
   for (const listener of listeners) listener(e)
 }

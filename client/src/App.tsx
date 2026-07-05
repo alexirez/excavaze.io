@@ -4,7 +4,7 @@ import StartMenu from './screens/StartMenu'
 import GameHud from './screens/GameHud'
 import UpgradesScreen from './screens/UpgradesScreen'
 import { socket, ONLINE_SERVER_URL, LOCAL_SERVER_URL } from './network/socket'
-import { loadOfflineGems, saveOfflineGems, loadOfflineUpgrades, saveOfflineUpgrades } from '../storage/offlineStorage'
+import { loadOfflineGems, saveOfflineGems, loadOfflineUpgrades, saveOfflineUpgrades, loadGuestToken } from '../storage/offlineStorage'
 import { UPGRADE_NODES } from '../../protocol/data/upgrade-nodes'
 import { PLAYER_BASE_HP, PLAYER_BASE_RADIUS } from '../../protocol/constants'
 import { clientPlayers } from './clientState'
@@ -30,8 +30,15 @@ export default function App() {
       phaserGame?.scene.stop('GameScene')
       await socket.disconnect()
       if (cancelled) return
+
+      socket.connect(online ? ONLINE_SERVER_URL : LOCAL_SERVER_URL)
+      socket.onceOpen(() => {
+        loadGuestToken().then(token => {
+          if (!cancelled) socket.send(JSON.stringify({ type: 'guest_login', token }))
+        })
+      })
+
       if (online) {
-        socket.connect(ONLINE_SERVER_URL)
         socket.onWelcome((id, gems, upgrades) => {
           clientPlayers.set(id, {
           id,
@@ -57,7 +64,6 @@ export default function App() {
           }
         })
       } else {
-        socket.connect(LOCAL_SERVER_URL)
         socket.onWelcome((id, gems, upgrades) => {
           clientPlayers.set(id, {
             id,
