@@ -8,6 +8,13 @@
       "when": 1783136539940,
       "tag": "0000_create_players_table",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1783235425334,
+      "tag": "0001_extend_players_table",
+      "breakpoints": true
     }
   ]
 }
