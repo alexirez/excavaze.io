@@ -31,3 +31,12 @@ export async function getPlayerByToken(token: string): Promise<PlayerRecord | nu
   const [row] = await db.select().from(players).where(eq(players.guestToken, token))
   return row ? toRecord(row) : null
 }
+
+export async function identifyPlayer(token: string | null): Promise<{ record: PlayerRecord, isNewGuest: boolean }> {
+  if (token) {
+    const existing = await getPlayerByToken(token)
+    if (existing) return { record: existing, isNewGuest: false }
+  }
+  const created = await createGuestPlayer()
+  return { record: created, isNewGuest: true }
+}

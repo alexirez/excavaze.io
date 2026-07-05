@@ -11,6 +11,7 @@ import { isDrillPerk, PERK_EFFECTS, PERK_TREE, removeDrillPerks, rollPerkChoices
 import { assignNextPlayerId, fillMapSquares, getChunkIndex, getNearbySquareIds, pickPlayerSpawnPoint, spawnBots, spawnSquaresOnStartup } from '../../protocol/world'
 import { awardXp, circleIntersectsOrientedRect, getDrillDamageOnCircle, getDrillDamageOnRect, getDrillReach, killPlayer, killPlayerBySquare } from '../../protocol/combat'
 import { currentLevel, refreshStats } from '../../protocol/utils'
+import { identifyPlayer } from './db/guests'
 
 const PORT = 3000
 const SQUARE_SPEED = 0.5
@@ -69,8 +70,6 @@ wss.on('connection', (socket) => {
     purchasedUpgrades: [],
     pendingPerkChoices: []
   })
-  // S->C: Tell this client their assigned id
-  socket.send(JSON.stringify({ type: 'welcome', id, gems: 10, cameraX, cameraY })) // TODO: load actual gems count for online mode
   for (const other of players.values()) {
     if (!other.state.alive) continue
     socket.send(JSON.stringify({
@@ -97,7 +96,7 @@ wss.on('connection', (socket) => {
     console.log(`${'\x1b[31m'}Player ${id} disconnected${'\x1b[0m'}  ${'\x1b[2m'}code: ${code}  reason: ${reason.toString() || '—'}${'\x1b[0m'}`)
     })
 
-  socket.on('message', (data) => {
+  socket.on('message', async (data) => {
     try {
       const msg = JSON.parse(data.toString()) as ClientMessage
       if (msg.type === 'input') {
@@ -106,6 +105,23 @@ wss.on('connection', (socket) => {
           dy: msg.dy,
           rotation: msg.rotation,
         }
+      } else if (msg.type === 'guest_login') {
+        const p = players.get(id)!
+        if (p.dbId) return // already identified this connection, ignore duplicate
+
+        const { record, isNewGuest } = await identifyPlayer(msg.token)
+        p.dbId = record.dbId
+        p.guestToken = record.guestToken
+        p.purchasedUpgrades = record.purchasedUpgrades
+
+        socket.send(JSON.stringify({
+          type: 'welcome', id,
+          gems: record.gems, upgrades: record.purchasedUpgrades,
+          cameraX, cameraY,
+        }))
+
+        if (isNewGuest)
+          socket.send(JSON.stringify({ type: 'assign_guest_token', token: record.guestToken }))
       } else if (msg.type === 'client_respawn') {
         const p = players.get(id)!
         if (p.state.alive) return
