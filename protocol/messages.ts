@@ -107,6 +107,27 @@ export interface TryPurchaseUpgrade {
   nodeId: string
 }
 
-export type ClientMessage = InputMessage | ClientRespawnMessage | PerkSelection | TryPurchaseUpgrade | RequestPerkChoices
-export type ServerMessage = WelcomeMessage | WorldStateMessage | ServerRespawnMessage | PlayerUpdateMessage | PlayerKilledMessage 
-  | SquareKilledPlayerMessage | DeathScreenMessage | PerkOptions
+// C->S: send token to request login, or null if not found/new user
+export interface GuestLoginMessage {
+  type: 'guest_login'
+  token: string | null
+}
+
+// C->S: login via Google, once you add it
+export interface GoogleLoginMessage {
+  type: 'google_login'
+  idToken: string
+} // TODO: google login option
+
+// S->C: server tells client their new token
+export interface AssignGuestToken {
+  type: 'assign_guest_token'
+  token: string
+}
+
+export type ClientMessage = InputMessage | ClientRespawnMessage | PerkSelection
+  | TryPurchaseUpgrade | RequestPerkChoices | GuestLoginMessage | GoogleLoginMessage
+  
+export type ServerMessage = WelcomeMessage | WorldStateMessage | ServerRespawnMessage
+  | PlayerUpdateMessage | PlayerKilledMessage | SquareKilledPlayerMessage 
+  | DeathScreenMessage | PerkOptions | AssignGuestToken
