@@ -2,8 +2,9 @@ import { openDB, type DBSchema, type IDBPDatabase } from 'idb'
 
 export interface OfflineProfile {
   username: string
-  diamonds: number
+  gems: number
   permanentUpgrades: string[]
+  guestToken: string | null
 }
 
 type ProfileKey = keyof OfflineProfile
@@ -22,8 +23,9 @@ const STORE_NAME = 'profile'
 
 const OFFLINE_DEFAULTS: OfflineProfile = {
   username: '',
-  diamonds: 0,
+  gems: 0,
   permanentUpgrades: [],
+  guestToken: null,
 }
 
 let dbPromise: Promise<IDBPDatabase<OfflineDB>> | null = null
@@ -43,15 +45,17 @@ function getDB(): Promise<IDBPDatabase<OfflineDB>> {
 // --- Full profile ---
 export async function loadOfflineProfile(): Promise<OfflineProfile> {
   const db = await getDB()
-  const [username, diamonds, permanentUpgrades] = await Promise.all([
+  const [username, gems, permanentUpgrades, guestToken] = await Promise.all([
     db.get(STORE_NAME, 'username'),
-    db.get(STORE_NAME, 'diamonds'),
+    db.get(STORE_NAME, 'gems'),
     db.get(STORE_NAME, 'permanentUpgrades'),
+    db.get(STORE_NAME, 'guestToken'),
   ])
   return {
     username: (username as string) ?? OFFLINE_DEFAULTS.username,
-    diamonds: (diamonds as number) ?? OFFLINE_DEFAULTS.diamonds,
+    gems: (gems as number) ?? OFFLINE_DEFAULTS.gems,
     permanentUpgrades: (permanentUpgrades as string[]) ?? [...OFFLINE_DEFAULTS.permanentUpgrades],
+    guestToken: (guestToken as string) ?? null,
   }
 }
 
@@ -69,12 +73,12 @@ export async function saveOfflineUsername(username: string): Promise<void> {
 // --- Gems ---
 export async function loadOfflineGems(): Promise<number> {
   const db = await getDB()
-  return ((await db.get(STORE_NAME, 'diamonds')) as number) ?? OFFLINE_DEFAULTS.diamonds
+  return ((await db.get(STORE_NAME, 'gems')) as number) ?? OFFLINE_DEFAULTS.gems
 }
 
-export async function saveOfflineGems(diamonds: number): Promise<void> {
+export async function saveOfflineGems(gems: number): Promise<void> {
   const db = await getDB()
-  await db.put(STORE_NAME, diamonds, 'diamonds')
+  await db.put(STORE_NAME, gems, 'gems')
 }
 
 // --- Permanent upgrades ---
@@ -86,4 +90,15 @@ export async function loadOfflineUpgrades(): Promise<string[]> {
 export async function saveOfflineUpgrades(upgrades: string[]): Promise<void> {
   const db = await getDB()
   await db.put(STORE_NAME, upgrades, 'permanentUpgrades')
+}
+
+// --- Guest token ---
+export async function loadGuestToken(): Promise<string | null> {
+  const db = await getDB()
+  return ((await db.get(STORE_NAME, 'guestToken')) as string) ?? null
+}
+
+export async function saveGuestToken(token: string): Promise<void> {
+  const db = await getDB()
+  await db.put(STORE_NAME, token, 'guestToken')
 }

@@ -78,12 +78,12 @@ export default function App() {
           })
         })
         phaserGame?.scene.start('GameScene')
-        const [g, upgrades] = await Promise.all([
+        const [gems, upgrades] = await Promise.all([
             loadOfflineGems(),
             loadOfflineUpgrades(),
           ])
         if (!cancelled) {
-        setGems(g)
+        setGems(gems)
         setPurchasedUpgrades(upgrades ?? [])
         }
       }
