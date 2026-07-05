@@ -26,6 +26,7 @@ export interface WelcomeMessage {
   cameraY: number
 }
 
+// S-C: tell client a player killed them
 export interface PlayerKilledMessage {
   type: 'player_killed'
   killerId: number
@@ -34,12 +35,14 @@ export interface PlayerKilledMessage {
   killerName: string
 }
 
+// S-C: tell client a square killed them
 export interface SquareKilledPlayerMessage {
   type: 'square_killed_player'
   victimId: number
   victimName: string
 }
 
+// S->C: tell client they died
 export interface DeathScreenMessage {
   type: 'death_screen'
   killerName: string
@@ -81,20 +84,24 @@ export interface PlayerUpdateMessage {
   changes: Partial<Omit<ClientPlayer, 'snapshot'>>
 }
 
+// C->S: triggers a response with PerkOptions
 export interface RequestPerkChoices {
   type: 'request_perk_choices'
 }
 
+// S->C: list of perk ids the GUI can unpack and display
 export interface PerkOptions {
   type: 'perk_options'
   perkOptions: string[]
 }
 
+// C->S: Client's choice of which perk to choose, followed by server-side validation
 export interface PerkSelection {
   type: 'select_perk'
   perkId: string
 }
 
+// C->S: Client asks server to buy the upgrade for the player
 export interface TryPurchaseUpgrade {
   type: 'try_purchase_upgrade'
   nodeId: string
