@@ -1,3 +1,4 @@
+import { grantGems } from "../server/src/db/transactions"
 import { ServerPlayer } from "../server/src/entities"
 import { KILL_PLAYER_BASE_XP, STEAL_PLAYER_XP_MULTIPLIER } from "./constants"
 import { DeathScreenMessage, PlayerKilledMessage } from "./messages"
@@ -279,6 +280,7 @@ export function killPlayer(killer: ServerPlayer, victim: ServerPlayer, cause: 'p
   if (!victim.state.alive) return
   victim.state.alive = false
   awardXp(killer, STEAL_PLAYER_XP_MULTIPLIER * victim.state.xp + KILL_PLAYER_BASE_XP)
+  if (killer.dbId) grantGems(killer.dbId, 30).then(gems => console.log('30 gems granted, new total:', gems))
   broadcastToAll(JSON.stringify({ // broadcast that victim died
     type: 'player_killed',
     victimId: victim.state.id,
