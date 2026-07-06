@@ -107,6 +107,15 @@ export interface TryPurchaseUpgrade {
   nodeId: string
 }
 
+// S->C: result of a TryPurchaseUpgrade request
+export interface PurchaseResultMessage {
+  type: 'purchase_result'
+  success: boolean
+  nodeId: string
+  gems: number
+  purchasedUpgrades: string[]
+}
+
 // C->S: send token to request login, or null if not found/new user
 export interface GuestLoginMessage {
   type: 'guest_login'
@@ -130,4 +139,4 @@ export type ClientMessage = InputMessage | ClientRespawnMessage | PerkSelection
   
 export type ServerMessage = WelcomeMessage | WorldStateMessage | ServerRespawnMessage
   | PlayerUpdateMessage | PlayerKilledMessage | SquareKilledPlayerMessage 
-  | DeathScreenMessage | PerkOptions | AssignGuestToken
+  | DeathScreenMessage | PerkOptions | PurchaseResultMessage | AssignGuestToken

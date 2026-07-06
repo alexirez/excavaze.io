@@ -23,6 +23,7 @@ export interface ServerPlayer {
   shieldTicks: number
   lastCollisionTime: number
   wanderAngle: number
+  gems: number
   purchasedUpgrades: string[]
   pendingPerkChoices: string[]
 }
