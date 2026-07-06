@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { db } from './client'
 import { players } from './schema'
 import { UPGRADE_NODES } from '../../../protocol/data/upgrade-nodes'
@@ -8,6 +8,22 @@ export interface PurchaseResult {
   reason?: string
   gems: number
   purchasedUpgrades: string[]
+}
+
+export async function grantGems(dbId: string, amount: number): Promise<number> {
+  const [row] = await db.update(players)
+    .set({ gems: sql`${players.gems} + ${amount}` })
+    .where(eq(players.id, dbId))
+    .returning({ gems: players.gems })
+  return row?.gems ?? 0
+}
+
+export async function deductGems(dbId: string, amount: number): Promise<number> {
+  const [row] = await db.update(players)
+    .set({ gems: sql`GREATEST(${players.gems} - ${amount}, 0)` })
+    .where(eq(players.id, dbId))
+    .returning({ gems: players.gems })
+  return row?.gems ?? 0
 }
 
 export async function purchaseUpgrade(dbId: string, nodeId: string): Promise<PurchaseResult> {
