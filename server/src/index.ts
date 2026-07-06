@@ -1,3 +1,6 @@
+import * as dotenv from 'dotenv'
+import path from 'path'
+dotenv.config({ path: path.resolve(__dirname, '../../.env') })
 import { WebSocketServer, WebSocket } from 'ws'
 import { ServerPlayer, ServerSquare } from './entities'
 import { WorldStateMessage, ClientMessage } from '../../protocol/messages'
@@ -8,6 +11,8 @@ import { isDrillPerk, PERK_EFFECTS, PERK_TREE, removeDrillPerks, rollPerkChoices
 import { assignNextPlayerId, fillMapSquares, getChunkIndex, getNearbySquareIds, pickPlayerSpawnPoint, spawnBots, spawnSquaresOnStartup } from '../../protocol/world'
 import { awardXp, circleIntersectsOrientedRect, getDrillDamageOnCircle, getDrillDamageOnRect, getDrillReach, killPlayer, killPlayerBySquare } from '../../protocol/combat'
 import { currentLevel, refreshStats } from '../../protocol/utils'
+import { identifyPlayer } from './db/guests'
+import { purchaseUpgrade } from './db/transactions'
 
 const PORT = 3000
 const SQUARE_SPEED = 0.5
@@ -38,7 +43,7 @@ wss.on('connection', (socket) => {
     socket,
     state: {
       id,
-      xp: 99999,
+      xp: 0,
       alive: false,
       shieldActive: false,
       x: 0,
@@ -63,11 +68,10 @@ wss.on('connection', (socket) => {
     shieldTicks: SHIELD_DURATION,
     lastCollisionTime: 0,
     wanderAngle: Math.random() * Math.PI * 2,
+    gems: 0,
     purchasedUpgrades: [],
     pendingPerkChoices: []
   })
-  // S->C: Tell this client their assigned id
-  socket.send(JSON.stringify({ type: 'welcome', id, gems: 10, greenCores: 0, purpleCores: 0, yellowCores: 0, cameraX, cameraY })) // TODO: load actual gems count for online mode
   for (const other of players.values()) {
     if (!other.state.alive) continue
     socket.send(JSON.stringify({
@@ -94,7 +98,7 @@ wss.on('connection', (socket) => {
     console.log(`${'\x1b[31m'}Player ${id} disconnected${'\x1b[0m'}  ${'\x1b[2m'}code: ${code}  reason: ${reason.toString() || '—'}${'\x1b[0m'}`)
     })
 
-  socket.on('message', (data) => {
+  socket.on('message', async (data) => {
     try {
       const msg = JSON.parse(data.toString()) as ClientMessage
       if (msg.type === 'input') {
@@ -103,6 +107,24 @@ wss.on('connection', (socket) => {
           dy: msg.dy,
           rotation: msg.rotation,
         }
+      } else if (msg.type === 'guest_login') {
+        const p = players.get(id)!
+        if (p.dbId) return // already identified this connection, ignore duplicate
+
+        const { record, isNewGuest } = await identifyPlayer(msg.token)
+        p.dbId = record.dbId
+        p.guestToken = record.guestToken
+        p.gems = record.gems
+        p.purchasedUpgrades = record.purchasedUpgrades
+
+        socket.send(JSON.stringify({
+          type: 'welcome', id,
+          gems: record.gems, upgrades: record.purchasedUpgrades,
+          cameraX, cameraY,
+        }))
+
+        if (isNewGuest)
+          socket.send(JSON.stringify({ type: 'assign_guest_token', token: record.guestToken }))
       } else if (msg.type === 'client_respawn') {
         const p = players.get(id)!
         if (p.state.alive) return
@@ -174,26 +196,37 @@ wss.on('connection', (socket) => {
         }
       } else if (msg.type === 'try_purchase_upgrade') {
         const p = players.get(id)!
-        if (!p.purchasedUpgrades.includes(msg.nodeId))
-          p.purchasedUpgrades.push(msg.nodeId)
-        refreshStats(p, p.purchasedUpgrades)
-        const updateMsg = JSON.stringify({
-          type: 'player_update',
-          id,
-          changes: {
-            drillType: p.drillType,
-            drillLengthMultiplier: p.drillLengthMultiplier,
-            drillDmgMultiplier: p.drillDmgMultiplier,
-            maxHp: p.maxHp,
-            moveSpeedMultiplier: p.moveSpeedMultiplier,
-            radius: p.radius,
-            hpRegenPerSec: p.hpRegenPerSec,
-            collectedPerks: p.collectedPerks,
+        if (!p.dbId) return // not identified yet, ignore
+
+        const result = await purchaseUpgrade(p.dbId, msg.nodeId)
+        p.gems = result.gems
+        p.purchasedUpgrades = result.purchasedUpgrades
+
+        socket.send(JSON.stringify({
+          type: 'purchase_result', success: result.success, nodeId: msg.nodeId,
+          gems: result.gems, purchasedUpgrades: result.purchasedUpgrades,
+        }))
+
+        if (result.success) {
+          refreshStats(p, p.purchasedUpgrades)
+          const updateMsg = JSON.stringify({
+            type: 'player_update',
+            id,
+            changes: {
+              drillType: p.drillType,
+              drillLengthMultiplier: p.drillLengthMultiplier,
+              drillDmgMultiplier: p.drillDmgMultiplier,
+              maxHp: p.maxHp,
+              moveSpeedMultiplier: p.moveSpeedMultiplier,
+              radius: p.radius,
+              hpRegenPerSec: p.hpRegenPerSec,
+              collectedPerks: p.collectedPerks,
+            }
+          })
+          for (const other of players.values()) {
+            if (other.socket?.readyState === WebSocket.OPEN)
+              other.socket.send(updateMsg)
           }
-        })
-        for (const other of players.values()) {
-          if (other.socket?.readyState === WebSocket.OPEN)
-            other.socket.send(updateMsg)
         }
       } else if (msg.type === 'request_perk_choices') {
         const player = players.get(id)!

@@ -21,14 +21,12 @@ export interface WelcomeMessage {
   type: 'welcome'
   id: number
   gems: number
-  greenCores: number
-  purpleCores: number
-  yellowCores: number
   upgrades: string[]
   cameraX: number
   cameraY: number
 }
 
+// S-C: tell client a player killed them
 export interface PlayerKilledMessage {
   type: 'player_killed'
   killerId: number
@@ -37,12 +35,14 @@ export interface PlayerKilledMessage {
   killerName: string
 }
 
+// S-C: tell client a square killed them
 export interface SquareKilledPlayerMessage {
   type: 'square_killed_player'
   victimId: number
   victimName: string
 }
 
+// S->C: tell client they died
 export interface DeathScreenMessage {
   type: 'death_screen'
   killerName: string
@@ -84,25 +84,59 @@ export interface PlayerUpdateMessage {
   changes: Partial<Omit<ClientPlayer, 'snapshot'>>
 }
 
+// C->S: triggers a response with PerkOptions
 export interface RequestPerkChoices {
   type: 'request_perk_choices'
 }
 
+// S->C: list of perk ids the GUI can unpack and display
 export interface PerkOptions {
   type: 'perk_options'
   perkOptions: string[]
 }
 
+// C->S: Client's choice of which perk to choose, followed by server-side validation
 export interface PerkSelection {
   type: 'select_perk'
   perkId: string
 }
 
+// C->S: Client asks server to buy the upgrade for the player
 export interface TryPurchaseUpgrade {
   type: 'try_purchase_upgrade'
   nodeId: string
 }
 
-export type ClientMessage = InputMessage | ClientRespawnMessage | PerkSelection | TryPurchaseUpgrade | RequestPerkChoices
-export type ServerMessage = WelcomeMessage | WorldStateMessage | ServerRespawnMessage | PlayerUpdateMessage | PlayerKilledMessage 
-  | SquareKilledPlayerMessage | DeathScreenMessage | PerkOptions
+// S->C: result of a TryPurchaseUpgrade request
+export interface PurchaseResultMessage {
+  type: 'purchase_result'
+  success: boolean
+  nodeId: string
+  gems: number
+  purchasedUpgrades: string[]
+}
+
+// C->S: send token to request login, or null if not found/new user
+export interface GuestLoginMessage {
+  type: 'guest_login'
+  token: string | null
+}
+
+// C->S: login via Google, once you add it
+export interface GoogleLoginMessage {
+  type: 'google_login'
+  idToken: string
+} // TODO: google login option
+
+// S->C: server tells client their new token
+export interface AssignGuestToken {
+  type: 'assign_guest_token'
+  token: string
+}
+
+export type ClientMessage = InputMessage | ClientRespawnMessage | PerkSelection
+  | TryPurchaseUpgrade | RequestPerkChoices | GuestLoginMessage | GoogleLoginMessage
+  
+export type ServerMessage = WelcomeMessage | WorldStateMessage | ServerRespawnMessage
+  | PlayerUpdateMessage | PlayerKilledMessage | SquareKilledPlayerMessage 
+  | DeathScreenMessage | PerkOptions | PurchaseResultMessage | AssignGuestToken

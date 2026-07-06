@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import PhaserGame, { phaserGame } from './core/PhaserGame'
 import StartMenu from './screens/StartMenu'
 import GameHud from './screens/GameHud'
 import UpgradesScreen from './screens/UpgradesScreen'
-import { socket, ONLINE_SERVER_URL, LOCAL_SERVER_URL } from './network/socket'
-import { loadOfflineGems, saveOfflineGems, loadOfflineUpgrades, saveOfflineUpgrades } from '../storage/offlineStorage'
+import { ServerMessage } from '../../protocol/messages'
+import { socket, addSocketListener, ONLINE_SERVER_URL, LOCAL_SERVER_URL } from './network/socket'
+import { loadOfflineGems, saveOfflineGems, loadOfflineUpgrades, saveOfflineUpgrades, loadGuestToken } from '../storage/offlineStorage'
 import { UPGRADE_NODES } from '../../protocol/data/upgrade-nodes'
 import { PLAYER_BASE_HP, PLAYER_BASE_RADIUS } from '../../protocol/constants'
 import { clientPlayers } from './clientState'
@@ -22,6 +23,24 @@ export default function App() {
   const [{ bodyColor: initialBody, borderColor: initialBorder }] = useState(() => pickRandomColorCombo())
   const [bodyColor, setBodyColor] = useState(numToHex(initialBody))
   const [borderColor, setBorderColor] = useState(numToHex(initialBorder))
+  const pendingPurchases = useRef<Map<string, { resolve: (success: boolean) => void, timeout: ReturnType<typeof setTimeout> }>>(new Map())
+
+  useEffect(() => {
+    const unsubscribe = addSocketListener((event) => {
+      const msg = JSON.parse(event.data) as ServerMessage
+      if (msg.type === 'purchase_result') {
+        setGems(msg.gems)
+        setPurchasedUpgrades(msg.purchasedUpgrades)
+        const pending = pendingPurchases.current.get(msg.nodeId)
+        if (pending) {
+          clearTimeout(pending.timeout)
+          pending.resolve(msg.success)
+          pendingPurchases.current.delete(msg.nodeId)
+        }
+      }
+    })
+    return unsubscribe
+  }, [])
 
   useEffect(() => {
     console.log('[App] useEffect ran, online =', online)
@@ -29,9 +48,17 @@ export default function App() {
     async function switchMode() {
       phaserGame?.scene.stop('GameScene')
       await socket.disconnect()
+      clearPendingPurchases()
       if (cancelled) return
+
+      socket.connect(online ? ONLINE_SERVER_URL : LOCAL_SERVER_URL)
+      socket.onceOpen(() => {
+        loadGuestToken().then(token => {
+          if (!cancelled) socket.send(JSON.stringify({ type: 'guest_login', token }))
+        })
+      })
+
       if (online) {
-        socket.connect(ONLINE_SERVER_URL)
         socket.onWelcome((id, gems, upgrades) => {
           clientPlayers.set(id, {
           id,
@@ -57,7 +84,6 @@ export default function App() {
           }
         })
       } else {
-        socket.connect(LOCAL_SERVER_URL)
         socket.onWelcome((id, gems, upgrades) => {
           clientPlayers.set(id, {
             id,
@@ -78,12 +104,12 @@ export default function App() {
           })
         })
         phaserGame?.scene.start('GameScene')
-        const [g, upgrades] = await Promise.all([
+        const [gems, upgrades] = await Promise.all([
             loadOfflineGems(),
             loadOfflineUpgrades(),
           ])
         if (!cancelled) {
-        setGems(g)
+        setGems(gems)
         setPurchasedUpgrades(upgrades ?? [])
         }
       }
@@ -94,8 +120,14 @@ export default function App() {
 
   async function handlePurchaseUpgrade(nodeId: string): Promise<boolean> {
     if (online) {
-      socket.send(JSON.stringify({ type: 'purchase_upgrade', nodeId }))
-      return true
+      return new Promise<boolean>((resolve) => {
+      const timeout = setTimeout(() => {
+        pendingPurchases.current.delete(nodeId)
+        resolve(false)
+      }, 5000)
+      pendingPurchases.current.set(nodeId, { resolve, timeout })
+      socket.send(JSON.stringify({ type: 'try_purchase_upgrade', nodeId }))
+    })
     }
 
     const node = UPGRADE_NODES.get(nodeId)
@@ -117,6 +149,14 @@ export default function App() {
     await saveOfflineGems(newGems)
     await saveOfflineUpgrades(newUpgrades)
     return true
+  }
+
+  function clearPendingPurchases() {
+    for (const { resolve, timeout } of pendingPurchases.current.values()) {
+      clearTimeout(timeout)
+      resolve(false)
+    }
+    pendingPurchases.current.clear()
   }
 
   return (

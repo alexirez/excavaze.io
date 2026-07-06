@@ -3,6 +3,8 @@ import { PlayerState, SquareState } from '../../protocol/types'
 
 export interface ServerPlayer {
   socket: NodeWebSocket | null
+  dbId?: string
+  guestToken?: string
   state: PlayerState
   name: string
   bodyColor: number
@@ -21,6 +23,7 @@ export interface ServerPlayer {
   shieldTicks: number
   lastCollisionTime: number
   wanderAngle: number
+  gems: number
   purchasedUpgrades: string[]
   pendingPerkChoices: string[]
 }

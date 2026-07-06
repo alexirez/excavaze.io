@@ -1,4 +1,5 @@
 import { ServerMessage } from '../../../protocol/messages'
+import { saveGuestToken } from '../../storage/offlineStorage'
 
 export const ONLINE_SERVER_URL = 'wss://excavaze.io'
 export const LOCAL_SERVER_URL = 'ws://localhost:3000'
@@ -9,7 +10,7 @@ const listeners: ((event: MessageEvent) => void)[] = []
 let localId: number | null = null
 let reconnectGeneration = 0
 let reconnectTimeout: ReturnType<typeof setTimeout> | null = null
-let welcomeCallback: ((id: number, gems: number, upgrades: string[], greenCores: number, purpleCores: number, yellowCores: number) => void) | null = null
+let welcomeCallback: ((id: number, gems: number, upgrades: string[]) => void) | null = null
 
 function connect(url: string): void {
   const generation = ++reconnectGeneration
@@ -30,8 +31,10 @@ function connect(url: string): void {
   const msg = JSON.parse(e.data) as ServerMessage
   if (msg.type === 'welcome') {
     localId = msg.id
-    welcomeCallback?.(msg.id, msg.gems, msg.upgrades ?? [], msg.greenCores, msg.purpleCores, msg.yellowCores)
+    welcomeCallback?.(msg.id, msg.gems, msg.upgrades ?? [])
     welcomeCallback = null
+  } else if (msg.type === 'assign_guest_token') {
+    saveGuestToken(msg.token).catch(() => {})
   }
   for (const listener of listeners) listener(e)
 }
@@ -90,7 +93,7 @@ export const socket = {
     ws?.addEventListener('open', handler)
   },
 
-  onWelcome(cb: (id: number, gems: number, upgrades: string[], greenCores: number, purpleCores: number, yellowCores: number) => void): void {
+  onWelcome(cb: (id: number, gems: number, upgrades: string[]) => void): void {
     welcomeCallback = cb
   },
 
