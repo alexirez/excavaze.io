@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, integer, text, boolean, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, integer, text, boolean, timestamp, index } from 'drizzle-orm/pg-core';
 
 export const players = pgTable('players', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -9,3 +9,14 @@ export const players = pgTable('players', {
   isGuest: boolean('is_guest').notNull().default(true),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const playerQuests = pgTable('player_quests', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  playerId: uuid('player_id').notNull().references(() => players.id, { onDelete: 'cascade' }),
+  questId: text('quest_id').notNull(),
+  status: varchar('status', { length: 16 }).notNull(), // 'active' | 'queued' | 'completed'
+  progress: integer('progress').notNull().default(0),
+  completedAt: timestamp('completed_at', { withTimezone: true }),
+}, (table) => ({
+  playerIdIdx: index('player_quests_player_id_idx').on(table.playerId),
+}));
