@@ -1,5 +1,5 @@
 import { eq, sql } from 'drizzle-orm'
-import { db } from './client'
+import { db, type DbOrTx } from './client'
 import { players } from './schema'
 import { UPGRADE_NODES } from '../../../protocol/data/upgrade-nodes'
 
@@ -10,8 +10,8 @@ export interface PurchaseResult {
   purchasedUpgrades: string[]
 }
 
-export async function grantGems(dbId: string, amount: number): Promise<number> {
-  const [row] = await db.update(players)
+export async function grantGems(dbId: string, amount: number, executor: DbOrTx = db): Promise<number> {
+  const [row] = await executor.update(players)
     .set({ gems: sql`${players.gems} + ${amount}` })
     .where(eq(players.id, dbId))
     .returning({ gems: players.gems })
