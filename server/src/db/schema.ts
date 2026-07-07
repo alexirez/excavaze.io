@@ -17,6 +17,6 @@ export const playerQuests = pgTable('player_quests', {
   status: varchar('status', { length: 16 }).notNull(), // 'active' | 'queued' | 'completed'
   progress: integer('progress').notNull().default(0),
   completedAt: timestamp('completed_at', { withTimezone: true }),
-}, (table) => ({
-  playerIdIdx: index('player_quests_player_id_idx').on(table.playerId),
-}));
+}, (table) => [
+  index('player_quests_player_id_idx').on(table.playerId),
+]);
