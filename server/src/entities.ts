@@ -24,6 +24,7 @@ export interface ServerPlayer {
   lastCollisionTime: number
   wanderAngle: number
   gems: number
+  activeQuests: { instanceId: string, questId: string, progress: number }[]
   purchasedUpgrades: string[]
   pendingPerkChoices: string[]
 }

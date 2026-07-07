@@ -94,6 +94,7 @@ export interface ClaimResult {
   reason?: string
   gems?: number
   promotedQuestId?: string
+  promotedInstanceId?: string
 }
 
 async function resolveQuestCompletion(playerId: string, instanceId: string, requireProgress: boolean): Promise<ClaimResult> {
@@ -108,7 +109,7 @@ async function resolveQuestCompletion(playerId: string, instanceId: string, requ
 
     const nextQueued = await finalizeQuestCompletion(tx, playerId, row, template)
     const gems = await grantGems(playerId, template.rewardGems, tx)
-    return { success: true, gems, promotedQuestId: nextQueued?.questId }
+    return { success: true, gems, promotedQuestId: nextQueued?.questId, promotedInstanceId: nextQueued?.id }
   })
 }
 
