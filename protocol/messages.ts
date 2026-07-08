@@ -134,9 +134,40 @@ export interface AssignGuestToken {
   token: string
 }
 
+// S->C: sent after guest_login, the player's current active + queued quests
+export interface PlayerQuestsMessage {
+  type: 'player_quests'
+  quests: { instanceId: string, questId: string, status: 'active' | 'queued', progress: number }[]
+}
+
+// S->C: a quest just crossed its target and can be claimed (progress-based quests only;
+// instant quests skip this and go straight to player_quests/quest_claimed)
+export interface QuestCompletedMessage {
+  type: 'quest_completed'
+  instanceId: string
+}
+
+// C->S: player wants to claim a ready quest
+export interface ClaimQuestMessage {
+  type: 'claim_quest'
+  instanceId: string
+}
+
+// S->C: result of a claim_quest request, or a server-initiated instant completion
+export interface QuestClaimedMessage {
+  type: 'quest_claimed'
+  success: boolean
+  instanceId: string
+  gems?: number
+  promotedQuestId?: string
+  promotedInstanceId?: string
+}
+
 export type ClientMessage = InputMessage | ClientRespawnMessage | PerkSelection
   | TryPurchaseUpgrade | RequestPerkChoices | GuestLoginMessage | GoogleLoginMessage
+  | ClaimQuestMessage
   
 export type ServerMessage = WelcomeMessage | WorldStateMessage | ServerRespawnMessage
   | PlayerUpdateMessage | PlayerKilledMessage | SquareKilledPlayerMessage 
   | DeathScreenMessage | PerkOptions | PurchaseResultMessage | AssignGuestToken
+  | PlayerQuestsMessage | QuestCompletedMessage | QuestClaimedMessage
