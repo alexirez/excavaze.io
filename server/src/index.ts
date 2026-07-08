@@ -13,6 +13,8 @@ import { awardXp, circleIntersectsOrientedRect, getDrillDamageOnCircle, getDrill
 import { currentLevel, refreshStats } from '../../protocol/utils'
 import { identifyPlayer } from './db/guests'
 import { purchaseUpgrade } from './db/transactions'
+import { refreshQuestsIfNeeded, getPlayerQuests, tickQuestProgress } from './db/quests'
+import { QUEST_TEMPLATE_MAP } from '../../protocol/data/quests'
 
 const PORT = 3000
 const SQUARE_SPEED = 0.5
@@ -69,6 +71,7 @@ wss.on('connection', (socket) => {
     lastCollisionTime: 0,
     wanderAngle: Math.random() * Math.PI * 2,
     gems: 0,
+    activeQuests: [],
     purchasedUpgrades: [],
     pendingPerkChoices: []
   })
@@ -116,6 +119,17 @@ wss.on('connection', (socket) => {
         p.guestToken = record.guestToken
         p.gems = record.gems
         p.purchasedUpgrades = record.purchasedUpgrades
+
+        await refreshQuestsIfNeeded(record.dbId)
+        const quests = await getPlayerQuests(record.dbId)
+        p.activeQuests = quests
+          .filter(q => q.status === 'active')
+          .map(q => ({ instanceId: q.id, questId: q.questId, progress: q.progress }))
+
+        socket.send(JSON.stringify({
+          type: 'player_quests',
+          quests: quests.map(q => ({ instanceId: q.id, questId: q.questId, status: q.status, progress: q.progress })),
+        }))
 
         socket.send(JSON.stringify({
           type: 'welcome', id,
@@ -281,8 +295,8 @@ setInterval(() => {
               b.state.hp -= PLAYER_COLLISION_DAMAGE
               b.lastCollisionTime = Date.now()
             }
-            if (b.state.hp <= 0 ) killPlayer(a, b, 'player', players) // broadcasts victim death and rewards xp to killer
-            if (a.state.hp <= 0 ) killPlayer(b, a, 'player', players)
+            if (b.state.hp <= 0 ) { killPlayer(a, b, 'player', players); incrementQuestProgress(a, 'kill_player', 1) }
+            if (a.state.hp <= 0 ) { killPlayer(b, a, 'player', players); incrementQuestProgress(b, 'kill_player', 1) }
           }
         }
       }
@@ -300,7 +314,7 @@ setInterval(() => {
               a.drillType, a.drillLengthMultiplier, a.drillDmgMultiplier,
               b.state.x, b.state.y, b.radius
             )
-            if (b.state.hp <= 0) killPlayer(a, b, 'drill', players)
+            if (b.state.hp <= 0) { killPlayer(a, b, 'drill', players); incrementQuestProgress(a, 'kill_player', 1) }
           }
         }
 
@@ -328,17 +342,20 @@ setInterval(() => {
           p.drillType, p.drillLengthMultiplier, p.drillDmgMultiplier,
           square.state.x, square.state.y, square.state.rotation, sqHalf, sqHalf
         )
-        if (square.state.hp <= 0)
+        if (square.state.hp <= 0) {
           awardXp(p, KILL_SQUARE_XP_MULTIPLIER * square.state.maxHp)
-
+          incrementQuestProgress(p, 'kill_square', 1)
+        }
 
         if (circleIntersectsOrientedRect(
           p.state.x, p.state.y, p.radius,
           square.state.x, square.state.y, square.state.rotation, sqHalf, sqHalf // 4. player + square collisions
         )) {
           square.state.hp -= PLAYER_COLLISION_DAMAGE
-          if (square.state.hp <= 0)
+          if (square.state.hp <= 0) {
             awardXp(p, KILL_SQUARE_XP_MULTIPLIER * square.state.maxHp)
+            incrementQuestProgress(p, 'kill_square', 1)
+          }
           if (!p.state.shieldActive && Date.now() - p.lastCollisionTime > COLLISION_COOLDOWN) {
             p.state.hp -= SQR_COLLISION_BASE_DMG + square.state.maxHp * SQR_COLLISION_DMG_FACTOR
             p.lastCollisionTime = Date.now()
@@ -419,3 +436,17 @@ setInterval(() => {
     console.error('[tick crash]', e)
   }
 }, TICK_MS)
+
+function incrementQuestProgress(player: ServerPlayer, event: string, amount: number) {
+  if (!player.dbId) return
+  for (const q of player.activeQuests) {
+    const template = QUEST_TEMPLATE_MAP.get(q.questId)
+    if (!template || template.event !== event) continue
+    const wasComplete = q.progress >= template.target
+    q.progress += amount
+    if (!wasComplete && q.progress >= template.target) {
+      player.socket?.send(JSON.stringify({ type: 'quest_completed', instanceId: q.instanceId }))
+    }
+  }
+  tickQuestProgress(player.dbId, event, amount).catch(e => console.error('[tickQuestProgress failed]', e))
+}

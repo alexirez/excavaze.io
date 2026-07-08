@@ -216,6 +216,7 @@ function spawnBot(x: number, y: number, players: Map<number, ServerPlayer>) {
     lastCollisionTime: 0,
     wanderAngle: Math.random() * Math.PI * 2,
     gems: 0,
+    activeQuests: [],
     purchasedUpgrades: [],
     pendingPerkChoices: [],
   }
