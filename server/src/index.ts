@@ -19,6 +19,8 @@ import { QUEST_TEMPLATE_MAP } from '../../protocol/data/quests'
 const PORT = 3000
 const SQUARE_SPEED = 0.5
 let tick = 0
+const TICKS_PER_SECOND = Math.round(1000 / TICK_MS)
+const QUEST_CHECK_INTERVAL_TICKS = Math.max(1, Math.round(TICKS_PER_SECOND / 4))
 
 const wss = new WebSocketServer({ port: PORT })
 console.log(`Server running on ws://localhost:${PORT}\n`)
@@ -371,7 +373,8 @@ setInterval(() => {
     // 4) Handle quest progress for players
     for (const p of players.values()) {
       if (p.socket === null) continue
-      tryCompleteSingleRunQuests(p)
+      if (p.state.id % QUEST_CHECK_INTERVAL_TICKS === tick % QUEST_CHECK_INTERVAL_TICKS)
+        tryCompleteSingleRunQuests(p)
     }
 
     // 5) Prepare bots' input for next tick
