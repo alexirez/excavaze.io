@@ -17,3 +17,10 @@ export interface ClientPlayer {
   drillLengthMultiplier: number
   snapshot: PlayerState
 }
+
+export interface DisplayQuest {
+  instanceId: string
+  questId: string
+  status: 'active' | 'queued' | 'completed'
+  progress: number
+}

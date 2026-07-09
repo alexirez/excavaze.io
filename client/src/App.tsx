@@ -10,6 +10,8 @@ import { UPGRADE_NODES } from '../../protocol/data/upgrade-nodes'
 import { PLAYER_BASE_HP, PLAYER_BASE_RADIUS } from '../../protocol/constants'
 import { clientPlayers } from './clientState'
 import { pickRandomColorCombo, numToHex } from '../../protocol/data/colors'
+import { DisplayQuest } from './entities'
+import { QUEST_TEMPLATE_MAP } from '../../protocol/data/quests'
 
 type Screen = 'startMenu' | 'game' | 'upgrades'
 
@@ -20,6 +22,7 @@ export default function App() {
   const [online, setOnline] = useState(false)
   const [gems, setGems] = useState(0)
   const [purchasedUpgrades, setPurchasedUpgrades] = useState<string[]>([])
+  const [quests, setQuests] = useState<DisplayQuest[]>([])
   const [{ bodyColor: initialBody, borderColor: initialBorder }] = useState(() => pickRandomColorCombo())
   const [bodyColor, setBodyColor] = useState(numToHex(initialBody))
   const [borderColor, setBorderColor] = useState(numToHex(initialBorder))
