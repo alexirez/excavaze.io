@@ -40,6 +40,24 @@ export default function App() {
           pending.resolve(msg.success)
           pendingPurchases.current.delete(msg.nodeId)
         }
+      } else if (msg.type === 'player_quests') {
+        setQuests(msg.quests)
+      } else if (msg.type === 'quest_completed') {
+        setQuests(prev => prev.map(q => {
+          if (q.instanceId !== msg.instanceId) return q
+          const template = QUEST_TEMPLATE_MAP.get(q.questId)
+          return template ? { ...q, progress: template.target } : q
+        }))
+      } else if (msg.type === 'quest_claimed') {
+        if (!msg.success) return
+        if (typeof msg.gems === 'number') setGems(msg.gems)
+        setQuests(prev => {
+          const remaining = prev.filter(q => q.instanceId !== msg.instanceId)
+          if (msg.promotedInstanceId && msg.promotedQuestId) {
+            remaining.push({ instanceId: msg.promotedInstanceId, questId: msg.promotedQuestId, status: 'active', progress: 0 })
+          }
+          return remaining
+        })
       }
     })
     return unsubscribe
