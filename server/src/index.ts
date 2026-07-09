@@ -368,13 +368,13 @@ setInterval(() => {
       }
     }
 
-    // 3) Handle quest progress for players
+    // 4) Handle quest progress for players
     for (const p of players.values()) {
       if (p.socket === null) continue
       tryCompleteSingleRunQuests(p)
     }
 
-    // 4) Prepare bots' input for next tick
+    // 5) Prepare bots' input for next tick
     if (tick % 3 === 0) {
       for (const p of players.values()) {
         if (p.socket !== null || !p.state.alive) continue
@@ -391,10 +391,10 @@ setInterval(() => {
       }
     }
 
-    // 5) Spawn bots
+    // 6) Spawn bots
     if (tick % 50 === 0) spawnBots(players, cameraX, cameraY)
 
-    // 6) Process each active square
+    // 7) Process each active square
     squaresToDelete.length = 0
     for (const sq of squares.values()) {
       if (
@@ -413,19 +413,19 @@ setInterval(() => {
 
     for (const id of squaresToDelete) squares.delete(id)
 
-    // 7) Recompute squares in each chunk
+    // 8) Recompute squares in each chunk
     for (const set of chunkToSquares.values()) set.clear()
     for (const [id, square] of squares) {
       const index = getChunkIndex(square.state.x, square.state.y)
       chunkToSquares.get(index)?.add(id)
     }
 
-    // 8) Spawn new obstacles to replace old
+    // 9) Spawn new obstacles to replace old
     if (tick % 10 === 0) {
       fillMapSquares(squares, chunkToSquares, players)
     }
 
-    // 9) Serialize world state and send to every connected client
+    // 10) Serialize world state and send to every connected client
     playerStates.length = 0
     squareStates.length = 0
     for (const p of players.values()) if (p.state.alive) playerStates.push(p.state)
