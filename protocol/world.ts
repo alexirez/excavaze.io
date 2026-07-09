@@ -214,6 +214,7 @@ function spawnBot(x: number, y: number, players: Map<number, ServerPlayer>) {
     input: { dx: 0, dy: 0, rotation: 0 },
     shieldTicks: SHIELD_DURATION,
     lastCollisionTime: 0,
+    timeAlive: 0,
     wanderAngle: Math.random() * Math.PI * 2,
     gems: 0,
     activeQuests: [],

@@ -22,6 +22,7 @@ export interface ServerPlayer {
   input: { dx: number; dy: number; rotation: number }
   shieldTicks: number
   lastCollisionTime: number
+  timeAlive: number
   wanderAngle: number
   gems: number
   activeQuests: { instanceId: string, questId: string, progress: number }[]
