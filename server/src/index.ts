@@ -13,7 +13,7 @@ import { awardXp, circleIntersectsOrientedRect, getDrillDamageOnCircle, getDrill
 import { currentLevel, refreshStats } from '../../protocol/utils'
 import { identifyPlayer } from './db/guests'
 import { purchaseUpgrade } from './db/transactions'
-import { refreshQuestsIfNeeded, getPlayerQuests, tickQuestProgress } from './db/quests'
+import { refreshQuestsIfNeeded, getPlayerQuests, tickQuestProgress, completeQuestInstantly } from './db/quests'
 import { QUEST_TEMPLATE_MAP } from '../../protocol/data/quests'
 
 const PORT = 3000
@@ -271,11 +271,11 @@ setInterval(() => {
       p.state.rotation = p.input.rotation
 
       // 2) Process spawn shield timer, timeAlive, hp regen
-      if (p.shieldTicks > 0)
-        p.shieldTicks--; if (p.shieldTicks === 0) p.state.shieldActive = false
+      if (p.shieldTicks > 0) {
+        p.shieldTicks-- 
+        if (p.shieldTicks <= 0) p.state.shieldActive = false
+      }
       if (p.state.alive) p.timeAlive += TICK_MS
-      incrementQuestProgress(p, 'survive_duration', TICK_MS / 1000)
-
       p.state.hp = Math.min(p.state.hp + p.hpRegenPerSec, p.maxHp)
     }
     
@@ -368,6 +368,12 @@ setInterval(() => {
       }
     }
 
+    // 3) Handle quest progress for players
+    for (const p of players.values()) {
+      if (p.socket === null) continue
+      tryCompleteSingleRunQuests(p)
+    }
+
     // 4) Prepare bots' input for next tick
     if (tick % 3 === 0) {
       for (const p of players.values()) {
@@ -452,4 +458,33 @@ function incrementQuestProgress(player: ServerPlayer, event: string, amount: num
     }
   }
   tickQuestProgress(player.dbId, event, amount).catch(e => console.error('[tickQuestProgress failed]', e))
+}
+
+const SINGLE_RUN_VALUE_GETTERS: Record<string, (player: ServerPlayer) => number> = {
+  survive_duration: (p) => p.timeAlive / 1000,
+  reach_xp: (p) => p.state.xp,
+  reach_level: (p) => currentLevel(p.state.xp)
+}
+
+function tryCompleteSingleRunQuests(player: ServerPlayer) {
+  if (!player.dbId) return
+  for (const q of player.activeQuests) {
+    const template = QUEST_TEMPLATE_MAP.get(q.questId)
+    if (!template) continue
+    const getValue = SINGLE_RUN_VALUE_GETTERS[template.event]
+    if (!getValue) continue
+    if (getValue(player) < template.target) continue
+
+    completeQuestInstantly(player.dbId, q.instanceId).then(result => {
+      if (!result.success) return
+      player.activeQuests = player.activeQuests.filter(aq => aq.instanceId !== q.instanceId)
+      if (result.promotedInstanceId && result.promotedQuestId) {
+        player.activeQuests.push({ instanceId: result.promotedInstanceId, questId: result.promotedQuestId, progress: 0 })
+      }
+      player.socket?.send(JSON.stringify({
+        type: 'quest_claimed', success: true, instanceId: q.instanceId,
+        gems: result.gems, promotedQuestId: result.promotedQuestId, promotedInstanceId: result.promotedInstanceId,
+      }))
+    }).catch(e => console.error('[completeQuestInstantly failed]', e))
+  }
 }
