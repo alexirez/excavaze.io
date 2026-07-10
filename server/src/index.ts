@@ -13,7 +13,7 @@ import { awardXp, circleIntersectsOrientedRect, getDrillDamageOnCircle, getDrill
 import { currentLevel, refreshStats } from '../../protocol/utils'
 import { identifyPlayer } from './db/guests'
 import { purchaseUpgrade } from './db/transactions'
-import { refreshQuestsIfNeeded, getPlayerQuests, tickQuestProgress, completeQuestInstantly } from './db/quests'
+import { refreshQuestsIfNeeded, getPlayerQuests, tickQuestProgress, completeQuestInstantly, claimQuest } from './db/quests'
 import { QUEST_TEMPLATE_MAP } from '../../protocol/data/quests'
 
 const PORT = 3000
@@ -254,6 +254,22 @@ wss.on('connection', (socket) => {
         const choices = rollPerkChoices(player.collectedPerks)
         player.pendingPerkChoices = choices
         player.socket?.send(JSON.stringify({ type: 'perk_options', perkOptions: choices }))
+      } else if (msg.type === 'claim_quest') {
+        const p = players.get(id)!
+        if (!p.dbId) return
+
+        const result = await claimQuest(p.dbId, msg.instanceId)
+        if (result.success) {
+          p.activeQuests = p.activeQuests.filter(q => q.instanceId !== msg.instanceId)
+          if (result.promotedInstanceId && result.promotedQuestId) {
+            p.activeQuests.push({ instanceId: result.promotedInstanceId, questId: result.promotedQuestId, progress: 0 })
+          }
+        }
+
+        socket.send(JSON.stringify({
+          type: 'quest_claimed', success: result.success, instanceId: msg.instanceId, gems: result.gems, 
+          promotedQuestId: result.promotedQuestId, promotedInstanceId: result.promotedInstanceId,
+        }))
       }
     } catch (e) {
       console.error('[connection handler crash]', e)
