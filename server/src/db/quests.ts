@@ -35,8 +35,7 @@ export async function refreshQuestsIfNeeded(playerId: string) {
       .where(and(eq(playerQuests.playerId, playerId), eq(playerQuests.status, 'completed')))
 
     const lastCompletedAt = new Map(history.map(h => [h.questId, h.completedAt]))
-    const eligible = QUEST_TEMPLATES
-      .filter(t => !liveQuestIds.has(t.id))
+    const eligible = shuffle(QUEST_TEMPLATES.filter(t => !liveQuestIds.has(t.id)))
       .sort((a, b) => (lastCompletedAt.get(a.id)?.getTime() ?? 0) - (lastCompletedAt.get(b.id)?.getTime() ?? 0))
       .slice(0, needed)
 
@@ -121,4 +120,14 @@ export function claimQuest(playerId: string, instanceId: string): Promise<ClaimR
 // server-initiated: caller already confirmed the threshold is met, no check needed
 export function completeQuestInstantly(playerId: string, instanceId: string): Promise<ClaimResult> {
   return resolveQuestCompletion(playerId, instanceId, false)
+}
+
+// helper method to shuffle when assigning new quests to player
+function shuffle<T>(arr: T[]): T[] {
+  const copy = [...arr]
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[copy[i], copy[j]] = [copy[j], copy[i]]
+  }
+  return copy
 }
