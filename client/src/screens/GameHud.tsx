@@ -59,6 +59,7 @@ export default function GameHud({ screen, playerName, isDead, purchasedUpgrades,
   const [pendingCount, setPendingCount] = useState(0)
   const lastPerkChoiceTime = useRef<number>(0)
   const perkChoicesRef = useRef<string[] | 'pending' | null>(null)
+  const [pressedQuestId, setPressedQuestId] = useState<string | null>(null)
 
   useEffect(() => {
     if (isDead) {
@@ -283,12 +284,17 @@ export default function GameHud({ screen, playerName, isDead, purchasedUpgrades,
               {ready && (
                 <button
                   onClick={() => onClaimQuest(q.instanceId)}
+                  onMouseDown={() => setPressedQuestId(q.instanceId)}
+                  onMouseUp={() => setPressedQuestId(null)}
+                  onMouseLeave={() => setPressedQuestId(null)}
                   style={{
                     marginTop: 6, width: '100%', padding: '4px', fontSize: 11,
                     background: 'rgba(0,255,153,0.15)', color: '#00ff99',
                     border: '1px solid rgba(0,255,153,0.4)', borderRadius: 6,
                     cursor: 'pointer', fontFamily: "'Share Tech', monospace",
                     letterSpacing: 1, textTransform: 'uppercase',
+                    transform: pressedQuestId === q.instanceId ? 'scale(0.9)' : 'scale(1)',
+                    transition: 'transform 0.1s ease',
                   }}
                 >
                   claim
