@@ -180,6 +180,10 @@ export default function App() {
     pendingPurchases.current.clear()
   }
 
+  function handleClaimQuest(instanceId: string) {
+    socket.send(JSON.stringify({ type: 'claim_quest', instanceId }))
+  }
+
   return (
     <div style={{ position: 'relative', width: '100vw', height: '100vh' }}>
       <PhaserGame />
@@ -188,6 +192,7 @@ export default function App() {
         playerName={playerName}
         isDead={isDead}
         purchasedUpgrades={purchasedUpgrades}
+        quests={quests}
         bodyColor={bodyColor}
         setBodyColor={setBodyColor}
         borderColor={borderColor}
@@ -196,6 +201,7 @@ export default function App() {
         onHome={() => setScreen('startMenu')}
         onUpgrades={() => setScreen('upgrades')}
         onRespawn={() => setScreen('game')}
+        onClaimQuest={handleClaimQuest}
       />
       {screen === 'startMenu' && (
       <StartMenu 

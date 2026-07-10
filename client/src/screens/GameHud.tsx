@@ -5,7 +5,8 @@ import { currentLevel, xpForNextLevel, xpThisLevel } from '../../../protocol/uti
 import { PERK_TREE, RARITY_CONFIG } from '../../../protocol/data/perks'
 import { pickTip } from '../../../protocol/data/tips'
 import { clientPlayers } from '../clientState'
-import { ClientPlayer } from '../entities'
+import { ClientPlayer, DisplayQuest } from '../entities'
+import { QUEST_TEMPLATE_MAP } from '../../../protocol/data/quests'
 
 interface KillFeedEntry {
   id: number
@@ -30,6 +31,7 @@ interface Props {
   playerName: string
   isDead: boolean
   purchasedUpgrades: string[]
+  quests: DisplayQuest[]
   bodyColor: string
   setBodyColor: React.Dispatch<React.SetStateAction<string>>
   borderColor: string
@@ -38,11 +40,12 @@ interface Props {
   onHome: () => void
   onUpgrades: () => void
   onRespawn: () => void
+  onClaimQuest: (instanceId: string) => void
 }
 
 let killFeedCounter = 0
 
-export default function GameHud({ screen, playerName, isDead, purchasedUpgrades, bodyColor, borderColor, setIsDead, onHome, onUpgrades, onRespawn }: Props) {
+export default function GameHud({ screen, playerName, isDead, purchasedUpgrades, quests, bodyColor, borderColor, setIsDead, onHome, onUpgrades, onRespawn, onClaimQuest }: Props) {
   const [killFeed, setKillFeed] = useState<KillFeedEntry[]>([])
   const [xpRatio, setXpRatio] = useState(0)
   const [xpLevel, setXpLevel] = useState(1)
@@ -242,6 +245,60 @@ export default function GameHud({ screen, playerName, isDead, purchasedUpgrades,
         })}
       </div>
     </div>
+
+    {/* Quests side panel */}
+    {isGame && (
+      <div style={{
+        position: 'absolute',
+        top: 70,
+        left: 18,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+        fontFamily: "'Share Tech', sans-serif",
+        transform: isDead ? 'translateX(-200px)' : 'translateX(0)',
+        opacity: isDead ? 0 : 1,
+        transition: isDead ? 'transform 0.4s ease, opacity 0.4s ease' : 'none',
+        width: 220,
+      }}>
+        {quests.filter(q => q.status === 'active').map(q => {
+          const template = QUEST_TEMPLATE_MAP.get(q.questId)
+          if (!template) return null
+          const ready = q.progress >= template.target
+          return (
+            <div key={q.instanceId} style={{
+              background: 'rgba(0,0,0,0.6)',
+              borderRadius: 8,
+              padding: '8px 12px',
+            }}>
+              <div style={{ fontSize: 12, color: 'white', marginBottom: 6 }}>{template.description}</div>
+              <div style={{ width: '100%', height: 8, background: '#333333', borderRadius: 4, position: 'relative' }}>
+                <div style={{
+                  width: `${Math.min(100, (q.progress / template.target) * 100)}%`,
+                  height: '100%',
+                  background: ready ? '#00ff99' : '#ffdd00',
+                  borderRadius: 4,
+                }} />
+              </div>
+              {ready && (
+                <button
+                  onClick={() => onClaimQuest(q.instanceId)}
+                  style={{
+                    marginTop: 6, width: '100%', padding: '4px', fontSize: 11,
+                    background: 'rgba(0,255,153,0.15)', color: '#00ff99',
+                    border: '1px solid rgba(0,255,153,0.4)', borderRadius: 6,
+                    cursor: 'pointer', fontFamily: "'Share Tech', monospace",
+                    letterSpacing: 1, textTransform: 'uppercase',
+                  }}
+                >
+                  claim
+                </button>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    )}
 
     {/* perk selection */}
     {isGame && perkChoices && (
