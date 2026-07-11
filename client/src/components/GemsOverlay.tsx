@@ -1,33 +1,57 @@
 import { useEffect, useRef } from 'react'
-import { GemSlot, POOL_SIZE, stepLerpTest } from '../utils/gem-motions'
+import { GemSlot, POOL_SIZE, createGemSlot, ANIMATION_STEP } from '../utils/gem-motions'
 
-function createPool(): GemSlot[] {
-  return Array.from({ length: POOL_SIZE }, () => ({
-    active: false,
-    x: 0,
-    y: 0,
-    baseX: 0,
-    baseY: 0,
-    startTime: 0,
-  }))
-}
+export let gemsOverlayHandle: { burstGems: (originX: number, originY: number, count: number) => void } | null = null
 
 export default function GemsOverlay() {
-  const poolRef = useRef<GemSlot[]>(createPool())
+  const poolRef = useRef<GemSlot[]>(Array.from({ length: POOL_SIZE }, createGemSlot))
   const nodeRefs = useRef<(HTMLImageElement | null)[]>(Array(POOL_SIZE).fill(null))
+  const cursorRef = useRef(0)
+
+  function acquireSlot(): number {
+    const pool = poolRef.current
+    for (let i = 0; i < pool.length; i++) {
+      const idx = (cursorRef.current + i) % pool.length
+      if (!pool[idx].active) {
+        cursorRef.current = (idx + 1) % pool.length
+        return idx
+      }
+    }
+    const idx = cursorRef.current
+    cursorRef.current = (idx + 1) % pool.length
+    return idx
+  }
+
+  function burstGems(originX: number, originY: number, count: number): void {
+    const pool = poolRef.current
+    const nodes = nodeRefs.current
+    const now = performance.now()
+    for (let i = 0; i < count; i++) {
+      const idx = acquireSlot()
+      const slot = pool[idx]
+      slot.active = true
+      slot.state = 'burst'
+      slot.t0 = now
+      slot.originX = originX
+      slot.originY = originY
+      slot.angle = Math.random() * Math.PI * 2
+      slot.x = originX
+      slot.y = originY
+      slot.opacity = 1
+      const node = nodes[idx]
+      if (node) node.style.display = 'block'
+    }
+  }
 
   useEffect(() => {
-    // --- temporary test spawn: activate slot 0 in the center of the screen ---
-    const slot = poolRef.current[0]
-    const node = nodeRefs.current[0]
-    slot.active = true
-    slot.baseX = window.innerWidth / 2
-    slot.baseY = window.innerHeight / 2
-    slot.x = slot.baseX
-    slot.y = slot.baseY
-    slot.startTime = performance.now()
-    if (node) node.style.display = 'block'
-    // --- end temporary test spawn ---
+    gemsOverlayHandle = { burstGems }
+    return () => { gemsOverlayHandle = null }
+  }, [])
+
+  useEffect(() => {
+    // --- temporary test trigger ---
+    burstGems(window.innerWidth / 2, window.innerHeight / 2, 8)
+    // --- end temporary test trigger ---
 
     let frameId: number
     const loop = () => {
@@ -39,8 +63,15 @@ export default function GemsOverlay() {
         if (!gem.active) continue
         const node = nodes[i]
         if (!node) continue
-        stepLerpTest(gem, now)
+
+        ANIMATION_STEP[gem.state](gem, now)
+
+        if (!gem.active) {
+          node.style.display = 'none'
+          continue
+        }
         node.style.transform = `translate3d(${gem.x}px, ${gem.y}px, 0)`
+        node.style.opacity = String(gem.opacity)
       }
       frameId = requestAnimationFrame(loop)
     }
@@ -49,7 +80,7 @@ export default function GemsOverlay() {
   }, [])
 
   return (
-    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 600 }}>
+    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 60 }}>
       {Array.from({ length: POOL_SIZE }).map((_, i) => (
         <img
           key={i}
@@ -63,7 +94,7 @@ export default function GemsOverlay() {
             width: 24,
             height: 24,
             display: 'none',
-            willChange: 'transform',
+            willChange: 'transform, opacity',
           }}
         />
       ))}
