@@ -34,7 +34,7 @@ export default function GemsOverlay() {
       slot.t0 = now
       slot.originX = originX
       slot.originY = originY
-      slot.angle = Math.random() * Math.PI * 2
+      slot.angle = -Math.random() * Math.PI
       slot.x = originX
       slot.y = originY
       slot.opacity = 1
