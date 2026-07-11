@@ -37,7 +37,7 @@ function easeOutCubic(t: number): number {
   return 1 - Math.pow(1 - t, 3)
 }
 
-function transition(slot: GemSlot, next: GemState, now: number): void {
+function setState(slot: GemSlot, next: GemState, now: number): void {
   slot.state = next
   slot.t0 = now
 }
@@ -49,11 +49,11 @@ export const ANIMATION_STEP: Record<GemState, (slot: GemSlot, now: number) => vo
     const dist = easeOutCubic(t) * BURST_DISTANCE
     slot.x = slot.originX + Math.cos(slot.angle) * dist
     slot.y = slot.originY + Math.sin(slot.angle) * dist
-    if (elapsed >= BURST_TIME) transition(slot, 'idle', now)
+    if (elapsed >= BURST_TIME) setState(slot, 'idle', now)
   },
   idle(slot, now) {
     const elapsed = now - slot.t0
-    if (elapsed >= DESPAWN_TIME) transition(slot, 'despawn', now)
+    if (elapsed >= DESPAWN_TIME) setState(slot, 'despawn', now)
   },
   despawn(slot, now) {
     const elapsed = now - slot.t0
