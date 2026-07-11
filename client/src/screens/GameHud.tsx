@@ -4,7 +4,7 @@ import { ServerMessage } from '../../../protocol/messages'
 import { currentLevel, xpForNextLevel, xpThisLevel } from '../../../protocol/utils'
 import { PERK_TREE, RARITY_CONFIG } from '../../../protocol/data/perks'
 import { pickTip } from '../../../protocol/data/tips'
-import { clientPlayers } from '../clientState'
+import { CLIENT_QUEST_GETTERS, clientPlayers } from '../clientState'
 import { ClientPlayer, DisplayQuest } from '../entities'
 import { QUEST_TEMPLATE_MAP } from '../../../protocol/data/quests'
 
@@ -60,6 +60,33 @@ export default function GameHud({ screen, playerName, isDead, purchasedUpgrades,
   const lastPerkChoiceTime = useRef<number>(0)
   const perkChoicesRef = useRef<string[] | 'pending' | null>(null)
   const [pressedQuestId, setPressedQuestId] = useState<string | null>(null)
+  const [predictedProgress, setPredictedProgress] = useState<Record<string, number>>({})
+  const spawnedAtRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    spawnedAtRef.current = isDead ? null : Date.now()
+  }, [isDead])
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+    const localId = getLocalId()
+    const localPlayer = localId !== null ? clientPlayers.get(localId) : undefined
+    if (!localPlayer) return
+
+    setPredictedProgress(prev => {
+      const next = { ...prev }
+      for (const q of quests) {
+        if (q.status !== 'active') continue
+        const template = QUEST_TEMPLATE_MAP.get(q.questId)
+        const getValue = template && CLIENT_QUEST_GETTERS[template.event]
+        if (!template || !getValue) continue
+        next[q.instanceId] = Math.min(getValue(localPlayer, spawnedAtRef.current), template.target)
+      }
+      return next
+      })
+    }, 250)
+    return () => clearInterval(interval)
+  }, [quests])
 
   useEffect(() => {
     if (isDead) {
@@ -265,7 +292,8 @@ export default function GameHud({ screen, playerName, isDead, purchasedUpgrades,
         {quests.filter(q => q.status === 'active').map(q => {
           const template = QUEST_TEMPLATE_MAP.get(q.questId)
           if (!template) return null
-          const ready = q.progress >= template.target
+          const progress = predictedProgress[q.instanceId] ?? q.progress
+          const ready = progress >= template.target
           return (
             <div key={q.instanceId} style={{
               background: 'rgba(0,0,0,0.6)',
@@ -275,7 +303,7 @@ export default function GameHud({ screen, playerName, isDead, purchasedUpgrades,
               <div style={{ fontSize: 12, color: 'white', marginBottom: 6 }}>{template.description}</div>
               <div style={{ width: '100%', height: 8, background: '#333333', borderRadius: 4, position: 'relative' }}>
                 <div style={{
-                  width: `${Math.min(100, (q.progress / template.target) * 100)}%`,
+                  width: `${Math.min(100, (progress / template.target) * 100)}%`,
                   height: '100%',
                   background: ready ? '#00ff99' : '#ffdd00',
                   borderRadius: 4,
