@@ -495,16 +495,6 @@ function tryCompleteSingleRunQuests(player: ServerPlayer) {
     if (!getValue) continue
     if (getValue(player) < template.target) continue
 
-    completeQuestInstantly(player.dbId, q.instanceId).then(result => {
-      if (!result.success) return
-      player.activeQuests = player.activeQuests.filter(aq => aq.instanceId !== q.instanceId)
-      if (result.promotedInstanceId && result.promotedQuestId) {
-        player.activeQuests.push({ instanceId: result.promotedInstanceId, questId: result.promotedQuestId, progress: 0 })
-      }
-      player.socket?.send(JSON.stringify({
-        type: 'quest_claimed', success: true, instanceId: q.instanceId,
-        gems: result.gems, promotedQuestId: result.promotedQuestId, promotedInstanceId: result.promotedInstanceId,
-      }))
-    }).catch(e => console.error('[completeQuestInstantly failed]', e))
+    tickQuestProgress(player.dbId, q.instanceId, template.target)
   }
 }
