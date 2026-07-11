@@ -2,8 +2,9 @@ export const POOL_SIZE = 128
 
 export type GemState = 'burst' | 'idle' | 'despawn'
 
-export const BURST_TIME = 220
-export const BURST_DISTANCE = 20
+export const BURST_TIME = 400
+export const BURST_SPEED = 0.3   // px/ms, initial launch speed
+export const GRAVITY = 0.0015     // px/ms^2, downward pull during burst
 export const DESPAWN_TIME = 5000
 export const FADE_TIME = 500
 
@@ -33,10 +34,6 @@ export function createGemSlot(): GemSlot {
   }
 }
 
-function easeOutCubic(t: number): number {
-  return 1 - Math.pow(1 - t, 3)
-}
-
 function setState(slot: GemSlot, next: GemState, now: number): void {
   slot.state = next
   slot.t0 = now
@@ -44,20 +41,18 @@ function setState(slot: GemSlot, next: GemState, now: number): void {
 
 export const ANIMATION_STEP: Record<GemState, (slot: GemSlot, now: number) => void> = {
   burst(slot, now) {
-    const elapsed = now - slot.t0
-    const t = Math.min(1, elapsed / BURST_TIME)
-    const dist = easeOutCubic(t) * BURST_DISTANCE
-    slot.x = slot.originX + Math.cos(slot.angle) * dist
-    slot.y = slot.originY + Math.sin(slot.angle) * dist
-    if (elapsed >= BURST_TIME) setState(slot, 'idle', now)
+    const elapsed = Math.min(now - slot.t0, BURST_TIME)
+    const vx0 = Math.cos(slot.angle) * BURST_SPEED
+    const vy0 = Math.sin(slot.angle) * BURST_SPEED
+    slot.x = slot.originX + vx0 * elapsed
+    slot.y = slot.originY + vy0 * elapsed + 0.5 * GRAVITY * elapsed * elapsed
+    if (now - slot.t0 >= BURST_TIME) setState(slot, 'idle', now)
   },
   idle(slot, now) {
-    const elapsed = now - slot.t0
-    if (elapsed >= DESPAWN_TIME) setState(slot, 'despawn', now)
+    if (now - slot.t0 >= DESPAWN_TIME) setState(slot, 'despawn', now)
   },
   despawn(slot, now) {
-    const elapsed = now - slot.t0
-    const t = Math.min(1, elapsed / FADE_TIME)
+    const t = Math.min(1, (now - slot.t0) / FADE_TIME)
     slot.opacity = 1 - t
     if (t >= 1) slot.active = false
   },

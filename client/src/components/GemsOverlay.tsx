@@ -50,7 +50,7 @@ export default function GemsOverlay() {
 
   useEffect(() => {
     // --- temporary test trigger ---
-    burstGems(window.innerWidth / 2, window.innerHeight / 2, 8)
+    burstGems(window.innerWidth / 2, window.innerHeight / 2, 20)
     // --- end temporary test trigger ---
 
     let frameId: number
