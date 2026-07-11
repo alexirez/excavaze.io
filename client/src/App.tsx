@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import PhaserGame, { phaserGame } from './core/PhaserGame'
+import GemsOverlay from './components/GemsOverlay'
 import StartMenu from './screens/StartMenu'
 import GameHud from './screens/GameHud'
 import UpgradesScreen from './screens/UpgradesScreen'
@@ -189,6 +190,7 @@ export default function App() {
   return (
     <div style={{ position: 'relative', width: '100vw', height: '100vh' }}>
       <PhaserGame />
+      <GemsOverlay />
       <GameHud
         screen={screen}
         playerName={playerName}
