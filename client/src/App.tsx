@@ -58,6 +58,8 @@ export default function App() {
           }
           return remaining
         })
+      } else if (msg.type === 'quest_progress') {
+        setQuests(prev => prev.map(q => q.instanceId === msg.instanceId ? { ...q, progress: msg.progress } : q))
       }
     })
     return unsubscribe

@@ -163,6 +163,12 @@ export interface QuestClaimedMessage {
   promotedInstanceId?: string
 }
 
+export interface QuestProgressMessage {
+  type: 'quest_progress'
+  instanceId: string
+  progress: number
+}
+
 export type ClientMessage = InputMessage | ClientRespawnMessage | PerkSelection
   | TryPurchaseUpgrade | RequestPerkChoices | GuestLoginMessage | GoogleLoginMessage
   | ClaimQuestMessage
@@ -170,4 +176,4 @@ export type ClientMessage = InputMessage | ClientRespawnMessage | PerkSelection
 export type ServerMessage = WelcomeMessage | WorldStateMessage | ServerRespawnMessage
   | PlayerUpdateMessage | PlayerKilledMessage | SquareKilledPlayerMessage 
   | DeathScreenMessage | PerkOptions | PurchaseResultMessage | AssignGuestToken
-  | PlayerQuestsMessage | QuestCompletedMessage | QuestClaimedMessage
+  | PlayerQuestsMessage | QuestCompletedMessage | QuestClaimedMessage | QuestProgressMessage

@@ -472,6 +472,7 @@ function incrementQuestProgress(player: ServerPlayer, event: string, amount: num
     if (!template || template.event !== event) continue
     const wasComplete = q.progress >= template.target
     q.progress += amount
+    player.socket?.send(JSON.stringify({ type: 'quest_progress', instanceId: q.instanceId, progress: q.progress }))
     if (!wasComplete && q.progress >= template.target) {
       player.socket?.send(JSON.stringify({ type: 'quest_completed', instanceId: q.instanceId }))
     }
