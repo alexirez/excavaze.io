@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { GemSlot, POOL_SIZE, createGemSlot, ANIMATION_STEP, getBurstAngle, BURST_SPEED_X, BURST_SPEED_Y } from '../utils/gem-motions'
+import { GemSlot, POOL_SIZE, createGemSlot, ANIMATION_STEP, getBurstAngle, BURST_SPEED_X, BURST_SPEED_Y, BURST_MAX_DELAY_TIME } from '../utils/gem-motions'
 import { clientPlayers, cameraScroll } from '../clientState'
 import { resolve } from 'node:dns'
 
@@ -51,8 +51,9 @@ export default function GemsOverlay() {
       const slot = pool[idx]
       const angle = getBurstAngle(i, count)
       slot.active = true
-      slot.state = 'burst'
+      slot.state = 'pendingSpawn'
       slot.t0 = now
+      slot.timer = Math.random() * BURST_MAX_DELAY_TIME
       slot.originX = originX
       slot.originY = originY
       slot.x = originX
@@ -62,7 +63,7 @@ export default function GemsOverlay() {
       slot.targetId = targetId
       slot.targetX = initial?.x ?? originX
       slot.targetY = initial?.y ?? originY
-      slot.opacity = 1
+      slot.opacity = 0
       const node = nodes[idx]
       if (node) node.style.display = 'block'
     }

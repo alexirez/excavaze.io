@@ -1,8 +1,9 @@
 export const POOL_SIZE = 128
 
-export type GemState = 'burst' | 'homing' | 'despawn'
+export type GemState = 'pendingSpawn' | 'burst' | 'homing' | 'despawn'
 
 export const BURST_TIME = 800
+export const BURST_MAX_DELAY_TIME = 250
 export const BURST_SPEED_X = 0.25   // px/ms, initial launch speed
 export const BURST_SPEED_Y = 0.35
 const BURST_ANGLE_SPREAD_DEG = 160
@@ -13,6 +14,7 @@ export const GRAVITY = 0.001               // px/ms^2, downward pull during burs
 export const TO_TARGET_ACCELERATION = 0.003 // px/ms^2, applied equally to x and y toward target
 export const HOMING_DRAG = 0.003
 export const CLOSING_DISTANCE = 20           // px, gem despawns once within this of its target
+const HOMING_DESPAWN_TIME = 5000
 
 export const FADE_TIME = 50
 
@@ -30,6 +32,7 @@ export interface GemSlot {
   targetX: number
   targetY: number
   opacity: number
+  timer: number          // meaning depends on state: pendingSpawn delay, homing despawn
 }
 
 export function createGemSlot(): GemSlot {
@@ -47,6 +50,7 @@ export function createGemSlot(): GemSlot {
     targetX: 0,
     targetY: 0,
     opacity: 1,
+    timer: 0,
   }
 }
 
@@ -63,11 +67,20 @@ function setState(slot: GemSlot, next: GemState, now: number): void {
 }
 
 export const ANIMATION_STEP: Record<GemState, (slot: GemSlot, now: number, dt: number) => void> = {
+  pendingSpawn(slot, now) {
+    if (now - slot.t0 >= slot.timer) {
+      setState(slot, 'burst', now)
+      slot.opacity = 1
+    }
+  },
   burst(slot, now, dt) {
     slot.vy += GRAVITY * dt
     slot.x += slot.vx * dt
     slot.y += slot.vy * dt
-    if (now - slot.t0 >= BURST_TIME) setState(slot, 'homing', now)
+    if (now - slot.t0 >= BURST_TIME) {
+      setState(slot, 'homing', now)
+      slot.timer = HOMING_DESPAWN_TIME
+    }
   },
   homing(slot, now, dt) {
     const drag = Math.max(0, 1 - HOMING_DRAG * dt)
@@ -76,7 +89,7 @@ export const ANIMATION_STEP: Record<GemState, (slot: GemSlot, now: number, dt: n
     const dx = slot.targetX - slot.x
     const dy = slot.targetY - slot.y
     const dist = Math.sqrt(dx * dx + dy * dy)
-    if (dist <= CLOSING_DISTANCE) {
+    if (dist <= CLOSING_DISTANCE || now - slot.t0 >= slot.timer) {
       setState(slot, 'despawn', now)
       return
     }
