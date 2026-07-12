@@ -3,7 +3,8 @@ export const POOL_SIZE = 128
 export type GemState = 'burst' | 'idle' | 'despawn'
 
 export const BURST_TIME = 700
-export const BURST_SPEED = 0.2   // px/ms, initial launch speed
+export const BURST_SPEED = 0.3   // px/ms, initial launch speed
+export const BURST_ANGLE_SPREAD = (160 * Math.PI) / 180 // radians
 export const GRAVITY = 0.001     // px/ms^2, downward pull during burst
 export const DESPAWN_TIME = 2000
 export const FADE_TIME = 500

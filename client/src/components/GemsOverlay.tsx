@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { GemSlot, POOL_SIZE, createGemSlot, ANIMATION_STEP } from '../utils/gem-motions'
+import { GemSlot, POOL_SIZE, createGemSlot, ANIMATION_STEP, BURST_ANGLE_SPREAD } from '../utils/gem-motions'
 
 export let gemsOverlayHandle: { burstGems: (originX: number, originY: number, count: number) => void } | null = null
 
@@ -34,7 +34,7 @@ export default function GemsOverlay() {
       slot.t0 = now
       slot.originX = originX
       slot.originY = originY
-      slot.angle = -Math.random() * Math.PI
+      slot.angle = -Math.PI / 2 + (Math.random() - 0.5) * BURST_ANGLE_SPREAD
       slot.x = originX
       slot.y = originY
       slot.opacity = 1
