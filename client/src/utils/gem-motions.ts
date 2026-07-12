@@ -2,9 +2,12 @@ export const POOL_SIZE = 128
 
 export type GemState = 'burst' | 'idle' | 'despawn'
 
-export const BURST_TIME = 700
-export const BURST_SPEED = 0.3   // px/ms, initial launch speed
-export const BURST_ANGLE_SPREAD = (160 * Math.PI) / 180 // radians
+export const BURST_TIME = 800
+export const BURST_SPEED_X = 0.25   // px/ms, initial launch speed
+export const BURST_SPEED_Y = 0.35
+const BURST_ANGLE_SPREAD_DEG = 160
+export const BURST_ANGLE_START = ((-90 - BURST_ANGLE_SPREAD_DEG / 2) * Math.PI) / 180
+export const BURST_ANGLE_END = ((-90 + BURST_ANGLE_SPREAD_DEG / 2) * Math.PI) / 180
 export const GRAVITY = 0.001     // px/ms^2, downward pull during burst
 export const DESPAWN_TIME = 2000
 export const FADE_TIME = 500
@@ -43,8 +46,8 @@ function setState(slot: GemSlot, next: GemState, now: number): void {
 export const ANIMATION_STEP: Record<GemState, (slot: GemSlot, now: number) => void> = {
   burst(slot, now) {
     const elapsed = Math.min(now - slot.t0, BURST_TIME)
-    const vx0 = Math.cos(slot.angle) * BURST_SPEED
-    const vy0 = Math.sin(slot.angle) * BURST_SPEED
+    const vx0 = Math.cos(slot.angle) * BURST_SPEED_X
+    const vy0 = Math.sin(slot.angle) * BURST_SPEED_Y
     slot.x = slot.originX + vx0 * elapsed
     slot.y = slot.originY + vy0 * elapsed + 0.5 * GRAVITY * elapsed * elapsed
     if (now - slot.t0 >= BURST_TIME) setState(slot, 'idle', now)
@@ -57,4 +60,11 @@ export const ANIMATION_STEP: Record<GemState, (slot: GemSlot, now: number) => vo
     slot.opacity = 1 - t
     if (t >= 1) slot.active = false
   },
+}
+
+export function getBurstAngle(index: number, count: number): number {
+  const range = BURST_ANGLE_END - BURST_ANGLE_START
+  const sliceSize = range / count
+  const sliceStart = BURST_ANGLE_START + index * sliceSize
+  return sliceStart + Math.random() * sliceSize
 }
