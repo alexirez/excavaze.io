@@ -1,12 +1,13 @@
 import { useEffect, useRef } from 'react'
-import { GemSlot, POOL_SIZE, createGemSlot, ANIMATION_STEP, getBurstAngle } from '../utils/gem-motions'
+import { GemSlot, POOL_SIZE, createGemSlot, ANIMATION_STEP, getBurstAngle, BURST_SPEED_X, BURST_SPEED_Y } from '../utils/gem-motions'
 
-export let gemsOverlayHandle: { burstGems: (originX: number, originY: number, count: number) => void } | null = null
+export let gemsOverlayHandle: { burstGems: (originX: number, originY: number, targetX: number, targetY: number, count: number) => void } | null = null
 
 export default function GemsOverlay() {
   const poolRef = useRef<GemSlot[]>(Array.from({ length: POOL_SIZE }, createGemSlot))
   const nodeRefs = useRef<(HTMLImageElement | null)[]>(Array(POOL_SIZE).fill(null))
   const cursorRef = useRef(0)
+  const lastFrameTimeRef = useRef(0)
 
   function acquireSlot(): number {
     const pool = poolRef.current
@@ -22,21 +23,25 @@ export default function GemsOverlay() {
     return idx
   }
 
-  function burstGems(originX: number, originY: number, count: number): void {
+  function burstGems(originX: number, originY: number, targetX: number, targetY: number, count: number): void {
     const pool = poolRef.current
     const nodes = nodeRefs.current
     const now = performance.now()
     for (let i = 0; i < count; i++) {
       const idx = acquireSlot()
       const slot = pool[idx]
+      const angle = getBurstAngle(i, count)
       slot.active = true
       slot.state = 'burst'
       slot.t0 = now
       slot.originX = originX
       slot.originY = originY
-      slot.angle = getBurstAngle(i, count)
       slot.x = originX
       slot.y = originY
+      slot.vx = Math.cos(angle) * BURST_SPEED_X
+      slot.vy = Math.sin(angle) * BURST_SPEED_Y
+      slot.targetX = targetX
+      slot.targetY = targetY
       slot.opacity = 1
       const node = nodes[idx]
       if (node) node.style.display = 'block'
@@ -49,13 +54,17 @@ export default function GemsOverlay() {
   }, [])
 
   useEffect(() => {
-    // --- temporary test trigger ---
-    burstGems(window.innerWidth / 2, window.innerHeight / 2, 4)
+    // --- temporary test trigger: burst toward a fixed point near bottom-center ---
+    burstGems(window.innerWidth / 2, window.innerHeight / 2, window.innerWidth / 2 * 0.1, window.innerHeight / 2, 8)
     // --- end temporary test trigger ---
 
+    lastFrameTimeRef.current = performance.now()
     let frameId: number
     const loop = () => {
       const now = performance.now()
+      const dt = Math.min(now - lastFrameTimeRef.current, 50)
+      lastFrameTimeRef.current = now
+
       const pool = poolRef.current
       const nodes = nodeRefs.current
       for (let i = 0; i < pool.length; i++) {
@@ -64,7 +73,7 @@ export default function GemsOverlay() {
         const node = nodes[i]
         if (!node) continue
 
-        ANIMATION_STEP[gem.state](gem, now)
+        ANIMATION_STEP[gem.state](gem, now, dt)
 
         if (!gem.active) {
           node.style.display = 'none'
