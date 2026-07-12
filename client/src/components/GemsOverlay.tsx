@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { GemSlot, POOL_SIZE, createGemSlot, ANIMATION_STEP, getBurstAngle, BURST_SPEED_X, BURST_SPEED_Y } from '../utils/gem-motions'
 import { clientPlayers, cameraScroll } from '../clientState'
+import { resolve } from 'node:dns'
 
 export let gemsOverlayHandle: {
   burstGems: (originX: number, originY: number, 
@@ -97,6 +98,14 @@ export default function GemsOverlay() {
         if (!gem.active) continue
         const node = nodes[i]
         if (!node) continue
+
+        if (gem.state === 'homing' && gem.targetId !== null) {
+          const resolved = resolveTargetScreenPos(gem.targetId)
+          if (resolved) {
+            gem.targetX = resolved.x
+            gem.targetY = resolved.y
+          }
+        }
 
         ANIMATION_STEP[gem.state](gem, now, dt)
 
