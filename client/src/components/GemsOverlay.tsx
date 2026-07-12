@@ -1,7 +1,11 @@
 import { useEffect, useRef } from 'react'
 import { GemSlot, POOL_SIZE, createGemSlot, ANIMATION_STEP, getBurstAngle, BURST_SPEED_X, BURST_SPEED_Y } from '../utils/gem-motions'
+import { clientPlayers, cameraScroll } from '../clientState'
 
-export let gemsOverlayHandle: { burstGems: (originX: number, originY: number, targetX: number, targetY: number, count: number) => void } | null = null
+export let gemsOverlayHandle: {
+  burstGems: (originX: number, originY: number, 
+    target: { id: number } | { x: number, y: number }, 
+    count: number) => void } | null = null
 
 export default function GemsOverlay() {
   const poolRef = useRef<GemSlot[]>(Array.from({ length: POOL_SIZE }, createGemSlot))
@@ -23,10 +27,24 @@ export default function GemsOverlay() {
     return idx
   }
 
-  function burstGems(originX: number, originY: number, targetX: number, targetY: number, count: number): void {
+  function resolveTargetScreenPos(targetId: number | null): { x: number, y: number } | null {
+    if (targetId === null) return null
+    const cp = clientPlayers.get(targetId)
+    if (!cp || !cp.snapshot.alive) return null
+    return { x: cp.snapshot.x - cameraScroll.x, y: cp.snapshot.y - cameraScroll.y }
+  }
+
+  function burstGems(
+    originX: number, originY: number,
+    target: { id: number } | { x: number, y: number },
+    count: number
+  ): void {
     const pool = poolRef.current
     const nodes = nodeRefs.current
     const now = performance.now()
+    const targetId = 'id' in target ? target.id : null
+    const initial = 'id' in target ? resolveTargetScreenPos(target.id) : target
+
     for (let i = 0; i < count; i++) {
       const idx = acquireSlot()
       const slot = pool[idx]
@@ -40,8 +58,9 @@ export default function GemsOverlay() {
       slot.y = originY
       slot.vx = Math.cos(angle) * BURST_SPEED_X
       slot.vy = Math.sin(angle) * BURST_SPEED_Y
-      slot.targetX = targetX
-      slot.targetY = targetY
+      slot.targetId = targetId
+      slot.targetX = initial?.x ?? originX
+      slot.targetY = initial?.y ?? originY
       slot.opacity = 1
       const node = nodes[idx]
       if (node) node.style.display = 'block'
@@ -60,7 +79,7 @@ export default function GemsOverlay() {
     const rect = anchor.getBoundingClientRect()
     const targetX = rect.left + rect.width / 2
     const targetY = rect.top + rect.height / 2
-    burstGems(window.innerWidth / 2 * 0.1, window.innerHeight / 2, targetX, targetY, 8)
+    burstGems(window.innerWidth / 2 * 0.1, window.innerHeight / 2, { x: targetX, y: targetY}, 8)
   }
   // --- end temporary test trigger ---
 

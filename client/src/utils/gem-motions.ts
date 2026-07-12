@@ -26,6 +26,7 @@ export interface GemSlot {
   y: number
   vx: number
   vy: number
+  targetId: number | null
   targetX: number
   targetY: number
   opacity: number
@@ -42,6 +43,7 @@ export function createGemSlot(): GemSlot {
     y: 0,
     vx: 0,
     vy: 0,
+    targetId: null,
     targetX: 0,
     targetY: 0,
     opacity: 1,

@@ -4,7 +4,7 @@ import { PlayerState, SquareState } from '../../../protocol/types'
 import { ServerMessage } from '../../../protocol/messages'
 import { WORLD_WIDTH, WORLD_HEIGHT, COLOR_BACKGROUND, COLOR_OUTER_BOUNDS, WORLD_PADDING, SQUARE_BASE_HP } from '../../../protocol/constants'
 import { ClientPlayer } from '../entities'
-import { clientPlayers } from '../clientState'
+import { cameraScroll, clientPlayers } from '../clientState'
 
 export class GameScene extends Phaser.Scene {
   private enemyNameLabels: Map<number, Phaser.GameObjects.Text> = new Map()
@@ -171,6 +171,8 @@ export class GameScene extends Phaser.Scene {
     const playerState = this.latestPlayersState.get(localId)
     const cp = clientPlayers.get(localId)
     if (!cp) return
+    cameraScroll.x = this.cameras.main.scrollX
+    cameraScroll.y = this.cameras.main.scrollY
     this.playerGraphics.clear()
     if (playerState) {
       this.cameraTarget.x = playerState.x
