@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { GemSlot, POOL_SIZE, createGemSlot, ANIMATION_STEP, getBurstAngle, BURST_SPEED_X, BURST_SPEED_Y, BURST_MAX_DELAY_TIME } from '../utils/gem-motions'
 import { clientPlayers, cameraScroll } from '../clientState'
-import { resolve } from 'node:dns'
 import { getLocalId } from '../network/socket'
 
 export let gemsOverlayHandle: {
