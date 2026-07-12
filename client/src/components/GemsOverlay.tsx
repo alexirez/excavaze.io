@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { GemSlot, POOL_SIZE, createGemSlot, ANIMATION_STEP, getBurstAngle, BURST_SPEED_X, BURST_SPEED_Y, BURST_MAX_DELAY_TIME } from '../utils/gem-motions'
 import { clientPlayers, cameraScroll } from '../clientState'
 import { resolve } from 'node:dns'
+import { getLocalId } from '../network/socket'
 
 export let gemsOverlayHandle: {
   burstGems: (originX: number, originY: number, 
@@ -76,13 +77,13 @@ export default function GemsOverlay() {
 
   useEffect(() => {
     // --- temporary test trigger: burst towards the start-menu gems display ---
-  const anchor = document.getElementById('gems-display-anchor')
-  if (anchor) {
-    const rect = anchor.getBoundingClientRect()
-    const targetX = rect.left + rect.width / 2
-    const targetY = rect.top + rect.height / 2
-    burstGems(window.innerWidth / 2 * 0.1, window.innerHeight / 2, { x: targetX, y: targetY}, 4)
-  }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'g') return
+      const localId = getLocalId()
+      if (localId === null) return
+      burstGems(40, window.innerHeight - 40, { id: localId }, 4)
+    }
+    window.addEventListener('keydown', handleKeyDown)
   // --- end temporary test trigger ---
 
     lastFrameTimeRef.current = performance.now()
