@@ -76,7 +76,7 @@ export default function GemsOverlay() {
   }, [])
 
   useEffect(() => {
-    // --- temporary test trigger: burst towards the start-menu gems display ---
+    // --- temporary test trigger ---
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'g') return
       const localId = getLocalId()
