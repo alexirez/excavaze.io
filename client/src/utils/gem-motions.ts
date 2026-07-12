@@ -3,7 +3,7 @@ export const POOL_SIZE = 128
 export type GemState = 'pendingSpawn' | 'burst' | 'homing' | 'despawn'
 
 export const BURST_TIME = 800
-export const BURST_MAX_DELAY_TIME = 250
+export const BURST_MAX_DELAY_TIME = 300
 export const BURST_SPEED_X = 0.25   // px/ms, initial launch speed
 export const BURST_SPEED_Y = 0.35
 const BURST_ANGLE_SPREAD_DEG = 160

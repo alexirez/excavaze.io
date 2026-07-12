@@ -53,7 +53,7 @@ export default function GemsOverlay() {
       slot.active = true
       slot.state = 'pendingSpawn'
       slot.t0 = now
-      slot.timer = Math.random() * BURST_MAX_DELAY_TIME
+      slot.timer = i / count * BURST_MAX_DELAY_TIME
       slot.originX = originX
       slot.originY = originY
       slot.x = originX
@@ -81,7 +81,7 @@ export default function GemsOverlay() {
     const rect = anchor.getBoundingClientRect()
     const targetX = rect.left + rect.width / 2
     const targetY = rect.top + rect.height / 2
-    burstGems(window.innerWidth / 2 * 0.1, window.innerHeight / 2, { x: targetX, y: targetY}, 8)
+    burstGems(window.innerWidth / 2 * 0.1, window.innerHeight / 2, { x: targetX, y: targetY}, 4)
   }
   // --- end temporary test trigger ---
 
