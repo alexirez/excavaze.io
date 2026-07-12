@@ -356,7 +356,7 @@ export default function StartMenu({ onPlay, onUpgrades, online, setOnline, gems,
         {/* bottom row: gems + github star */}
         <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{
+            <div id="gems-display-anchor" style={{
               display: 'flex', alignItems: 'center', gap: 6,
               background: 'rgba(255,255,255,0.05)',
               border: '0.5px solid rgba(255,255,255,0.1)',

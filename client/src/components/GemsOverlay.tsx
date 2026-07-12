@@ -54,9 +54,15 @@ export default function GemsOverlay() {
   }, [])
 
   useEffect(() => {
-    // --- temporary test trigger: burst toward a fixed point near bottom-center ---
-    burstGems(window.innerWidth / 2, window.innerHeight / 2, window.innerWidth / 2 * 0.1, window.innerHeight / 2, 8)
-    // --- end temporary test trigger ---
+    // --- temporary test trigger: burst towards the start-menu gems display ---
+  const anchor = document.getElementById('gems-display-anchor')
+  if (anchor) {
+    const rect = anchor.getBoundingClientRect()
+    const targetX = rect.left + rect.width / 2
+    const targetY = rect.top + rect.height / 2
+    burstGems(window.innerWidth / 2 * 0.1, window.innerHeight / 2, targetX, targetY, 8)
+  }
+  // --- end temporary test trigger ---
 
     lastFrameTimeRef.current = performance.now()
     let frameId: number
