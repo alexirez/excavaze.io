@@ -11,9 +11,10 @@ export const BURST_ANGLE_END = ((-90 + BURST_ANGLE_SPREAD_DEG / 2) * Math.PI) / 
 export const GRAVITY = 0.001               // px/ms^2, downward pull during burst
 
 export const TO_TARGET_ACCELERATION = 0.003 // px/ms^2, applied equally to x and y toward target
-export const CLOSING_DISTANCE = 40           // px, gem despawns once within this of its target
+export const HOMING_DRAG = 0.003
+export const CLOSING_DISTANCE = 20           // px, gem despawns once within this of its target
 
-export const FADE_TIME = 500
+export const FADE_TIME = 50
 
 export interface GemSlot {
   active: boolean
@@ -67,6 +68,9 @@ export const ANIMATION_STEP: Record<GemState, (slot: GemSlot, now: number, dt: n
     if (now - slot.t0 >= BURST_TIME) setState(slot, 'homing', now)
   },
   homing(slot, now, dt) {
+    const drag = Math.max(0, 1 - HOMING_DRAG * dt)
+    slot.vx *= drag
+    slot.vy *= drag
     const dx = slot.targetX - slot.x
     const dy = slot.targetY - slot.y
     const dist = Math.sqrt(dx * dx + dy * dy)
