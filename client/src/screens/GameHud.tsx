@@ -7,6 +7,7 @@ import { pickTip } from '../../../protocol/data/tips'
 import { CLIENT_QUEST_GETTERS, clientPlayers } from '../clientState'
 import { ClientPlayer, DisplayQuest } from '../entities'
 import { QUEST_TEMPLATE_MAP } from '../../../protocol/data/quests'
+import { gemsOverlayHandle } from '../components/GemsOverlay'
 
 interface KillFeedEntry {
   id: number
@@ -311,7 +312,17 @@ export default function GameHud({ screen, playerName, isDead, purchasedUpgrades,
               </div>
               {ready && (
                 <button
-                  onClick={() => onClaimQuest(q.instanceId)}
+                  onClick={e => {
+                    const rect = e.currentTarget.getBoundingClientRect()
+                    const originX = rect.left + rect.width / 2
+                    const originY = rect.top + rect.height / 2
+                    const localId = getLocalId()
+                    if (localId !== null) {
+                      const count = Math.max(12, Math.min(4, template.rewardGems / 50))
+                      gemsOverlayHandle?.burstGems(originX, originY, { id: localId }, count)
+                    }
+                    onClaimQuest(q.instanceId)
+                  }}
                   onMouseDown={() => setPressedQuestId(q.instanceId)}
                   onMouseUp={() => setPressedQuestId(null)}
                   onMouseLeave={() => setPressedQuestId(null)}
