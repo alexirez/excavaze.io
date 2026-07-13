@@ -138,6 +138,7 @@ export default function GemsOverlay() {
             width: 24,
             height: 24,
             display: 'none',
+            filter: 'saturate(1.5) contrast(1.2) hue-rotate(8deg)',
             willChange: 'transform, opacity',
           }}
         />
