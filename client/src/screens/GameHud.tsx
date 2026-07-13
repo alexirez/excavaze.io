@@ -315,7 +315,7 @@ export default function GameHud({ screen, playerName, isDead, purchasedUpgrades,
                   onClick={e => {
                     const localId = getLocalId()
                     if (localId !== null) {
-                      const count = Math.max(12, Math.min(4, template.rewardGems / 50))
+                      const count = Math.max(6, Math.min(3, template.rewardGems / 100))
                       gemsOverlayHandle?.burstGems(e.currentTarget, { id: localId }, count)
                     }
                     //onClaimQuest(q.instanceId)

@@ -3,10 +3,10 @@ export const POOL_SIZE = 128
 export type GemState = 'pendingSpawn' | 'burst' | 'homing' | 'despawn'
 
 export const BURST_TIME = 800
-export const BURST_MAX_DELAY_TIME = 300
-export const BURST_SPEED_X = 0.25   // px/ms, initial launch speed
-export const BURST_SPEED_Y = 0.35
-const BURST_ANGLE_SPREAD_DEG = 160
+export const BURST_MAX_DELAY_TIME = 150
+export const BURST_SPEED_X = 0.2   // px/ms, initial launch speed
+export const BURST_SPEED_Y = 0.4
+const BURST_ANGLE_SPREAD_DEG = 110
 export const BURST_ANGLE_START = ((-90 - BURST_ANGLE_SPREAD_DEG / 2) * Math.PI) / 180
 export const BURST_ANGLE_END = ((-90 + BURST_ANGLE_SPREAD_DEG / 2) * Math.PI) / 180
 export const GRAVITY = 0.001               // px/ms^2, downward pull during burst
@@ -54,11 +54,12 @@ export function createGemSlot(): GemSlot {
   }
 }
 
+const GOLDEN_RATIO_CONJUGATE = 0.6180339887498949
+
 export function getBurstAngle(index: number, count: number): number {
   const range = BURST_ANGLE_END - BURST_ANGLE_START
-  const sliceSize = range / count
-  const sliceStart = BURST_ANGLE_START + index * sliceSize
-  return sliceStart + Math.random() * sliceSize
+  const frac = (index * GOLDEN_RATIO_CONJUGATE) % 1
+  return BURST_ANGLE_START + frac * range
 }
 
 function setState(slot: GemSlot, next: GemState, now: number): void {
