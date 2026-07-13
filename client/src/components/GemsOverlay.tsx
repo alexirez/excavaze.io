@@ -4,7 +4,7 @@ import { clientPlayers, cameraScroll } from '../clientState'
 import { getLocalId } from '../network/socket'
 
 export let gemsOverlayHandle: {
-  burstGems: (originX: number, originY: number, 
+  burstGems: (origin: HTMLElement | { x: number, y: number }, 
     target: { id: number } | { x: number, y: number }, 
     count: number) => void } | null = null
 
@@ -35,14 +35,23 @@ export default function GemsOverlay() {
     return { x: cp.snapshot.x - cameraScroll.x, y: cp.snapshot.y - cameraScroll.y }
   }
 
+  function resolveOriginPos(origin: HTMLElement | { x: number, y: number }): { x: number, y: number } {
+    if (origin instanceof HTMLElement) {
+      const rect = origin.getBoundingClientRect()
+      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
+    }
+    return origin
+  }
+
   function burstGems(
-    originX: number, originY: number,
+    origin: HTMLElement | { x: number, y: number },
     target: { id: number } | { x: number, y: number },
     count: number
   ): void {
     const pool = poolRef.current
     const nodes = nodeRefs.current
     const now = performance.now()
+    const { x: originX, y: originY } = resolveOriginPos(origin)
     const targetId = 'id' in target ? target.id : null
     const initial = 'id' in target ? resolveTargetScreenPos(target.id) : target
 
@@ -80,7 +89,7 @@ export default function GemsOverlay() {
       if (e.key !== 'g') return
       const localId = getLocalId()
       if (localId === null) return
-      burstGems(40, window.innerHeight - 40, { id: localId }, 4)
+      burstGems({ x: 40, y: window.innerHeight - 40 }, { id: localId }, 4)
     }
     window.addEventListener('keydown', handleKeyDown)
   // --- end temporary test trigger ---

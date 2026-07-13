@@ -313,15 +313,12 @@ export default function GameHud({ screen, playerName, isDead, purchasedUpgrades,
               {ready && (
                 <button
                   onClick={e => {
-                    const rect = e.currentTarget.getBoundingClientRect()
-                    const originX = rect.left + rect.width / 2
-                    const originY = rect.top + rect.height / 2
                     const localId = getLocalId()
                     if (localId !== null) {
                       const count = Math.max(12, Math.min(4, template.rewardGems / 50))
-                      gemsOverlayHandle?.burstGems(originX, originY, { id: localId }, count)
+                      gemsOverlayHandle?.burstGems(e.currentTarget, { id: localId }, count)
                     }
-                    onClaimQuest(q.instanceId)
+                    //onClaimQuest(q.instanceId)
                   }}
                   onMouseDown={() => setPressedQuestId(q.instanceId)}
                   onMouseUp={() => setPressedQuestId(null)}
