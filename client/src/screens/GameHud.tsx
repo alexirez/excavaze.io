@@ -318,7 +318,7 @@ export default function GameHud({ screen, playerName, isDead, purchasedUpgrades,
                       const count = Math.max(6, Math.min(3, template.rewardGems / 100))
                       gemsOverlayHandle?.burstGems(e.currentTarget, { id: localId }, count)
                     }
-                    //onClaimQuest(q.instanceId)
+                    onClaimQuest(q.instanceId)
                   }}
                   onMouseDown={() => setPressedQuestId(q.instanceId)}
                   onMouseUp={() => setPressedQuestId(null)}
