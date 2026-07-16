@@ -129,6 +129,7 @@ export default function GameHud({ screen, playerName, isDead, purchasedUpgrades,
           setXpIsMax(displayLevel >= local.maxLevel)
         }
       } else if (msg.type === 'player_killed') {
+        // 1) add kill feed entry
         const id = killFeedCounter++
         setKillFeed(prev => [...prev, { id, victimId: msg.victimId, killerId: msg.killerId, killerName: msg.killerName, victimName: msg.victimName, exiting: false }])
         setTimeout(() => {
@@ -137,6 +138,11 @@ export default function GameHud({ screen, playerName, isDead, purchasedUpgrades,
         setTimeout(() => {
           setKillFeed(prev => prev.filter(e => e.id !== id))
         }, 5000)
+
+        // 2) spawn gems for player's kills and death
+        if (msg.killerId === getLocalId() || msg.victimId === getLocalId()) {
+          //
+        }
       } else if (msg.type === 'square_killed_player') {
         const id = Date.now()
         setKillFeed(prev => [...prev, { id, victimId: msg.victimId, victimName: msg.victimName, exiting: false }])
