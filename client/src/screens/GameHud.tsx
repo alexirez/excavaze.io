@@ -4,7 +4,7 @@ import { ServerMessage } from '../../../protocol/messages'
 import { currentLevel, xpForNextLevel, xpThisLevel } from '../../../protocol/utils'
 import { PERK_TREE, RARITY_CONFIG } from '../../../protocol/data/perks'
 import { pickTip } from '../../../protocol/data/tips'
-import { CLIENT_QUEST_GETTERS, clientPlayers } from '../clientState'
+import { CLIENT_QUEST_GETTERS, clientPlayers, cameraScroll } from '../clientState'
 import { ClientPlayer, DisplayQuest } from '../entities'
 import { QUEST_TEMPLATE_MAP } from '../../../protocol/data/quests'
 import { gemsOverlayHandle } from '../components/GemsOverlay'
@@ -140,8 +140,17 @@ export default function GameHud({ screen, playerName, isDead, purchasedUpgrades,
         }, 5000)
 
         // 2) spawn gems for player's kills and death
-        if (msg.killerId === getLocalId() || msg.victimId === getLocalId()) {
-          //
+        if (msg.killerId === getLocalId()) {
+          if (msg.killerId === getLocalId() && msg.gemsAwarded > 0) {
+            const victim = clientPlayers.get(msg.victimId)
+            if (victim) {
+              const origin = {
+                x: victim.snapshot.x - cameraScroll.x,
+                y: victim.snapshot.y - cameraScroll.y,
+              }
+              gemsOverlayHandle?.burstGems(origin, { id: msg.killerId }, msg.gemsAwarded)
+            }
+          }
         }
       } else if (msg.type === 'square_killed_player') {
         const id = Date.now()
