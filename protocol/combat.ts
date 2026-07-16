@@ -288,6 +288,7 @@ export function killPlayer(killer: ServerPlayer, victim: ServerPlayer, cause: 'p
     killerId: killer.state.id,
     victimName: victim.name,
     killerName: killer.name,
+    gemsAwarded
   } satisfies PlayerKilledMessage), players)
   victim.socket?.send(JSON.stringify({
     type: 'death_screen',
@@ -306,6 +307,7 @@ export function killPlayerBySquare(victim: ServerPlayer, players: Map<number, Se
     killerId: -1,
     victimName: victim.name,
     killerName: 'A Square',
+    gemsAwarded: 0
   } satisfies PlayerKilledMessage), players)
   victim.socket?.send(JSON.stringify({
     type: 'death_screen',
