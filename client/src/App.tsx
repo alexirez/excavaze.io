@@ -50,7 +50,7 @@ export default function App() {
           return template ? { ...q, progress: template.target } : q
         }))
       } else if (msg.type === 'quest_claimed') {
-        if (!msg.success) return
+        if (!msg.success) { console.log(`Attempt to claim quest failed`); return }
         if (typeof msg.gems === 'number') setGems(msg.gems)
         setQuests(prev => {
           const remaining = prev.filter(q => q.instanceId !== msg.instanceId)

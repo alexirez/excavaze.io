@@ -64,6 +64,17 @@ export async function tickQuestProgress(playerId: string, event: string, amount 
     ))
 }
 
+// single-run quests: survive_duration, reach_xp, reach_level — progress set directly by instance, not matched by event
+export async function setQuestProgress(playerId: string, instanceId: string, progress: number) {
+  await db.update(playerQuests)
+    .set({ progress })
+    .where(and(
+      eq(playerQuests.playerId, playerId),
+      eq(playerQuests.id, instanceId),
+      eq(playerQuests.status, 'active'),
+    ))
+}
+
 async function finalizeQuestCompletion(tx: DbOrTx, playerId: string, row: typeof playerQuests.$inferSelect, template: QuestTemplate) {
   await tx.delete(playerQuests).where(and(
     eq(playerQuests.playerId, playerId),

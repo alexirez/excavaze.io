@@ -13,7 +13,7 @@ import { awardXp, circleIntersectsOrientedRect, getDrillDamageOnCircle, getDrill
 import { currentLevel, refreshStats } from '../../protocol/utils'
 import { identifyPlayer } from './db/guests'
 import { purchaseUpgrade } from './db/transactions'
-import { refreshQuestsIfNeeded, getPlayerQuests, tickQuestProgress, claimQuest } from './db/quests'
+import { refreshQuestsIfNeeded, getPlayerQuests, tickQuestProgress, setQuestProgress, claimQuest } from './db/quests'
 import { QUEST_TEMPLATE_MAP } from '../../protocol/data/quests'
 
 const PORT = 3000
@@ -389,8 +389,10 @@ setInterval(() => {
     // 4) Handle quest progress for players
     for (const p of players.values()) {
       if (p.socket === null) continue
-      if (p.state.id % QUEST_CHECK_INTERVAL_TICKS === tick % QUEST_CHECK_INTERVAL_TICKS)
+      if (p.state.id % QUEST_CHECK_INTERVAL_TICKS === tick % QUEST_CHECK_INTERVAL_TICKS) {
         tryCompleteSingleRunQuests(p)
+        //console.log(`Ran tryCompleteSingleRunQuests at ${new Date().toISOString()} for player ${p.dbId}`)
+      }
     }
 
     // 5) Prepare bots' input for next tick
@@ -495,6 +497,8 @@ function tryCompleteSingleRunQuests(player: ServerPlayer) {
     if (!getValue) continue
     if (getValue(player) < template.target) continue
 
-    tickQuestProgress(player.dbId, template.event, template.target)
+    const progress = Math.min(getValue(player), template.target)
+    setQuestProgress(player.dbId, q.instanceId, progress)
+      .catch(e => console.error('[setQuestProgress failed]', e))
   }
 }
