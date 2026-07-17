@@ -4,9 +4,10 @@ import { ServerMessage } from '../../../protocol/messages'
 import { currentLevel, xpForNextLevel, xpThisLevel } from '../../../protocol/utils'
 import { PERK_TREE, RARITY_CONFIG } from '../../../protocol/data/perks'
 import { pickTip } from '../../../protocol/data/tips'
-import { CLIENT_QUEST_GETTERS, clientPlayers } from '../clientState'
+import { CLIENT_QUEST_GETTERS, clientPlayers, cameraScroll } from '../clientState'
 import { ClientPlayer, DisplayQuest } from '../entities'
 import { QUEST_TEMPLATE_MAP } from '../../../protocol/data/quests'
+import { gemsOverlayHandle } from '../components/GemsOverlay'
 
 interface KillFeedEntry {
   id: number
@@ -128,6 +129,7 @@ export default function GameHud({ screen, playerName, isDead, purchasedUpgrades,
           setXpIsMax(displayLevel >= local.maxLevel)
         }
       } else if (msg.type === 'player_killed') {
+        // 1) add kill feed entry
         const id = killFeedCounter++
         setKillFeed(prev => [...prev, { id, victimId: msg.victimId, killerId: msg.killerId, killerName: msg.killerName, victimName: msg.victimName, exiting: false }])
         setTimeout(() => {
@@ -136,6 +138,20 @@ export default function GameHud({ screen, playerName, isDead, purchasedUpgrades,
         setTimeout(() => {
           setKillFeed(prev => prev.filter(e => e.id !== id))
         }, 5000)
+
+        // 2) spawn gems for player's kills and death
+        if (msg.killerId === getLocalId()) {
+          if (msg.killerId === getLocalId() && msg.gemsAwarded > 0) {
+            const victim = clientPlayers.get(msg.victimId)
+            if (victim) {
+              const origin = {
+                x: victim.snapshot.x - cameraScroll.x,
+                y: victim.snapshot.y - cameraScroll.y,
+              }
+              gemsOverlayHandle?.burstGems(origin, { id: msg.killerId }, msg.gemsAwarded)
+            }
+          }
+        }
       } else if (msg.type === 'square_killed_player') {
         const id = Date.now()
         setKillFeed(prev => [...prev, { id, victimId: msg.victimId, victimName: msg.victimName, exiting: false }])
@@ -311,7 +327,14 @@ export default function GameHud({ screen, playerName, isDead, purchasedUpgrades,
               </div>
               {ready && (
                 <button
-                  onClick={() => onClaimQuest(q.instanceId)}
+                  onClick={e => {
+                    const localId = getLocalId()
+                    if (localId !== null) {
+                      const count = Math.max(6, Math.min(3, template.rewardGems / 100))
+                      gemsOverlayHandle?.burstGems(e.currentTarget, { id: localId }, count)
+                    }
+                    onClaimQuest(q.instanceId)
+                  }}
                   onMouseDown={() => setPressedQuestId(q.instanceId)}
                   onMouseUp={() => setPressedQuestId(null)}
                   onMouseLeave={() => setPressedQuestId(null)}

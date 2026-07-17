@@ -33,6 +33,7 @@ export interface PlayerKilledMessage {
   victimId: number
   victimName: string
   killerName: string
+  gemsAwarded: number
 }
 
 // S-C: tell client a square killed them

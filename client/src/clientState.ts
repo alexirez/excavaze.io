@@ -2,6 +2,7 @@ import { currentLevel } from '../../protocol/utils'
 import { ClientPlayer } from './entities'
 
 export const clientPlayers = new Map<number, ClientPlayer>()
+export const cameraScroll = { x: 0, y: 0 }
 
 export function setClientPlayer(id: number, cp: ClientPlayer) {
   clientPlayers.set(id, cp)
