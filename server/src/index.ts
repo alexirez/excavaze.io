@@ -71,7 +71,7 @@ wss.on('connection', (socket) => {
     input: { dx: 0, dy: 0, rotation: 0 },
     shieldTicks: SHIELD_DURATION,
     lastCollisionTime: 0,
-    timeAlive: 0,
+    spawnedAt: Date.now(),
     wanderAngle: Math.random() * Math.PI * 2,
     gems: 0,
     activeQuests: [],
@@ -151,7 +151,7 @@ wss.on('connection', (socket) => {
         p.borderColor = msg.borderColor
         p.state.xp *= 0.8
         p.state.alive = true
-        p.timeAlive = 0
+        p.spawnedAt = Date.now()
         p.state.shieldActive = true
         p.state.x = x
         p.state.y = y
@@ -288,12 +288,11 @@ setInterval(() => {
       p.state.y = Math.max(WORLD_PADDING, Math.min(WORLD_HEIGHT - WORLD_PADDING, p.state.y + p.input.dy * p.moveSpeedMultiplier * PLAYER_BASE_SPEED))
       p.state.rotation = p.input.rotation
 
-      // 2) Process spawn shield timer, timeAlive, hp regen
+      // 2) Process spawn shield timer, hp regen
       if (p.shieldTicks > 0) {
         p.shieldTicks-- 
         if (p.shieldTicks <= 0) p.state.shieldActive = false
       }
-      if (p.state.alive) p.timeAlive += TICK_MS
       p.state.hp = Math.min(p.state.hp + p.hpRegenPerSec, p.maxHp)
     }
     
@@ -483,9 +482,9 @@ function incrementQuestProgress(player: ServerPlayer, event: string, amount: num
 }
 
 const SINGLE_RUN_VALUE_GETTERS: Record<string, (player: ServerPlayer) => number> = {
-  survive_duration: (p) => p.timeAlive / 1000,
-  reach_xp: (p) => p.state.xp,
-  reach_level: (p) => currentLevel(p.state.xp)
+  survive_duration: (p) => p.state.alive ? (Date.now() - p.spawnedAt) / 1000 : 0,
+  reach_xp: (p) => p.state.alive ? p.state.xp : 0,
+  reach_level: (p) => p.state.alive ? currentLevel(p.state.xp) : 0
 }
 
 function tryCompleteSingleRunQuests(player: ServerPlayer) {
