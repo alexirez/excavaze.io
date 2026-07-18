@@ -22,7 +22,6 @@ export interface WelcomeMessage {
   id: number
   gems: number
   upgrades: string[]
-  maxLevel: number
   cameraX: number
   cameraY: number
 }

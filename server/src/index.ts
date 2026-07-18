@@ -138,7 +138,6 @@ wss.on('connection', (socket) => {
         socket.send(JSON.stringify({
           type: 'welcome', id,
           gems: record.gems, upgrades: record.purchasedUpgrades,
-          maxLevel: p.maxLevel,
           cameraX, cameraY,
         }))
 

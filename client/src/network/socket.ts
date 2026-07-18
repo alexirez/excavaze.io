@@ -10,7 +10,7 @@ const listeners: ((event: MessageEvent) => void)[] = []
 let localId: number | null = null
 let reconnectGeneration = 0
 let reconnectTimeout: ReturnType<typeof setTimeout> | null = null
-let welcomeCallback: ((id: number, gems: number, upgrades: string[], maxLevel: number) => void) | null = null
+let welcomeCallback: ((id: number, gems: number, upgrades: string[]) => void) | null = null
 
 function connect(url: string): void {
   const generation = ++reconnectGeneration
@@ -31,7 +31,7 @@ function connect(url: string): void {
   const msg = JSON.parse(e.data) as ServerMessage
   if (msg.type === 'welcome') {
     localId = msg.id
-    welcomeCallback?.(msg.id, msg.gems, msg.upgrades ?? [], msg.maxLevel)
+    welcomeCallback?.(msg.id, msg.gems, msg.upgrades ?? [])
     welcomeCallback = null
   } else if (msg.type === 'assign_guest_token') {
     saveGuestToken(msg.token).catch(() => {})
@@ -93,7 +93,7 @@ export const socket = {
     ws?.addEventListener('open', handler)
   },
 
-  onWelcome(cb: (id: number, gems: number, upgrades: string[]) => void, maxLevel: number): void {
+  onWelcome(cb: (id: number, gems: number, upgrades: string[]) => void): void {
     welcomeCallback = cb
   },
 
