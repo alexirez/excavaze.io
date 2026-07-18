@@ -83,14 +83,14 @@ export default function App() {
       })
 
       if (online) {
-        socket.onWelcome((id, gems, upgrades) => {
+        socket.onWelcome((id, gems, upgrades, maxLevel) => {
           clientPlayers.set(id, {
           id,
           name: '',
           bodyColor: parseInt(bodyColor.slice(1), 16),
           borderColor: parseInt(borderColor.slice(1), 16),
           xpMultiplier: 1,
-          maxLevel: 7,
+          maxLevel,
           maxHp: PLAYER_BASE_HP,
           hpRegenPerSec: 0,
           moveSpeedMultiplier: 1,

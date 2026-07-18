@@ -47,7 +47,7 @@ wss.on('connection', (socket) => {
     socket,
     state: {
       id,
-      xp: 0,
+      xp: 1000000,
       alive: false,
       shieldActive: false,
       x: 0,
@@ -59,7 +59,7 @@ wss.on('connection', (socket) => {
     bodyColor: 0xff6b6b,
     borderColor: 0xcc4444,
     xpMultiplier: 1,
-    maxLevel: 7,
+    maxLevel: 12,
     maxHp: PLAYER_BASE_HP,
     hpRegenPerSec: 0,
     moveSpeedMultiplier: 1,
@@ -122,6 +122,7 @@ wss.on('connection', (socket) => {
         p.guestToken = record.guestToken
         p.gems = record.gems
         p.purchasedUpgrades = record.purchasedUpgrades
+        p.maxLevel = computeMaxLevel(record.purchasedUpgrades)
 
         await refreshQuestsIfNeeded(record.dbId)
         const quests = await getPlayerQuests(record.dbId)
@@ -137,6 +138,7 @@ wss.on('connection', (socket) => {
         socket.send(JSON.stringify({
           type: 'welcome', id,
           gems: record.gems, upgrades: record.purchasedUpgrades,
+          maxLevel: p.maxLevel,
           cameraX, cameraY,
         }))
 
