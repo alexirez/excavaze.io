@@ -90,7 +90,7 @@ export default function App() {
           bodyColor: parseInt(bodyColor.slice(1), 16),
           borderColor: parseInt(borderColor.slice(1), 16),
           xpMultiplier: 1,
-          maxLevel: computeMaxLevel(upgrades),
+          maxLevel: 7,
           maxHp: PLAYER_BASE_HP,
           hpRegenPerSec: 0,
           moveSpeedMultiplier: 1,

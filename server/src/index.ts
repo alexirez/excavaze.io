@@ -122,7 +122,6 @@ wss.on('connection', (socket) => {
         p.guestToken = record.guestToken
         p.gems = record.gems
         p.purchasedUpgrades = record.purchasedUpgrades
-        p.maxLevel = computeMaxLevel(record.purchasedUpgrades)
 
         await refreshQuestsIfNeeded(record.dbId)
         const quests = await getPlayerQuests(record.dbId)
