@@ -1,2 +1,4 @@
-# fight.io
-A multiplayer browser game inspired by diep.io, extended with melee combat. Built with Phaser, React, and Node.js
+<p align="center">
+  <img src="/readme-assets/giant-saw.gif">
+  <img src="/readme-assets/purchase-tree.gif">
+</p>
