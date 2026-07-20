@@ -319,8 +319,8 @@ setInterval(() => {
               b.state.hp -= PLAYER_COLLISION_DAMAGE
               b.lastCollisionTime = Date.now()
             }
-            if (b.state.hp <= 0 ) { killPlayer(a, b, 'player', players, events); incrementQuestProgress(a, 'kill_player', 1) }
-            if (a.state.hp <= 0 ) { killPlayer(b, a, 'player', players, events); incrementQuestProgress(b, 'kill_player', 1) }
+            if (b.state.hp <= 0 ) { killPlayer(a, b, 'player', players, events) }
+            if (a.state.hp <= 0 ) { killPlayer(b, a, 'player', players, events) }
           }
         }
       }
@@ -338,7 +338,7 @@ setInterval(() => {
               a.drillType, a.drillLengthMultiplier, a.drillDmgMultiplier,
               b.state.x, b.state.y, b.radius
             )
-            if (b.state.hp <= 0) { killPlayer(a, b, 'drill', players, events); incrementQuestProgress(a, 'kill_player', 1) }
+            if (b.state.hp <= 0) { killPlayer(a, b, 'drill', players, events) }
           }
         }
 
@@ -368,7 +368,7 @@ setInterval(() => {
         )
         if (square.state.hp <= 0) {
           awardXp(p, KILL_SQUARE_XP_MULTIPLIER * square.state.maxHp)
-          incrementQuestProgress(p, 'kill_square', 1)
+          events.push({ kind: 'square_killed', killerId: p.state.id })
         }
 
         if (circleIntersectsOrientedRect(
@@ -534,8 +534,14 @@ function handleServerEvent(e: GameEvent, players: Map<number, ServerPlayer>) {
       victim?.socket?.send(JSON.stringify({
         type: 'death_screen', killerName: e.killerName, cause: e.cause,
       } satisfies DeathScreenMessage))
+
+      if (killer) incrementQuestProgress(killer, 'kill_player', 1)
       break
     }
-    // player_killed_by_square, quest_progress cases follow the same shape
+    case 'square_killed': {
+      const killer = players.get(e.killerId)
+      if (killer) incrementQuestProgress(killer, 'kill_square', 1)
+      break
+    }
   }
 }

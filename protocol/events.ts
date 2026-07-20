@@ -1,6 +1,6 @@
 export type GameEvent =
   | PlayerKilledEvent
-  | QuestProgressEvent
+  | SquareKilledEvent
 
 export interface PlayerKilledEvent {
   kind: 'player_killed'
@@ -12,10 +12,7 @@ export interface PlayerKilledEvent {
   cause: 'player' | 'drill' | 'square'
 }
 
-export interface QuestProgressEvent {
-  kind: 'quest_progress'
-  playerId: number
-  instanceId: string
-  progress: number
-  justCompleted: boolean
+export interface SquareKilledEvent {
+  kind: 'square_killed'
+  killerId: number
 }
