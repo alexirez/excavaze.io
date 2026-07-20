@@ -466,6 +466,14 @@ setInterval(() => {
   }
 }, TICK_MS)
 
+// helper to broadcast a message to all connected players
+function broadcastToAll(json: string, players: Map<number, ServerPlayer>) {
+  for (const p of players.values()) {
+    if (p.socket?.readyState === WebSocket.OPEN)
+      p.socket.send(json)
+  }
+}
+
 function incrementQuestProgress(player: ServerPlayer, event: string, amount: number) {
   if (!player.dbId) return
   for (const q of player.activeQuests) {

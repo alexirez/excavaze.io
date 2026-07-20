@@ -294,14 +294,6 @@ export function killPlayer(killer: ServerPlayer, victim: ServerPlayer, cause: 'p
   if (victim.socket === null) players.delete(victim.state.id) // bots are removed immediately
 }
 
-// helper to broadcast a message to all connected players
-function broadcastToAll(json: string, players: Map<number, ServerPlayer>) {
-  for (const p of players.values()) {
-    if (p.socket?.readyState === WebSocket.OPEN)
-      p.socket.send(json)
-  }
-}
-
 export function awardXp(player: ServerPlayer, amount: number) {
   player.state.xp += amount * player.xpMultiplier
 }
