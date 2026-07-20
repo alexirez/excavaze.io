@@ -193,7 +193,7 @@ wss.on('connection', (socket) => {
         if (isDrillPerk(msg.perkId)) removeDrillPerks(player)
         player.collectedPerks.push(msg.perkId)
         refreshStats(player, player.purchasedUpgrades)
-        PERK_EFFECTS[msg.perkId]?.(player) // one-time, not recalculated
+        PERK_EFFECTS[msg.perkId]?.(player) // one-time side effects for special cases
         const updateMsg = JSON.stringify({
           type: 'player_update',
           id,
