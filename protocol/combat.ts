@@ -1,6 +1,7 @@
 import { grantGems } from "../server/src/db/transactions"
 import { ServerPlayer } from "../server/src/entities"
 import { KILL_PLAYER_BASE_XP, STEAL_PLAYER_XP_MULTIPLIER } from "./constants"
+import { GameEvent } from "./events"
 import { DeathScreenMessage, PlayerKilledMessage } from "./messages"
 import { circleIntersectsTriangle } from "./utils"
 
@@ -276,44 +277,20 @@ function triangleIntersectsOrientedRect(
   return true
 }
 
-export function killPlayer(killer: ServerPlayer, victim: ServerPlayer, cause: 'player' | 'drill', players: Map<number, ServerPlayer>) {
+export function killPlayer(killer: ServerPlayer, victim: ServerPlayer, cause: 'player' | 'drill' | 'square', players: Map<number, ServerPlayer>, events: GameEvent[]) {
   if (!victim.state.alive) return
   victim.state.alive = false
   awardXp(killer, STEAL_PLAYER_XP_MULTIPLIER * victim.state.xp + KILL_PLAYER_BASE_XP)
   const gemsAwarded = 2 + Math.floor(Math.random() * 2) // 2 or 3
-  if (killer.dbId) grantGems(killer.dbId, gemsAwarded)
-  broadcastToAll(JSON.stringify({ // broadcast that victim died
-    type: 'player_killed',
+  events.push({
+    kind: 'player_killed',
     victimId: victim.state.id,
     killerId: killer.state.id,
     victimName: victim.name,
     killerName: killer.name,
-    gemsAwarded
-  } satisfies PlayerKilledMessage), players)
-  victim.socket?.send(JSON.stringify({
-    type: 'death_screen',
-    killerName: killer.name,
-    cause: cause
-  } satisfies DeathScreenMessage))
-  if (victim.socket === null) players.delete(victim.state.id) // bots are removed immediately
-}
-
-export function killPlayerBySquare(victim: ServerPlayer, players: Map<number, ServerPlayer>) {
-  if (!victim.state.alive) return
-  victim.state.alive = false
-  broadcastToAll(JSON.stringify({
-    type: 'player_killed',
-    victimId: victim.state.id,
-    killerId: -1,
-    victimName: victim.name,
-    killerName: 'A Square',
-    gemsAwarded: 0
-  } satisfies PlayerKilledMessage), players)
-  victim.socket?.send(JSON.stringify({
-    type: 'death_screen',
-    killerName: 'a Square',
-    cause: 'square'
-  } satisfies DeathScreenMessage))
+    gemsAwarded,
+    cause
+  })
   if (victim.socket === null) players.delete(victim.state.id) // bots are removed immediately
 }
 
