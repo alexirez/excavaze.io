@@ -138,7 +138,7 @@ export default function StartMenu({ onPlay, onUpgrades, online, setOnline, gems,
                 cancel
               </button>
               <button
-                onClick={() => { window.open('https://github.com/alxdrrm/excavaze.io', '_blank'); setShowStarConfirm(false) }}
+                onClick={() => { window.open('https://github.com/alexirez/excavaze.io', '_blank'); setShowStarConfirm(false) }}
                 style={{
                   flex: 1, padding: '10px', background: 'rgba(255,221,0,0.08)',
                   color: '#ffdd00', border: '1px solid rgba(255,221,0,0.3)',
