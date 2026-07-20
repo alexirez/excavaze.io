@@ -277,17 +277,17 @@ function triangleIntersectsOrientedRect(
   return true
 }
 
-export function killPlayer(killer: ServerPlayer, victim: ServerPlayer, cause: 'player' | 'drill' | 'square', players: Map<number, ServerPlayer>, events: GameEvent[]) {
+export function killPlayer(killer: ServerPlayer | null, victim: ServerPlayer, cause: 'player' | 'drill' | 'square', players: Map<number, ServerPlayer>, events: GameEvent[]) {
   if (!victim.state.alive) return
   victim.state.alive = false
-  awardXp(killer, STEAL_PLAYER_XP_MULTIPLIER * victim.state.xp + KILL_PLAYER_BASE_XP)
+  if (killer) awardXp(killer, STEAL_PLAYER_XP_MULTIPLIER * victim.state.xp + KILL_PLAYER_BASE_XP)
   const gemsAwarded = 2 + Math.floor(Math.random() * 2) // 2 or 3
   events.push({
     kind: 'player_killed',
     victimId: victim.state.id,
-    killerId: killer.state.id,
+    killerId: killer ? killer.state.id : -1,
     victimName: victim.name,
-    killerName: killer.name,
+    killerName: killer ? killer.name : 'A Square',
     gemsAwarded,
     cause
   })

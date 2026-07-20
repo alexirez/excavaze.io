@@ -3,24 +3,27 @@ import path from 'path'
 dotenv.config({ path: path.resolve(__dirname, '../../.env') })
 import { WebSocketServer, WebSocket } from 'ws'
 import { ServerPlayer, ServerSquare } from './entities'
-import { WorldStateMessage, ClientMessage } from '../../protocol/messages'
+import { WorldStateMessage, ClientMessage, PlayerKilledMessage, DeathScreenMessage } from '../../protocol/messages'
 import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, PLAYER_COLLISION_DAMAGE, KILL_SQUARE_XP_MULTIPLIER, SQR_COLLISION_BASE_DMG, SQR_COLLISION_DMG_FACTOR, COLLISION_COOLDOWN, PLAYER_BASE_RADIUS, PLAYER_BASE_SPEED, CHUNK_ROWS, CHUNK_COLS, SHIELD_DURATION } from '../../protocol/constants'
 import { PlayerState, SquareState } from '../../protocol/types'
 import { computeBotInput } from '../../protocol/bot-behavior'
 import { isDrillPerk, PERK_EFFECTS, PERK_TREE, removeDrillPerks, rollPerkChoices } from '../../protocol/data/perks'
 import { assignNextPlayerId, fillMapSquares, getChunkIndex, getNearbySquareIds, pickPlayerSpawnPoint, spawnBots, spawnSquaresOnStartup } from '../../protocol/world'
-import { awardXp, circleIntersectsOrientedRect, getDrillDamageOnCircle, getDrillDamageOnRect, getDrillReach, killPlayer, killPlayerBySquare } from '../../protocol/combat'
+import { awardXp, circleIntersectsOrientedRect, getDrillDamageOnCircle, getDrillDamageOnRect, getDrillReach, killPlayer } from '../../protocol/combat'
 import { currentLevel, refreshStats } from '../../protocol/utils'
 import { identifyPlayer } from './db/guests'
-import { purchaseUpgrade } from './db/transactions'
+import { grantGems, purchaseUpgrade } from './db/transactions'
 import { refreshQuestsIfNeeded, getPlayerQuests, tickQuestProgress, setQuestProgress, claimQuest } from './db/quests'
 import { QUEST_TEMPLATE_MAP } from '../../protocol/data/quests'
+import { GameEvent } from '../../protocol/events'
 
 const PORT = 3000
 const SQUARE_SPEED = 0.5
 let tick = 0
 const TICKS_PER_SECOND = Math.round(1000 / TICK_MS)
 const QUEST_CHECK_INTERVAL_TICKS = Math.max(1, Math.round(TICKS_PER_SECOND / 4))
+
+const events: GameEvent[] = []
 
 const wss = new WebSocketServer({ port: PORT })
 console.log(`Server running on ws://localhost:${PORT}\n`)
@@ -280,6 +283,7 @@ wss.on('connection', (socket) => {
 setInterval(() => {
   try {
     tick++
+    events.length = 0
 
     // 1) Process player/bots input
     for (const p of players.values()) {
@@ -315,8 +319,8 @@ setInterval(() => {
               b.state.hp -= PLAYER_COLLISION_DAMAGE
               b.lastCollisionTime = Date.now()
             }
-            if (b.state.hp <= 0 ) { killPlayer(a, b, 'player', players); incrementQuestProgress(a, 'kill_player', 1) }
-            if (a.state.hp <= 0 ) { killPlayer(b, a, 'player', players); incrementQuestProgress(b, 'kill_player', 1) }
+            if (b.state.hp <= 0 ) { killPlayer(a, b, 'player', players, events); incrementQuestProgress(a, 'kill_player', 1) }
+            if (a.state.hp <= 0 ) { killPlayer(b, a, 'player', players, events); incrementQuestProgress(b, 'kill_player', 1) }
           }
         }
       }
@@ -334,7 +338,7 @@ setInterval(() => {
               a.drillType, a.drillLengthMultiplier, a.drillDmgMultiplier,
               b.state.x, b.state.y, b.radius
             )
-            if (b.state.hp <= 0) { killPlayer(a, b, 'drill', players); incrementQuestProgress(a, 'kill_player', 1) }
+            if (b.state.hp <= 0) { killPlayer(a, b, 'drill', players, events); incrementQuestProgress(a, 'kill_player', 1) }
           }
         }
 
@@ -380,7 +384,7 @@ setInterval(() => {
             p.state.hp -= SQR_COLLISION_BASE_DMG + square.state.maxHp * SQR_COLLISION_DMG_FACTOR
             p.lastCollisionTime = Date.now()
           }
-          if (p.state.hp <= 0) killPlayerBySquare(p, players)
+          if (p.state.hp <= 0) killPlayer(null, p, 'square', players, events)
         }
       }
     }
@@ -445,7 +449,10 @@ setInterval(() => {
       fillMapSquares(squares, chunkToSquares, players)
     }
 
-    // 10) Serialize world state and send to every connected client
+    // 10) Handle events from this tick
+    for (const e of events) handleServerEvent(e, players)
+
+    // 11) Serialize world state and send to every connected client
     playerStates.length = 0
     squareStates.length = 0
     for (const p of players.values()) if (p.state.alive) playerStates.push(p.state)
@@ -507,5 +514,28 @@ function tryCompleteSingleRunQuests(player: ServerPlayer) {
     const progress = Math.min(getValue(player), template.target)
     setQuestProgress(player.dbId, q.instanceId, progress)
       .catch(e => console.error('[setQuestProgress failed]', e))
+  }
+}
+
+function handleServerEvent(e: GameEvent, players: Map<number, ServerPlayer>) {
+  switch (e.kind) {
+    case 'player_killed': {
+      const killer = players.get(e.killerId)
+      const victim = players.get(e.victimId)
+      if (killer?.dbId) grantGems(killer.dbId, e.gemsAwarded)
+
+      broadcastToAll(JSON.stringify({
+        type: 'player_killed',
+        killerId: e.killerId, victimId: e.victimId,
+        victimName: e.victimName, killerName: e.killerName,
+        gemsAwarded: e.gemsAwarded,
+      } satisfies PlayerKilledMessage), players)
+
+      victim?.socket?.send(JSON.stringify({
+        type: 'death_screen', killerName: e.killerName, cause: e.cause,
+      } satisfies DeathScreenMessage))
+      break
+    }
+    // player_killed_by_square, quest_progress cases follow the same shape
   }
 }
