@@ -23,7 +23,9 @@ export async function createGuestPlayer(): Promise<PlayerRecord> {
   const guestToken = randomBytes(32).toString('hex')
   const username = `guest_${guestToken.slice(0, 10)}`
 
-  const [row] = await db.insert(players).values({ username, guestToken, isGuest: true }).returning()
+  const [row] = await db.insert(players)
+    .values({ username, guestToken, isGuest: true, lastConnectedAt: new Date() })
+    .returning()
   return toRecord(row)
 }
 
