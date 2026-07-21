@@ -378,7 +378,7 @@ setInterval(() => {
           square.state.hp -= PLAYER_COLLISION_DAMAGE
           if (square.state.hp <= 0) {
             awardXp(p, KILL_SQUARE_XP_MULTIPLIER * square.state.maxHp)
-            incrementQuestProgress(p, 'kill_square', 1)
+            events.push({ kind: 'square_killed', killerId: p.state.id })
           }
           if (!p.state.shieldActive && Date.now() - p.lastCollisionTime > COLLISION_COOLDOWN) {
             p.state.hp -= SQR_COLLISION_BASE_DMG + square.state.maxHp * SQR_COLLISION_DMG_FACTOR

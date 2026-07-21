@@ -1,8 +1,6 @@
-import { grantGems } from "../server/src/db/transactions"
 import { ServerPlayer } from "../server/src/entities"
 import { KILL_PLAYER_BASE_XP, STEAL_PLAYER_XP_MULTIPLIER } from "./constants"
 import { GameEvent } from "./events"
-import { DeathScreenMessage, PlayerKilledMessage } from "./messages"
 import { circleIntersectsTriangle } from "./utils"
 
 export function getDrillReach(sp: ServerPlayer): number {
@@ -281,7 +279,7 @@ export function killPlayer(killer: ServerPlayer | null, victim: ServerPlayer, ca
   if (!victim.state.alive) return
   victim.state.alive = false
   if (killer) awardXp(killer, STEAL_PLAYER_XP_MULTIPLIER * victim.state.xp + KILL_PLAYER_BASE_XP)
-  const gemsAwarded = 2 + Math.floor(Math.random() * 2) // 2 or 3
+  const gemsAwarded = killer ? 2 + Math.floor(Math.random() * 2) : 0 // 2 or 3
   events.push({
     kind: 'player_killed',
     victimId: victim.state.id,
