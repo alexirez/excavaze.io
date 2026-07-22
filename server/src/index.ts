@@ -3,7 +3,7 @@ import path from 'path'
 dotenv.config({ path: path.resolve(__dirname, '../../.env') })
 import { WebSocketServer, WebSocket } from 'ws'
 import { ServerPlayer, ServerSquare } from './entities'
-import { WorldStateMessage, ClientMessage, PlayerKilledMessage, DeathScreenMessage } from '../../protocol/messages'
+import { WorldStateMessage, ClientMessage, PlayerKilledMessage, DeathScreenMessage, ServerRespawnMessage } from '../../protocol/messages'
 import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, PLAYER_COLLISION_DAMAGE, KILL_SQUARE_XP_MULTIPLIER, SQR_COLLISION_BASE_DMG, SQR_COLLISION_DMG_FACTOR, COLLISION_COOLDOWN, PLAYER_BASE_RADIUS, PLAYER_BASE_SPEED, CHUNK_ROWS, CHUNK_COLS, SHIELD_DURATION } from '../../protocol/constants'
 import { PlayerState, SquareState } from '../../protocol/types'
 import { computeBotInput } from '../../protocol/bot-behavior'
@@ -416,7 +416,7 @@ setInterval(() => {
     }
 
     // 6) Spawn bots
-    if (tick % 50 === 0) spawnBots(players, cameraX, cameraY)
+    if (tick % 50 === 0) spawnBots(players, cameraX, cameraY, events)
 
     // 7) Process each active square
     squaresToDelete.length = 0
@@ -541,6 +541,26 @@ function handleServerEvent(e: GameEvent, players: Map<number, ServerPlayer>) {
     case 'square_killed': {
       const killer = players.get(e.killerId)
       if (killer) incrementQuestProgress(killer, 'kill_square', 1)
+      break
+    }
+    case 'bot_spawned': {
+      broadcastToAll(JSON.stringify({
+        type: 'player_respawn',
+        id: e.id,
+        name: e.name,
+        bodyColor: e.bodyColor,
+        borderColor: e.borderColor,
+        xpMultiplier: e.xpMultiplier,
+        maxLevel: e.maxLevel,
+        maxHp: e.maxHp,
+        hpRegenPerSec: e.hpRegenPerSec,
+        moveSpeedMultiplier: e.moveSpeedMultiplier,
+        radius: e.radius,
+        collectedPerks: e.collectedPerks,
+        drillType: e.drillType,
+        drillDmgMultiplier: e.drillDmgMultiplier,
+        drillLengthMultiplier: e.drillLengthMultiplier,
+      } satisfies ServerRespawnMessage), players)
       break
     }
   }
