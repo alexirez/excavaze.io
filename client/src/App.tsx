@@ -13,6 +13,7 @@ import { clientPlayers } from './clientState'
 import { pickRandomColorCombo, numToHex } from '../../protocol/data/colors'
 import { DisplayQuest } from './entities'
 import { QUEST_TEMPLATE_MAP } from '../../protocol/data/quests'
+import { localSocket, addSocketListener as addLocalSocketListener } from './client-simulation'
 
 type Screen = 'startMenu' | 'game' | 'upgrades'
 
@@ -29,8 +30,10 @@ export default function App() {
   const [borderColor, setBorderColor] = useState(numToHex(initialBorder))
   const pendingPurchases = useRef<Map<string, { resolve: (success: boolean) => void, timeout: ReturnType<typeof setTimeout> }>>(new Map())
 
+  const transport = online ? socket : localSocket
+  
   useEffect(() => {
-    const unsubscribe = addSocketListener((event) => {
+    const handler = (event: MessageEvent) => {
       const msg = JSON.parse(event.data) as ServerMessage
       if (msg.type === 'purchase_result') {
         setGems(msg.gems)
@@ -62,8 +65,10 @@ export default function App() {
       } else if (msg.type === 'quest_progress') {
         setQuests(prev => prev.map(q => q.instanceId === msg.instanceId ? { ...q, progress: msg.progress } : q))
       }
-    })
-    return unsubscribe
+    }
+    const unsubOnline = addSocketListener(handler)
+    const unsubOffline = addLocalSocketListener(handler)
+    return () => { unsubOnline(); unsubOffline() }
   }, [])
 
   useEffect(() => {
