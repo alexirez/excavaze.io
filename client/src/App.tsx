@@ -76,11 +76,12 @@ export default function App() {
     let cancelled = false
     async function switchMode() {
       phaserGame?.scene.stop('GameScene')
-      await socket.disconnect()
+      await Promise.all([socket.disconnect(), localSocket.disconnect()])
       clearPendingPurchases()
       if (cancelled) return
 
-      socket.connect(online ? ONLINE_SERVER_URL : LOCAL_SERVER_URL)
+      if (online) socket.connect(ONLINE_SERVER_URL)
+      else localSocket.connect()
       socket.onceOpen(() => {
         loadGuestToken().then(token => {
           if (!cancelled) socket.send(JSON.stringify({ type: 'guest_login', token }))
