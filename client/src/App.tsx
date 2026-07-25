@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import PhaserGame, { phaserGame } from './core/PhaserGame'
+import PhaserGame, { onGameReady, phaserGame } from './core/PhaserGame'
 import GemsOverlay from './components/GemsOverlay'
 import StartMenu from './screens/StartMenu'
 import GameHud from './screens/GameHud'
@@ -105,7 +105,7 @@ export default function App() {
         drillLengthMultiplier: 1,
         snapshot: { id, xp: 0, alive: false, shieldActive: false, x: 0, y: 0, rotation: 0, hp: 0 }
       })
-      phaserGame?.scene.start('GameScene')
+      onGameReady(() => phaserGame?.scene.start('GameScene'))
         if (!cancelled) {
           setGems(gems) 
           setPurchasedUpgrades(upgrades ?? [])
