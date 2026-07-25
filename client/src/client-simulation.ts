@@ -69,7 +69,7 @@ export function onWelcome(cb: (id: number, gems: number, upgrades: string[]) => 
   welcomeCallback = cb
 }
 
-export function getLocalId(): number | null {
+export function getOfflineId(): number | null {
   return localId
 }
 
