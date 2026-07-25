@@ -1,5 +1,6 @@
 import { ServerMessage } from '../../../protocol/messages'
 import { saveGuestToken } from '../../storage/offlineStorage'
+import { localSocket, addSocketListener as addLocalListener, getLocalId as getLocalLocalId, onWelcome as onWelcomeLocal } from '../client-simulation'
 
 export const ONLINE_SERVER_URL = 'wss://excavaze.io'
 export const LOCAL_SERVER_URL = 'ws://localhost:3000'
@@ -7,10 +8,15 @@ export const LOCAL_SERVER_URL = 'ws://localhost:3000'
 let current: WebSocket | null = null
 let shouldReconnect = false
 const listeners: ((event: MessageEvent) => void)[] = []
-let localId: number | null = null
+let onlineLocalId: number | null = null
 let reconnectGeneration = 0
 let reconnectTimeout: ReturnType<typeof setTimeout> | null = null
 let welcomeCallback: ((id: number, gems: number, upgrades: string[]) => void) | null = null
+
+let mode: 'online' | 'offline' = 'online'
+export function setMode(online: boolean): void {
+  mode = online ? 'online' : 'offline'
+}
 
 function connect(url: string): void {
   const generation = ++reconnectGeneration
@@ -28,23 +34,23 @@ function connect(url: string): void {
   }
 
   ws.onmessage = (e) => {
-  const msg = JSON.parse(e.data) as ServerMessage
-  if (msg.type === 'welcome') {
-    localId = msg.id
-    welcomeCallback?.(msg.id, msg.gems, msg.upgrades ?? [])
-    welcomeCallback = null
-  } else if (msg.type === 'assign_guest_token') {
-    saveGuestToken(msg.token).catch(() => {})
+    const msg = JSON.parse(e.data) as ServerMessage
+    if (msg.type === 'welcome') {
+      onlineLocalId = msg.id
+      welcomeCallback?.(msg.id, msg.gems, msg.upgrades ?? [])
+      welcomeCallback = null
+    } else if (msg.type === 'assign_guest_token') {
+      saveGuestToken(msg.token).catch(() => {})
+    }
+    for (const listener of listeners) listener(e)
   }
-  for (const listener of listeners) listener(e)
-}
 }
 
 function disconnect(): Promise<void> {
   console.log('[socket] disconnected')
   reconnectGeneration++
   shouldReconnect = false
-  localId = null
+  onlineLocalId = null
   const ws = current
   current = null
 
@@ -61,29 +67,37 @@ function disconnect(): Promise<void> {
 }
 
 export function getLocalId(): number | null {
-  return localId
+  return mode === 'online' ? onlineLocalId : getLocalLocalId()
 }
 
 // Returns unsubscribe function so callers can clean up easily
 export function addSocketListener(fn: (event: MessageEvent) => void): () => void {
   listeners.push(fn)
-  return () => {
+  const unsubOnline = () => {
     const i = listeners.indexOf(fn)
     if (i !== -1) listeners.splice(i, 1)
   }
+  const unsubOffline = addLocalListener(fn)
+  return () => { unsubOnline(); unsubOffline() }
 }
 
 export const socket = {
   send(data: string): void {
-    if (current?.readyState === WebSocket.OPEN) current.send(data)
-    else console.warn('[socket] send called but socket is not open')
+    if (mode === 'online') {
+      if (current?.readyState === WebSocket.OPEN) current.send(data); else console.warn('[socket] send called but socket is not open')
+    } else {
+      localSocket.send(data)
+    }
   },
 
   isOpen(): boolean {
-    return current?.readyState === WebSocket.OPEN
+    return mode === 'online'
+      ? current?.readyState === WebSocket.OPEN
+      : localSocket.isOpen()
   },
 
   onceOpen(callback: () => void): void {
+    if (mode === 'offline') { localSocket.onceOpen(callback); return }
     if (this.isOpen()) { callback(); return }
     const ws = current
     const handler = () => {
@@ -94,10 +108,15 @@ export const socket = {
   },
 
   onWelcome(cb: (id: number, gems: number, upgrades: string[]) => void): void {
-    welcomeCallback = cb
+    if (mode === 'online') welcomeCallback = cb
+    else onWelcomeLocal(cb)
   },
 
-  get readyState() { return current?.readyState ?? WebSocket.CLOSED },
+  get readyState() {
+    return mode === 'online'
+      ? current?.readyState ?? WebSocket.CLOSED
+      : localSocket.readyState
+  },
   connect,
   disconnect,
 }
