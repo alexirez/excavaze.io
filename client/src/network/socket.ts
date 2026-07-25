@@ -2,8 +2,7 @@ import { ServerMessage } from '../../../protocol/messages'
 import { saveGuestToken } from '../../storage/offlineStorage'
 import { localSocket, addSocketListener as addLocalListener, getOfflineId, onWelcome as onWelcomeLocal } from '../client-simulation'
 
-export const ONLINE_SERVER_URL = 'wss://excavaze.io'
-export const LOCAL_SERVER_URL = 'ws://localhost:3000'
+export const SERVER_URL = 'ws://localhost:3000'
 
 let current: WebSocket | null = null
 let shouldReconnect = false
