@@ -5,7 +5,7 @@ import StartMenu from './screens/StartMenu'
 import GameHud from './screens/GameHud'
 import UpgradesScreen from './screens/UpgradesScreen'
 import { ServerMessage } from '../../protocol/messages'
-import { socket, addSocketListener, SERVER_URL } from './network/socket'
+import { socket, addSocketListener, SERVER_URL, setMode } from './network/socket'
 import { loadOfflineGems, saveOfflineGems, loadOfflineUpgrades, saveOfflineUpgrades, loadGuestToken } from '../storage/offlineStorage'
 import { UPGRADE_NODES } from '../../protocol/data/upgrade-nodes'
 import { PLAYER_BASE_HP, PLAYER_BASE_RADIUS } from '../../protocol/constants'
@@ -13,7 +13,7 @@ import { clientPlayers } from './clientState'
 import { pickRandomColorCombo, numToHex } from '../../protocol/data/colors'
 import { DisplayQuest } from './entities'
 import { QUEST_TEMPLATE_MAP } from '../../protocol/data/quests'
-import { localSocket, addSocketListener as addLocalSocketListener } from './client-simulation'
+import { localSocket } from './client-simulation'
 
 type Screen = 'startMenu' | 'game' | 'upgrades'
 
@@ -29,8 +29,6 @@ export default function App() {
   const [bodyColor, setBodyColor] = useState(numToHex(initialBody))
   const [borderColor, setBorderColor] = useState(numToHex(initialBorder))
   const pendingPurchases = useRef<Map<string, { resolve: (success: boolean) => void, timeout: ReturnType<typeof setTimeout> }>>(new Map())
-
-  const transport = online ? socket : localSocket
   
   useEffect(() => {
     const handler = (event: MessageEvent) => {
@@ -66,15 +64,15 @@ export default function App() {
         setQuests(prev => prev.map(q => q.instanceId === msg.instanceId ? { ...q, progress: msg.progress } : q))
       }
     }
-    const unsubOnline = addSocketListener(handler)
-    const unsubOffline = addLocalSocketListener(handler)
-    return () => { unsubOnline(); unsubOffline() }
+    const unsub = addSocketListener(handler) // handles both socket connections internally
+    return () => unsub()
   }, [])
 
   useEffect(() => {
     console.log('[App] useEffect ran, online =', online)
     let cancelled = false
     async function switchMode() {
+      setMode(online)
       phaserGame?.scene.stop('GameScene')
       await Promise.all([socket.disconnect(), localSocket.disconnect()])
       clearPendingPurchases()
@@ -88,61 +86,31 @@ export default function App() {
         })
       })
 
-      if (online) {
-        socket.onWelcome((id, gems, upgrades) => {
-          clientPlayers.set(id, {
-          id,
-          name: '',
-          bodyColor: parseInt(bodyColor.slice(1), 16),
-          borderColor: parseInt(borderColor.slice(1), 16),
-          xpMultiplier: 1,
-          maxLevel: 7,
-          maxHp: PLAYER_BASE_HP,
-          hpRegenPerSec: 0,
-          moveSpeedMultiplier: 1,
-          radius: PLAYER_BASE_RADIUS,
-          collectedPerks: [],
-          drillType: 0,
-          drillDmgMultiplier: 1,
-          drillLengthMultiplier: 1,
-          snapshot: { id, xp: 0, alive: false, shieldActive: false, x: 0, y: 0, rotation: 0, hp: 0 }
-        })
-        phaserGame?.scene.start('GameScene')
-          if (!cancelled) {
-            setGems(gems) 
-            setPurchasedUpgrades(upgrades ?? [])
-          }
-        })
-      } else {
-        socket.onWelcome((id, gems, upgrades) => {
-          clientPlayers.set(id, {
-            id,
-            name: '',
-            bodyColor: parseInt(bodyColor.slice(1), 16),
-            borderColor: parseInt(borderColor.slice(1), 16),
-            xpMultiplier: 1,
-            maxLevel: 7,
-            maxHp: PLAYER_BASE_HP,
-            hpRegenPerSec: 0,
-            moveSpeedMultiplier: 1,
-            radius: PLAYER_BASE_RADIUS,
-            collectedPerks: [],
-            drillType: 0,
-            drillDmgMultiplier: 1,
-            drillLengthMultiplier: 1,
-            snapshot: { id, xp: 0, alive: false, shieldActive: false, x: 0, y: 0, rotation: 0, hp: 0 }
-          })
-        })
-        phaserGame?.scene.start('GameScene')
-        const [gems, upgrades] = await Promise.all([
-            loadOfflineGems(),
-            loadOfflineUpgrades(),
-          ])
+      // internally, socket.onWelcome will handle based on which mode the player chose
+      socket.onWelcome((id, gems, upgrades) => {
+        clientPlayers.set(id, {
+        id,
+        name: '',
+        bodyColor: parseInt(bodyColor.slice(1), 16),
+        borderColor: parseInt(borderColor.slice(1), 16),
+        xpMultiplier: 1,
+        maxLevel: 7,
+        maxHp: PLAYER_BASE_HP,
+        hpRegenPerSec: 0,
+        moveSpeedMultiplier: 1,
+        radius: PLAYER_BASE_RADIUS,
+        collectedPerks: [],
+        drillType: 0,
+        drillDmgMultiplier: 1,
+        drillLengthMultiplier: 1,
+        snapshot: { id, xp: 0, alive: false, shieldActive: false, x: 0, y: 0, rotation: 0, hp: 0 }
+      })
+      phaserGame?.scene.start('GameScene')
         if (!cancelled) {
-        setGems(gems)
-        setPurchasedUpgrades(upgrades ?? [])
+          setGems(gems) 
+          setPurchasedUpgrades(upgrades ?? [])
         }
-      }
+      })
     }
     switchMode()
     return () => { cancelled = true }
