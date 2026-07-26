@@ -40,11 +40,13 @@ let accumulator = 0
 
 const listeners: ((event: MessageEvent) => void)[] = []
 let welcomeCallback: ((id: number, gems: number, upgrades: string[]) => void) | null = null
+let lastWelcomeMessage: (ServerMessage & { type: 'welcome' }) | null = null
 
 function emit(msg: ServerMessage) {
   const fakeEvent = { data: JSON.stringify(msg) } as MessageEvent
   if (msg.type === 'welcome') {
     localId = msg.id
+    lastWelcomeMessage = msg
     welcomeCallback?.(msg.id, msg.gems, msg.upgrades ?? [])
     welcomeCallback = null
   }
@@ -71,6 +73,10 @@ export function onWelcome(cb: (id: number, gems: number, upgrades: string[]) => 
 
 export function getOfflineId(): number | null {
   return localId
+}
+
+export function getLastOfflineWelcome() {
+  return lastWelcomeMessage
 }
 
 export const localSocket = {
