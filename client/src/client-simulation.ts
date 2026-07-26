@@ -137,6 +137,7 @@ export const localSocket = {
     rafHandle = null
     if (localId !== null) players.delete(localId)
     localId = null
+    lastWelcomeMessage = null
     return Promise.resolve()
   },
 }
