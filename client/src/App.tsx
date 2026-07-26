@@ -88,28 +88,11 @@ export default function App() {
 
       // internally, socket.onWelcome will handle based on which mode the player chose
       socket.onWelcome((id, gems, upgrades) => {
-        clientPlayers.set(id, {
-        id,
-        name: '',
-        bodyColor: parseInt(bodyColor.slice(1), 16),
-        borderColor: parseInt(borderColor.slice(1), 16),
-        xpMultiplier: 1,
-        maxLevel: 7,
-        maxHp: PLAYER_BASE_HP,
-        hpRegenPerSec: 0,
-        moveSpeedMultiplier: 1,
-        radius: PLAYER_BASE_RADIUS,
-        collectedPerks: [],
-        drillType: 0,
-        drillDmgMultiplier: 1,
-        drillLengthMultiplier: 1,
-        snapshot: { id, xp: 0, alive: false, shieldActive: false, x: 0, y: 0, rotation: 0, hp: 0 }
-      })
-      onGameReady(() => phaserGame?.scene.start('GameScene'))
-        if (!cancelled) {
-          setGems(gems) 
-          setPurchasedUpgrades(upgrades ?? [])
-        }
+        onGameReady(() => phaserGame?.scene.start('GameScene'))
+          if (!cancelled) {
+            setGems(gems) 
+            setPurchasedUpgrades(upgrades ?? [])
+          }
       })
     }
     switchMode()
