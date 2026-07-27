@@ -27,7 +27,6 @@ export default function PhaserGame() {
     phaserGame = new Phaser.Game({
       type: Phaser.AUTO,
       backgroundColor: '#1a1a2e',
-      scene: [GameScene],
       parent: containerRef.current!,
       scale: {
         mode: Phaser.Scale.RESIZE,
@@ -39,6 +38,8 @@ export default function PhaserGame() {
         }
       },
     })
+
+    phaserGame.scene.add('GameScene', GameScene, false)
 
     phaserGame.events.once('ready', () => {
       phaserGame?.scale.refresh()
