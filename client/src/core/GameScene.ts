@@ -63,6 +63,12 @@ export class GameScene extends Phaser.Scene {
       if (msg.type === 'welcome') {
         this.cameraTarget.x = msg.cameraX
         this.cameraTarget.y = msg.cameraY
+        if (!clientPlayers.has(msg.id)) {
+          clientPlayers.set(msg.id, { id: msg.id, name: '', bodyColor: 0xff6b6b, borderColor: 0xcc4444,
+            xpMultiplier: 1, maxLevel: 7, maxHp: PLAYER_BASE_HP, hpRegenPerSec: 0, moveSpeedMultiplier: 1,
+            radius: PLAYER_BASE_RADIUS, collectedPerks: [], drillType: 0, drillDmgMultiplier: 1, drillLengthMultiplier: 1,
+            snapshot: { id: msg.id, xp: 0, alive: false, shieldActive: false, x: 0, y: 0, rotation: 0, hp: 0 } })
+        }
       }
       else if (msg.type === 'world_state') {
         this.latestPlayersState.clear() // replace player list with newest update from server

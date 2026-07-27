@@ -8,6 +8,7 @@ let current: WebSocket | null = null
 let shouldReconnect = false
 const listeners: ((event: MessageEvent) => void)[] = []
 let onlineLocalId: number | null = null
+const onlineMessageBuffer: ServerMessage[] = []
 let reconnectGeneration = 0
 let reconnectTimeout: ReturnType<typeof setTimeout> | null = null
 let welcomeCallback: ((id: number, gems: number, upgrades: string[]) => void) | null = null
@@ -41,6 +42,7 @@ function connect(url: string): void {
     } else if (msg.type === 'assign_guest_token') {
       saveGuestToken(msg.token).catch(() => {})
     }
+    if (msg.type !== 'world_state') onlineMessageBuffer.push(msg)
     for (const listener of listeners) listener(e)
   }
 }
@@ -50,6 +52,7 @@ function disconnect(): Promise<void> {
   reconnectGeneration++
   shouldReconnect = false
   onlineLocalId = null
+  onlineMessageBuffer.length = 0
   const ws = current
   current = null
 
@@ -69,8 +72,8 @@ export function getLocalId(): number | null {
   return mode === 'online' ? onlineLocalId : getOfflineId()
 }
 
-// Returns unsubscribe function so callers can clean up easily
-export function addSocketListener(fn: (event: MessageEvent) => void): () => void {
+export function addSocketListener(fn: (event: MessageEvent) => void): () => void { // Returns unsubscribe function so callers can clean up easily
+  for (const msg of onlineMessageBuffer) fn({ data: JSON.stringify(msg) } as MessageEvent)
   listeners.push(fn)
   const unsubOnline = () => {
     const i = listeners.indexOf(fn)
