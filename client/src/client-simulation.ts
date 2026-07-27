@@ -41,6 +41,7 @@ let accumulator = 0
 const listeners: ((event: MessageEvent) => void)[] = []
 let welcomeCallback: ((id: number, gems: number, upgrades: string[]) => void) | null = null
 const messageBuffer: ServerMessage[] = []
+let hasListener = false
 
 function emit(msg: ServerMessage) {
   const fakeEvent = { data: JSON.stringify(msg) } as MessageEvent
@@ -49,7 +50,7 @@ function emit(msg: ServerMessage) {
     welcomeCallback?.(msg.id, msg.gems, msg.upgrades ?? [])
     welcomeCallback = null
   }
-  if (msg.type !== 'world_state') messageBuffer.push(msg)
+  if (!hasListener && msg.type !== 'world_state') messageBuffer.push(msg)
   for (const listener of listeners) listener(fakeEvent)
 }
 
@@ -60,8 +61,12 @@ spawnSquaresOnStartup(squares, chunkToSquares)
 // ============================================================
 
 export function addSocketListener(fn: (event: MessageEvent) => void): () => void {
-  for (const msg of messageBuffer) fn({ data: JSON.stringify(msg) } as MessageEvent) // replay everything missed before the listener existed
-  listeners.push(fn)
+  if (!hasListener) {
+    for (const msg of messageBuffer) fn({ data: JSON.stringify(msg) } as MessageEvent) // replay everything missed before the listener existed
+    messageBuffer.length = 0
+    hasListener = true
+  }
+    listeners.push(fn)
   return () => {
     const i = listeners.indexOf(fn)
     if (i !== -1) listeners.splice(i, 1)
@@ -135,6 +140,7 @@ export const localSocket = {
     if (localId !== null) players.delete(localId)
     localId = null
     messageBuffer.length = 0
+    hasListener = false
     return Promise.resolve()
   },
 }
