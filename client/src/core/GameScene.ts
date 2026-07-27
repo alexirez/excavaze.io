@@ -5,7 +5,6 @@ import { ServerMessage } from '../../../protocol/messages'
 import { WORLD_WIDTH, WORLD_HEIGHT, COLOR_BACKGROUND, COLOR_OUTER_BOUNDS, WORLD_PADDING, SQUARE_BASE_HP, PLAYER_BASE_HP, PLAYER_BASE_RADIUS } from '../../../protocol/constants'
 import { ClientPlayer } from '../entities'
 import { cameraScroll, clientPlayers } from '../clientState'
-import { getLastOfflineWelcome } from '../client-simulation'
 
 export class GameScene extends Phaser.Scene {
   private enemyNameLabels: Map<number, Phaser.GameObjects.Text> = new Map()
@@ -39,21 +38,6 @@ export class GameScene extends Phaser.Scene {
     this.cameraTarget = this.add.rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 1, 1)
     this.cameraTarget.setVisible(false)
     this.cameras.main.startFollow(this.cameraTarget)
-
-    // Apply cached welcome message's data;
-    // adds player's id to clientPlayers and updates camera
-    const pending = getLastOfflineWelcome()
-    if (pending && !clientPlayers.has(pending.id)) {
-      this.cameraTarget.x = pending.cameraX
-      this.cameraTarget.y = pending.cameraY
-      clientPlayers.set(pending.id, {
-        id: pending.id, name: '', bodyColor: 0xff6b6b, borderColor: 0xcc4444,
-        xpMultiplier: 1, maxLevel: 7, maxHp: PLAYER_BASE_HP, hpRegenPerSec: 0,
-        moveSpeedMultiplier: 1, radius: PLAYER_BASE_RADIUS, collectedPerks: [],
-        drillType: 0, drillDmgMultiplier: 1, drillLengthMultiplier: 1,
-        snapshot: { id: pending.id, xp: 0, alive: false, shieldActive: false, x: 0, y: 0, rotation: 0, hp: 0 }
-      })
-    }
 
     this.squareHealthBarGraphics = this.add.graphics() // initialize graphics
     this.squareHealthBarGraphics.setDepth(20)
