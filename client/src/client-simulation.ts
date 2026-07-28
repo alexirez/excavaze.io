@@ -269,10 +269,10 @@ function runTick() {
     }
   }
 
-  // 5) Bot input — everyone except the local player is a bot in offline mode
+  // 5) Bot input
   if (tick % 3 === 0) {
     for (const p of players.values()) {
-      if (p.state.id === localId || !p.state.alive) continue
+      if (p.state.id === localId || !p.state.alive) continue // skip player
       nearbyPlayers.length = 0
       for (const other of players.values()) {
         if (!other.state.alive) continue
