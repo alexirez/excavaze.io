@@ -8,6 +8,7 @@ export const players = pgTable('players', {
   purchasedUpgrades: text('purchased_upgrades').array().notNull().default([]),
   isGuest: boolean('is_guest').notNull().default(true),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  lastConnectedAt: timestamp('last_connected_at', { withTimezone: true }),
   questsGeneratedAt: timestamp('quests_generated_at', { withTimezone: true }),
 });
 

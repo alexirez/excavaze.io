@@ -4,6 +4,7 @@ import { ServerPlayer, ServerSquare } from '../server/src/entities'
 import { PlayerState } from './types'
 import { currentLevel } from './utils'
 import { pickRandomColorCombo } from './data/colors'
+import { GameEvent } from './events'
 
 let nextPlayerId = 0
 let nextSquareId = 0
@@ -160,7 +161,7 @@ export function nearestPlayerDist(players: Map<number, ServerPlayer>, x: number,
   return minSqDist
 }
 
-export function spawnBots(players: Map<number, ServerPlayer>, cameraX: number, cameraY: number) {
+export function spawnBots(players: Map<number, ServerPlayer>, cameraX: number, cameraY: number, events: GameEvent[]) {
   const botBudget = MAX_PLAYER_COUNT - 10
   const currentPlayers = players.size
   if (currentPlayers >= botBudget) return
@@ -174,13 +175,13 @@ export function spawnBots(players: Map<number, ServerPlayer>, cameraX: number, c
     if (score > bestScore) { bestScore = score; bestPlayer = p.state }
   }
 
-  if (bestPlayer) spawnBotForPlayer(bestPlayer, players)
+  if (bestPlayer) spawnBotForPlayer(bestPlayer, players, events)
   else if (botBudget > 7) {
-    spawnBotNearCamera(cameraX, cameraY, players)
+    spawnBotNearCamera(cameraX, cameraY, players, events)
   }
 }
 
-function spawnBot(x: number, y: number, players: Map<number, ServerPlayer>) {
+function spawnBot(x: number, y: number, players: Map<number, ServerPlayer>, events: GameEvent[]) {
   const dangerLevel = DANGER_MAP[getChunkIndex(x, y)]
   const strengthMultiplier = dangerLevel * Math.random()
   const radius = 20 + 12 * (strengthMultiplier)
@@ -223,8 +224,8 @@ function spawnBot(x: number, y: number, players: Map<number, ServerPlayer>) {
   }
   players.set(id, bot)
 
-  const respawnMsg = JSON.stringify({
-    type: 'player_respawn',
+  events.push({
+    kind: 'bot_spawned',
     id,
     name: bot.name,
     bodyColor: bot.bodyColor,
@@ -240,13 +241,9 @@ function spawnBot(x: number, y: number, players: Map<number, ServerPlayer>) {
     drillDmgMultiplier: bot.drillDmgMultiplier,
     drillLengthMultiplier: bot.drillLengthMultiplier,
   })
-  for (const p of players.values()) {
-    if (p.socket?.readyState === WebSocket.OPEN)
-      p.socket.send(respawnMsg)
-  }
 }
 
-function spawnBotForPlayer(player: PlayerState, players: Map<number, ServerPlayer>) {
+function spawnBotForPlayer(player: PlayerState, players: Map<number, ServerPlayer>, events: GameEvent[]) {
   let bestX = WORLD_WIDTH / 2, bestY = WORLD_HEIGHT / 2, bestScore = -1
 
   for (let i = 0; i < 30; i++) {
@@ -258,14 +255,14 @@ function spawnBotForPlayer(player: PlayerState, players: Map<number, ServerPlaye
     if (score > bestScore) { bestX = x; bestY = y; bestScore = score }
   }
 
-  spawnBot(bestX, bestY, players)
+  spawnBot(bestX, bestY, players, events)
 }
 
-export function spawnBotNearCamera(cameraX: number, cameraY: number, players: Map<number, ServerPlayer>, distance: number = 2000) {
+export function spawnBotNearCamera(cameraX: number, cameraY: number, players: Map<number, ServerPlayer>, events: GameEvent[], distance: number = 2000) {
   const angle = Math.random() * Math.PI * 2
   const x = Math.max(WORLD_PADDING, Math.min(WORLD_WIDTH - WORLD_PADDING, cameraX + Math.cos(angle) * distance))
   const y = Math.max(WORLD_PADDING, Math.min(WORLD_HEIGHT - WORLD_PADDING, cameraY + Math.sin(angle) * distance))
-  spawnBot(x, y, players)
+  spawnBot(x, y, players, events)
 }
 
 const BOT_NAMES = [

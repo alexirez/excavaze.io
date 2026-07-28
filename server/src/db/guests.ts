@@ -23,12 +23,17 @@ export async function createGuestPlayer(): Promise<PlayerRecord> {
   const guestToken = randomBytes(32).toString('hex')
   const username = `guest_${guestToken.slice(0, 10)}`
 
-  const [row] = await db.insert(players).values({ username, guestToken, isGuest: true }).returning()
+  const [row] = await db.insert(players)
+    .values({ username, guestToken, isGuest: true, lastConnectedAt: new Date() })
+    .returning()
   return toRecord(row)
 }
 
 export async function getPlayerByToken(token: string): Promise<PlayerRecord | null> {
-  const [row] = await db.select().from(players).where(eq(players.guestToken, token))
+  const [row] = await db.update(players)
+    .set({ lastConnectedAt: new Date() })
+    .where(eq(players.guestToken, token))
+    .returning()
   return row ? toRecord(row) : null
 }
 

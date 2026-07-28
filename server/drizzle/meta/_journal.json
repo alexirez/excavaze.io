@@ -15,6 +15,13 @@
       "when": 1783235425334,
       "tag": "0001_extend_players_table",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784595785444,
+      "tag": "0002_peaceful_nehzno",
+      "breakpoints": true
     }
   ]
 }

@@ -1,5 +1,5 @@
-import { WebSocket as NodeWebSocket } from 'ws'
-import { PlayerState, SquareState } from '../../protocol/types'
+import type { WebSocket as NodeWebSocket } from 'ws'
+import type { PlayerState, SquareState } from '../../protocol/types'
 
 export interface ServerPlayer {
   socket: NodeWebSocket | null

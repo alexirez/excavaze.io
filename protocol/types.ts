@@ -3,7 +3,7 @@ export interface PlayerState {
   id: number
   xp: number
   alive: boolean
-  shieldActive: boolean  // TODO: replace with prediction on client side
+  shieldActive: boolean
   x: number
   y: number
   rotation: number
