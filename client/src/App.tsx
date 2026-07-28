@@ -5,7 +5,7 @@ import StartMenu from './screens/StartMenu'
 import GameHud from './screens/GameHud'
 import UpgradesScreen from './screens/UpgradesScreen'
 import { ServerMessage } from '../../protocol/messages'
-import { socket, addSocketListener, SERVER_URL, setMode } from './network/socket'
+import { socket, addSocketListener, SERVER_URL, setMode, getLocalId } from './network/socket'
 import { loadOfflineGems, saveOfflineGems, loadOfflineUpgrades, saveOfflineUpgrades, loadGuestToken } from '../storage/offlineStorage'
 import { UPGRADE_NODES } from '../../protocol/data/upgrade-nodes'
 import { pickRandomColorCombo, numToHex } from '../../protocol/data/colors'
@@ -60,6 +60,10 @@ export default function App() {
         })
       } else if (msg.type === 'quest_progress') {
         setQuests(prev => prev.map(q => q.instanceId === msg.instanceId ? { ...q, progress: msg.progress } : q))
+      } else if (msg.type === 'player_killed') {
+        if (msg.killerId === getLocalId() && msg.gemsAwarded > 0) {
+          setGems(prev => prev + msg.gemsAwarded)
+        }
       }
     }
     const unsub = addSocketListener(handler) // handles both socket connections internally
