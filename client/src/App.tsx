@@ -118,19 +118,10 @@ export default function App() {
     if (purchasedUpgrades.includes(nodeId)) return false
     if (!node.parents.every(pid => purchasedUpgrades.includes(pid))) return false
 
-    for (const cost of node.cost) {
+    for (const cost of node.cost)
       if (cost.currency === 'gem' && gems < cost.amount) return false
-    }
-
-    const gemCost = node.cost.find(c => c.currency === 'gem')?.amount ?? 0
-    const newGems = gems - gemCost
-    const newUpgrades = [...purchasedUpgrades, nodeId]
-
+    
     socket.send(JSON.stringify({ type: 'try_purchase_upgrade', nodeId }))
-    setGems(newGems)
-    setPurchasedUpgrades(newUpgrades)
-    await saveOfflineGems(newGems)
-    await saveOfflineUpgrades(newUpgrades)
     return true
   }
 
