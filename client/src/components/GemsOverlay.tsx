@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import gemIcon from '../assets/gem.svg'
 import { GemSlot, POOL_SIZE, createGemSlot, ANIMATION_STEP, getBurstAngle, BURST_SPEED_X, BURST_SPEED_Y, BURST_MAX_DELAY_TIME } from '../utils/gem-motions'
 import { clientPlayers, cameraScroll } from '../clientState'
 
@@ -127,7 +128,7 @@ export default function GemsOverlay() {
         <img
           key={i}
           ref={el => { nodeRefs.current[i] = el }}
-          src="/assets/gem.svg"
+          src={gemIcon}
           alt=""
           style={{
             position: 'absolute',

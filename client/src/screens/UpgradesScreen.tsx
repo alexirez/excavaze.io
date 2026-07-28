@@ -1,4 +1,5 @@
 import { JSX, useEffect, useRef, useState } from 'react'
+import gemIcon from '../assets/gem.svg'
 import { UPGRADE_NODES } from '../../../protocol/data/upgrade-nodes'
 
 interface Props {
@@ -10,10 +11,7 @@ interface Props {
 }
 
 const CURRENCY_ICONS: Record<string, string> = {
-  gem: '/assets/gem.svg',
-  green_core: '/assets/green-core.svg',
-  purple_core: '/assets/purple-core.svg',
-  yellow_core: '/assets/yellow-core.svg',
+  gem: gemIcon,
 }
 
 function getState(node: { id: string, parents: string[] }, purchased: string[]): 'purchased' | 'available' | 'locked' {

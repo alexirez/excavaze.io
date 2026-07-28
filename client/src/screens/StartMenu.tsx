@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import gemIcon from '../assets/gem.svg'
+import purchasePlusIcon from '../assets/purchase-plus-button.svg'
 import { phaserGame } from '../core/PhaserGame'
 import { loadOfflineUsername, saveOfflineUsername } from '../../storage/offlineStorage'
 import { pickTip, stripTipPrefix, pickDifferentTip } from '../../../protocol/data/tips'
@@ -363,8 +365,8 @@ export default function StartMenu({ onPlay, onUpgrades, online, setOnline, gems,
               borderRadius: 8, padding: '2px 14px 2px 4px',
               minWidth: 130,
             }}>
-            <img src="/assets/purchase-plus-button.svg" alt="gems" style={{ width: 30, height: 30 }} />
-            <img src="/assets/gem.svg" alt="gems" style={{ width: 30, height: 30 }} />
+            <img src={purchasePlusIcon} alt="gems" style={{ width: 30, height: 30 }} />
+            <img src={gemIcon} alt="gems" style={{ width: 30, height: 30 }} />
             <span style={{
               fontSize: 13, color: 'rgba(255,255,255,0.55)',
               fontFamily: "'Share Tech', monospace", letterSpacing: 1,
