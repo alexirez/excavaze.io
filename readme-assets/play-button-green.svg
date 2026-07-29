@@ -1,0 +1,22 @@
+<svg width="300" height="70" viewBox="0 0 300 70" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#14161f"/>
+      <stop offset="100%" stop-color="#090a0f"/>
+    </linearGradient>
+    <linearGradient id="border" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#d9ff66"/>
+      <stop offset="55%" stop-color="#7ed957"/>
+      <stop offset="100%" stop-color="#12b886"/>
+    </linearGradient>
+    <linearGradient id="text" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#e8ffb8"/>
+      <stop offset="100%" stop-color="#7ed957"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="2" y="2" width="296" height="66" rx="14" fill="url(#bg)" stroke="url(#border)" stroke-width="2.5"/>
+
+  <path d="M56 24 L56 46 L76 35 Z" fill="url(#text)"/>
+  <text x="90" y="42" textLength="140" lengthAdjust="spacingAndGlyphs" font-family="Verdana, Geneva, sans-serif" font-size="19" font-weight="bold" fill="url(#text)" letter-spacing="1.5">PLAY ONLINE</text>
+</svg>
