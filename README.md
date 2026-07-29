@@ -7,7 +7,7 @@
 
 # excavaze.io
 
-A browser game about multiplayer combat with drills. Heavily inspired by other .io games, but with a twist for long-term player progression. Upgrade the tech tree, complete quests for gems, and obtain perks in battle to top the leaderboard.
+A browser game about multiplayer combat with drills. Heavily inspired by other .io games, with the added twist of long-term progression. Complete quests for gems, upgrade the tech tree, and obtain perks in battle to top the leaderboard.
 
 > [!NOTE]
 > This project depends on free-tier hosting, so the server isn't always up and online mode may be unavailable.
