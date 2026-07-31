@@ -7,12 +7,21 @@ import { isDrillPerk, PERK_EFFECTS, PERK_TREE, removeDrillPerks, rollPerkChoices
 import { assignNextPlayerId, fillMapSquares, getChunkIndex, getNearbySquareIds, pickPlayerSpawnPoint, spawnBots, spawnSquaresOnStartup } from '../../protocol/world'
 import { awardXp, circleIntersectsOrientedRect, getDrillDamageOnCircle, getDrillDamageOnRect, getDrillReach, killPlayer } from '../../protocol/combat'
 import { currentLevel, refreshStats } from '../../protocol/utils'
+import { QUEST_TEMPLATE_MAP } from '../../protocol/data/quests'
 import { UPGRADE_NODES } from '../../protocol/data/upgrade-nodes'
 import { GameEvent } from '../../protocol/events'
-import { loadOfflineGems, saveOfflineGems, loadOfflineUpgrades, saveOfflineUpgrades } from './offlineStorage'
+import { loadOfflineGems, saveOfflineGems, loadOfflineUpgrades, saveOfflineUpgrades, refreshOfflineQuestsIfNeeded, getOfflineQuests, tickOfflineQuestProgress, setOfflineQuestProgress, claimOfflineQuest, } from './offlineStorage'
 
 const SQUARE_SPEED = 0.5
 let tick = 0
+const TICKS_PER_SECOND = Math.round(1000 / TICK_MS)
+const QUEST_CHECK_INTERVAL_TICKS = Math.max(1, Math.round(TICKS_PER_SECOND / 4))
+
+const SINGLE_RUN_VALUE_GETTERS: Record<string, (p: ServerPlayer) => number> = {
+  survive_duration: (p) => p.state.alive ? (Date.now() - p.spawnedAt) / 1000 : 0,
+  reach_xp: (p) => p.state.alive ? p.state.xp : 0,
+  reach_level: (p) => p.state.alive ? currentLevel(p.state.xp) : 0,
+}
 
 // A non-null placeholder so shared code (world.ts/combat.ts), which checks
 // `socket === null` to mean "this is a bot", correctly treats the local
@@ -269,7 +278,13 @@ function runTick() {
     }
   }
 
-  // 5) Bot input
+  // 5) Single-run quest checks for the local player
+  if (localId !== null && tick % QUEST_CHECK_INTERVAL_TICKS === 0) {
+    const local = players.get(localId)
+    if (local) tryCompleteSingleRunQuests(local)
+  }
+
+  // 6) Bot input
   if (tick % 3 === 0) {
     for (const p of players.values()) {
       if (p.state.id === localId || !p.state.alive) continue // skip player
@@ -286,10 +301,10 @@ function runTick() {
     }
   }
 
-  // 6) Spawn bots
+  // 7) Spawn bots
   if (tick % 50 === 0) spawnBots(players, cameraX, cameraY, events)
 
-  // 7) Square lifecycle
+  // 8) Square lifecycle
   squaresToDelete.length = 0
   for (const sq of squares.values()) {
     if (
@@ -307,20 +322,20 @@ function runTick() {
   }
   for (const id of squaresToDelete) squares.delete(id)
 
-  // 8) Recompute chunks
+  // 9) Recompute chunks
   for (const set of chunkToSquares.values()) set.clear()
   for (const [id, square] of squares) {
     const index = getChunkIndex(square.state.x, square.state.y)
     chunkToSquares.get(index)?.add(id)
   }
 
-  // 9) Refill obstacles
+  // 10) Refill obstacles
   if (tick % 10 === 0) fillMapSquares(squares, chunkToSquares, players)
 
-  // 10) React to events
+  // 11) React to events
   for (const e of events) handleClientEvent(e)
 
-  // 11) Emit world state to listeners
+  // 12) Emit world state to listeners
   playerStates.length = 0
   squareStates.length = 0
   for (const p of players.values()) if (p.state.alive) playerStates.push(p.state)
@@ -344,6 +359,15 @@ async function handleClientMessage(msg: ClientMessage) {
     const [gems, purchasedUpgrades] = await Promise.all([loadOfflineGems(), loadOfflineUpgrades()])
     local.gems = gems
     local.purchasedUpgrades = purchasedUpgrades
+
+    await refreshOfflineQuestsIfNeeded()
+    const quests = await getOfflineQuests()
+    local.activeQuests = quests
+      .filter(q => q.status === 'active')
+      .map(q => ({ instanceId: q.id, questId: q.questId, progress: q.progress }))
+    emit({
+      type: 'player_quests',
+      quests: quests.map(q => ({ instanceId: q.id, questId: q.questId, status: q.status as 'active' | 'queued', progress: q.progress })),    })
     emit({ type: 'welcome', id: localId, gems, upgrades: purchasedUpgrades, cameraX, cameraY } satisfies WelcomeMessage)
 
   } else if (msg.type === 'client_respawn') {
@@ -431,7 +455,16 @@ async function handleClientMessage(msg: ClientMessage) {
     emit({ type: 'perk_options', perkOptions: choices })
 
   } else if (msg.type === 'claim_quest') {
-    // Offline mode has no quest tracking (App.tsx never populates quests offline) — no-op.
+    const result = await claimOfflineQuest(msg.instanceId)
+    if (result.success && result.rewardGems) {
+      local.gems += result.rewardGems
+      await saveOfflineGems(local.gems)
+    }
+    emit({
+      type: 'quest_claimed', success: result.success, instanceId: msg.instanceId,
+      gems: result.success ? local.gems : undefined,
+      promotedQuestId: result.promotedQuestId, promotedInstanceId: result.promotedInstanceId,
+    })
   }
 }
 
@@ -443,6 +476,7 @@ function handleClientEvent(e: GameEvent) {
   switch (e.kind) {
     case 'player_killed': {
       const victim = players.get(e.victimId)
+      if (e.killerId === localId) incrementOfflineQuestProgress('kill_player', 1)
 
       emit({
         type: 'player_killed', killerId: e.killerId, victimId: e.victimId,
@@ -460,6 +494,7 @@ function handleClientEvent(e: GameEvent) {
       break
     }
     case 'square_killed': {
+      if (e.killerId === localId) incrementOfflineQuestProgress('kill_square', 1)
       break
     }
     case 'bot_spawned': {
@@ -471,5 +506,25 @@ function handleClientEvent(e: GameEvent) {
       } satisfies ServerRespawnMessage)
       break
     }
+  }
+}
+
+function incrementOfflineQuestProgress(event: string, amount = 1) {
+  tickOfflineQuestProgress(event, amount).then(updates => {
+    for (const u of updates) {
+      emit({ type: 'quest_progress', instanceId: u.instanceId, progress: u.progress })
+      if (u.completed) emit({ type: 'quest_completed', instanceId: u.instanceId })
+    }
+  }).catch(e => console.error('[incrementOfflineQuestProgress failed]', e))
+}
+
+function tryCompleteSingleRunQuests(player: ServerPlayer) {
+  for (const q of player.activeQuests) {
+    const template = QUEST_TEMPLATE_MAP.get(q.questId)
+    if (!template) continue
+    const getValue = SINGLE_RUN_VALUE_GETTERS[template.event]
+    if (!getValue || getValue(player) < template.target) continue
+    setOfflineQuestProgress(q.instanceId, Math.min(getValue(player), template.target))
+      .catch(e => console.error('[setOfflineQuestProgress failed]', e))
   }
 }
