@@ -1,5 +1,5 @@
 import { ServerMessage } from '../../../protocol/messages'
-import { saveGuestToken } from '../../storage/offlineStorage'
+import { saveGuestToken } from '../offlineStorage'
 import { localSocket, addSocketListener as addLocalListener, getOfflineId, onWelcome as onWelcomeLocal } from '../client-simulation'
 
 export const SERVER_URL = 'ws://localhost:3000'

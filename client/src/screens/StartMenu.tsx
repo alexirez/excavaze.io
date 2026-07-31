@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import gemIcon from '../assets/gem.svg'
 import purchasePlusIcon from '../assets/purchase-plus-button.svg'
 import { phaserGame } from '../core/PhaserGame'
-import { loadOfflineUsername, saveOfflineUsername } from '../../storage/offlineStorage'
+import { loadOfflineUsername, saveOfflineUsername } from '../offlineStorage'
 import { pickTip, stripTipPrefix, pickDifferentTip } from '../../../protocol/data/tips'
 import SpeechBubble from '../components/SpeechBubble'
 

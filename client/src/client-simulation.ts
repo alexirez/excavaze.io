@@ -9,7 +9,7 @@ import { awardXp, circleIntersectsOrientedRect, getDrillDamageOnCircle, getDrill
 import { currentLevel, refreshStats } from '../../protocol/utils'
 import { UPGRADE_NODES } from '../../protocol/data/upgrade-nodes'
 import { GameEvent } from '../../protocol/events'
-import { loadOfflineGems, saveOfflineGems, loadOfflineUpgrades, saveOfflineUpgrades } from '../storage/offlineStorage'
+import { loadOfflineGems, saveOfflineGems, loadOfflineUpgrades, saveOfflineUpgrades } from './offlineStorage'
 
 const SQUARE_SPEED = 0.5
 let tick = 0
