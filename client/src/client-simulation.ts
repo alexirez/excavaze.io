@@ -1,5 +1,5 @@
 import { ServerPlayer, ServerSquare } from '../../server/src/entities'
-import { WorldStateMessage, ClientMessage, ServerMessage, WelcomeMessage, PlayerKilledMessage, DeathScreenMessage, ServerRespawnMessage, PlayerUpdateMessage, PurchaseResultMessage } from '../../protocol/messages'
+import { WorldStateMessage, ClientMessage, ServerMessage, WelcomeMessage, PlayerKilledMessage, DeathScreenMessage, ServerRespawnMessage, PlayerUpdateMessage, PurchaseResultMessage, PlayerQuestsMessage, QuestClaimedMessage, QuestProgressMessage, QuestCompletedMessage } from '../../protocol/messages'
 import { TICK_MS, WORLD_WIDTH, WORLD_HEIGHT, WORLD_PADDING, PLAYER_BASE_HP, SQUARE_BASE_HP, PLAYER_COLLISION_DAMAGE, KILL_SQUARE_XP_MULTIPLIER, SQR_COLLISION_BASE_DMG, SQR_COLLISION_DMG_FACTOR, COLLISION_COOLDOWN, PLAYER_BASE_RADIUS, PLAYER_BASE_SPEED, CHUNK_ROWS, CHUNK_COLS, SHIELD_DURATION } from '../../protocol/constants'
 import { PlayerState, SquareState } from '../../protocol/types'
 import { computeBotInput } from '../../protocol/bot-behavior'
@@ -367,8 +367,9 @@ async function handleClientMessage(msg: ClientMessage) {
       .map(q => ({ instanceId: q.id, questId: q.questId, progress: q.progress }))
     emit({
       type: 'player_quests',
-      quests: quests.map(q => ({ instanceId: q.id, questId: q.questId, status: q.status as 'active' | 'queued', progress: q.progress })),    })
-    emit({ type: 'welcome', id: localId, gems, upgrades: purchasedUpgrades, cameraX, cameraY } satisfies WelcomeMessage)
+      quests: quests.map(q => ({ instanceId: q.id, questId: q.questId, status: q.status as 'active' | 'queued', progress: q.progress })),
+    } satisfies PlayerQuestsMessage)  
+      emit({ type: 'welcome', id: localId, gems, upgrades: purchasedUpgrades, cameraX, cameraY } satisfies WelcomeMessage)
 
   } else if (msg.type === 'client_respawn') {
     if (local.state.alive) return
@@ -464,7 +465,7 @@ async function handleClientMessage(msg: ClientMessage) {
       type: 'quest_claimed', success: result.success, instanceId: msg.instanceId,
       gems: result.success ? local.gems : undefined,
       promotedQuestId: result.promotedQuestId, promotedInstanceId: result.promotedInstanceId,
-    })
+    } satisfies QuestClaimedMessage)
   }
 }
 
@@ -512,8 +513,8 @@ function handleClientEvent(e: GameEvent) {
 function incrementOfflineQuestProgress(event: string, amount = 1) {
   tickOfflineQuestProgress(event, amount).then(updates => {
     for (const u of updates) {
-      emit({ type: 'quest_progress', instanceId: u.instanceId, progress: u.progress })
-      if (u.completed) emit({ type: 'quest_completed', instanceId: u.instanceId })
+      emit({ type: 'quest_progress', instanceId: u.instanceId, progress: u.progress } satisfies QuestProgressMessage)
+      if (u.completed) emit({ type: 'quest_completed', instanceId: u.instanceId } satisfies QuestCompletedMessage)
     }
   }).catch(e => console.error('[incrementOfflineQuestProgress failed]', e))
 }
