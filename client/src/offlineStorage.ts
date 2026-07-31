@@ -1,5 +1,5 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb'
-import { QUEST_TEMPLATES } from '../../protocol/data/quests'
+import { QUEST_TEMPLATE_MAP, QUEST_TEMPLATES } from '../../protocol/data/quests'
 
 export interface OfflineProfile {
   username: string
@@ -64,17 +64,19 @@ function getDB(): Promise<IDBPDatabase<OfflineDB>> {
 // --- Full profile ---
 export async function loadOfflineProfile(): Promise<OfflineProfile> {
   const db = await getDB()
-  const [username, gems, permanentUpgrades, guestToken] = await Promise.all([
+  const [username, gems, permanentUpgrades, guestToken, questsGeneratedAt] = await Promise.all([
     db.get(STORE_NAME, 'username'),
     db.get(STORE_NAME, 'gems'),
     db.get(STORE_NAME, 'permanentUpgrades'),
     db.get(STORE_NAME, 'guestToken'),
+    db.get(STORE_NAME, 'questsGeneratedAt'),
   ])
   return {
     username: (username as string) ?? OFFLINE_DEFAULTS.username,
     gems: (gems as number) ?? OFFLINE_DEFAULTS.gems,
     permanentUpgrades: (permanentUpgrades as string[]) ?? [...OFFLINE_DEFAULTS.permanentUpgrades],
     guestToken: (guestToken as string) ?? null,
+    questsGeneratedAt: (questsGeneratedAt as number) ?? null,
   }
 }
 
