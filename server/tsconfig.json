@@ -5,7 +5,8 @@
     "module": "commonjs",
     "strict": true,
     "esModuleInterop": true,
-    "rootDir": "../"
+    "rootDir": "../",
+    "outDir": "dist"
   },
   "include": ["src", "../protocol", "drizzle.config.ts"]
 }
