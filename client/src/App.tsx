@@ -5,7 +5,7 @@ import StartMenu from './screens/StartMenu'
 import GameHud from './screens/GameHud'
 import UpgradesScreen from './screens/UpgradesScreen'
 import { ServerMessage } from '../../protocol/messages'
-import { socket, addSocketListener, SERVER_URL, setMode, getLocalId } from './network/socket'
+import { socket, addSocketListener, ONLINE_SERVER_URL, setMode, getLocalId } from './network/socket'
 import { loadOfflineGems, saveOfflineGems, loadOfflineUpgrades, saveOfflineUpgrades, loadGuestToken } from './offlineStorage'
 import { UPGRADE_NODES } from '../../protocol/data/upgrade-nodes'
 import { pickRandomColorCombo, numToHex } from '../../protocol/data/colors'
@@ -80,7 +80,7 @@ export default function App() {
       clearPendingPurchases()
       if (cancelled) return
 
-      if (online) socket.connect(SERVER_URL)
+      if (online) socket.connect(ONLINE_SERVER_URL)
       else localSocket.connect()
       socket.onceOpen(() => {
         loadGuestToken().then(token => {
