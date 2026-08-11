@@ -6,7 +6,8 @@
     "strict": true,
     "esModuleInterop": true,
     "rootDir": "../",
-    "outDir": "dist"
+    "outDir": "dist",
+    "skipLibCheck": true
   },
   "include": ["src", "../protocol", "drizzle.config.ts"]
 }
