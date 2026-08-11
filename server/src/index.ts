@@ -17,7 +17,7 @@ import { refreshQuestsIfNeeded, getPlayerQuests, tickQuestProgress, setQuestProg
 import { QUEST_TEMPLATE_MAP } from '../../protocol/data/quests'
 import { GameEvent } from '../../protocol/events'
 
-const PORT = 3000
+const PORT = Number(process.env.PORT) || 3000
 const SQUARE_SPEED = 0.5
 let tick = 0
 const TICKS_PER_SECOND = Math.round(1000 / TICK_MS)
@@ -25,7 +25,7 @@ const QUEST_CHECK_INTERVAL_TICKS = Math.max(1, Math.round(TICKS_PER_SECOND / 4))
 
 const events: GameEvent[] = []
 
-const wss = new WebSocketServer({ port: PORT })
+const wss = new WebSocketServer({ port: PORT, host: '0.0.0.0' })
 console.log(`Server running on ws://localhost:${PORT}\n`)
 
 const players = new Map<number, ServerPlayer>()
