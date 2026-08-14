@@ -12,6 +12,7 @@ const onlineMessageBuffer: ServerMessage[] = []
 let reconnectGeneration = 0
 let reconnectTimeout: ReturnType<typeof setTimeout> | null = null
 let welcomeCallback: ((id: number, gems: number, upgrades: string[]) => void) | null = null
+let lastWelcome: { id: number, gems: number, upgrades: string[] } | null = null
 
 let mode: 'online' | 'offline' = 'online'
 export function setMode(online: boolean): void {
@@ -37,6 +38,7 @@ function connect(url: string): void {
     const msg = JSON.parse(e.data) as ServerMessage
     if (msg.type === 'welcome') {
       onlineLocalId = msg.id
+      lastWelcome = { id: msg.id, gems: msg.gems, upgrades: msg.upgrades ?? [] }
       welcomeCallback?.(msg.id, msg.gems, msg.upgrades ?? [])
       welcomeCallback = null
     } else if (msg.type === 'assign_guest_token') {
@@ -53,6 +55,7 @@ function disconnect(): Promise<void> {
   shouldReconnect = false
   onlineLocalId = null
   onlineMessageBuffer.length = 0
+  lastWelcome = null
   const ws = current
   current = null
 
@@ -79,8 +82,11 @@ export function addSocketListener(fn: (event: MessageEvent) => void): () => void
     const i = listeners.indexOf(fn)
     if (i !== -1) listeners.splice(i, 1)
   }
-  const unsubOffline = addLocalListener(fn)
-  return () => { unsubOnline(); unsubOffline() }
+  if (mode === 'offline') {
+    const unsubOffline = addLocalListener(fn)
+    return () => { unsubOnline(); unsubOffline() }
+  }
+  return unsubOnline
 }
 
 export const socket = {
@@ -110,7 +116,10 @@ export const socket = {
   },
 
   onWelcome(cb: (id: number, gems: number, upgrades: string[]) => void): void {
-    if (mode === 'online') welcomeCallback = cb
+    if (mode === 'online') {
+      if (lastWelcome) { cb(lastWelcome.id, lastWelcome.gems, lastWelcome.upgrades); return }
+      welcomeCallback = cb
+    }
     else onWelcomeLocal(cb)
   },
 
