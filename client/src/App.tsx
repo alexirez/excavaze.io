@@ -82,7 +82,9 @@ export default function App() {
 
       if (online) socket.connect(ONLINE_SERVER_URL)
       else localSocket.connect()
+
       socket.onceOpen(() => {
+        onGameReady(() => phaserGame?.scene.start('GameScene'))
         loadGuestToken().then(token => {
           if (!cancelled) socket.send(JSON.stringify({ type: 'guest_login', token }))
         })
@@ -90,7 +92,6 @@ export default function App() {
 
       // internally, socket.onWelcome will handle based on which mode the player chose
       socket.onWelcome((id, gems, upgrades) => {
-        onGameReady(() => phaserGame?.scene.start('GameScene'))
           if (!cancelled) {
             setGems(gems) 
             setPurchasedUpgrades(upgrades ?? [])
