@@ -22,6 +22,7 @@ interface Props {
   onUpgrades: () => void
   online: boolean
   setOnline: React.Dispatch<React.SetStateAction<boolean>>
+  connecting: boolean
   gems: number
   bodyColor: string
   setBodyColor: React.Dispatch<React.SetStateAction<string>>
@@ -29,7 +30,7 @@ interface Props {
   setBorderColor: React.Dispatch<React.SetStateAction<string>>
 }
 
-export default function StartMenu({ onPlay, onUpgrades, online, setOnline, gems, bodyColor, setBodyColor, borderColor, setBorderColor }: Props) {
+export default function StartMenu({ onPlay, onUpgrades, online, setOnline, connecting, gems, bodyColor, setBodyColor, borderColor, setBorderColor }: Props) {
   const [name, setName] = useState('')
   const [tip, setTip] = useState(() => pickTip('general'))
   const [tipVisible, setTipVisible] = useState(true)
@@ -72,6 +73,7 @@ export default function StartMenu({ onPlay, onUpgrades, online, setOnline, gems,
   }
 
   const handlePlay = () => {
+    if (connecting) return
     const trimmed = name.trim()
     if (!trimmed) {
       nameInputRef.current?.focus()
@@ -85,6 +87,7 @@ export default function StartMenu({ onPlay, onUpgrades, online, setOnline, gems,
   }
 
   const handleUpgrades = () => {
+    if (connecting) return
     persistName()
     onUpgrades()
   }
@@ -281,7 +284,7 @@ export default function StartMenu({ onPlay, onUpgrades, online, setOnline, gems,
           {/* SpeechBubble color poopup */}
           <button
             ref={brushButtonRef}
-            onClick={() => setShowColorPicker(v => !v)}
+            onClick={() => { if (!connecting) setShowColorPicker(v => !v) }}
             aria-label="customize colors"
             style={{ width: 48, height: 48, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.75)' }}
           >
@@ -376,7 +379,7 @@ export default function StartMenu({ onPlay, onUpgrades, online, setOnline, gems,
             </div>
           </div>
           <button
-            onClick={() => setShowStarConfirm(true)}
+            onClick={() => { if (!connecting) setShowStarConfirm(true) }}
             style={{
               background: 'none', border: '0.5px solid rgba(255,255,255,0.45)',
               borderRadius: 7, padding: '7px 14px', cursor: 'pointer',

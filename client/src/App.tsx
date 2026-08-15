@@ -167,12 +167,14 @@ export default function App() {
       <StartMenu 
         online={online}
         setOnline={setOnline}
+        connecting={connecting}
         gems={gems}
         bodyColor={bodyColor}
         setBodyColor={setBodyColor}
         borderColor={borderColor}
         setBorderColor={setBorderColor}
         onPlay={(name, bodyColorNum, borderColorNum) => {
+          if (connecting) return
           setPlayerName(name)
           setIsDead(false)
           setScreen('game')
