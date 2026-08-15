@@ -170,13 +170,13 @@ export class GameScene extends Phaser.Scene {
 
   // Only rendering, game logic is on server side
   update() {
-    if (getLocalId() === null) return // no id assigned yet -> do nothing
+    if (getLocalId() === null) { console.log(`[GameScene] update() returned early; localId=null`); return } // no id assigned yet -> do nothing
 
     const localId = getLocalId()
     if (localId === null) return
     const playerState = this.latestPlayersState.get(localId)
     const cp = clientPlayers.get(localId)
-    if (!cp) return
+    if (!cp) { console.log(`[GameScene] update() returned early; clientPlayers does not have localId`); return }
     cameraScroll.x = this.cameras.main.scrollX
     cameraScroll.y = this.cameras.main.scrollY
     this.playerGraphics.clear()
