@@ -5,6 +5,7 @@ import { phaserGame } from '../core/PhaserGame'
 import { loadOfflineUsername, saveOfflineUsername } from '../offlineStorage'
 import { pickTip, stripTipPrefix, pickDifferentTip } from '../../../protocol/data/tips'
 import SpeechBubble from '../components/SpeechBubble'
+import { ONLINE_SERVER_URL } from '../network/socket'
 
 const shakeStyle = `
   @keyframes shake {
@@ -27,9 +28,6 @@ interface Props {
   borderColor: string
   setBorderColor: React.Dispatch<React.SetStateAction<string>>
 }
-
-const ONLINE_SERVER_URL = 'wss://excavaze.io'
-const LOCAL_SERVER_URL = 'wss://localhost:3000'
 
 export default function StartMenu({ onPlay, onUpgrades, online, setOnline, gems, bodyColor, setBodyColor, borderColor, setBorderColor }: Props) {
   const [name, setName] = useState('')
@@ -190,15 +188,17 @@ export default function StartMenu({ onPlay, onUpgrades, online, setOnline, gems,
             }} />
           </div>
         </div>
-        <div style={{
-          background: 'rgba(255,255,255,0.04)', border: '0.5px solid rgba(255,255,255,0.1)',
-          borderRadius: 6, padding: '6px 12px',
-          opacity: online ? 1 : 0.4, transition: 'opacity 0.2s',
-        }}>
-          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', letterSpacing: 1 }}>
-            {online ? ONLINE_SERVER_URL : LOCAL_SERVER_URL}
-          </span>
-        </div>
+        {online && (
+          <div style={{
+            background: 'rgba(255,255,255,0.04)', border: '0.5px solid rgba(255,255,255,0.1)',
+            borderRadius: 6, padding: '6px 12px',
+            opacity: 1, transition: 'opacity 0.2s',
+          }}>
+            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', letterSpacing: 1 }}>
+              {ONLINE_SERVER_URL}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* main content */}
