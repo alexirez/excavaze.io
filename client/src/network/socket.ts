@@ -82,11 +82,8 @@ export function addSocketListener(fn: (event: MessageEvent) => void): () => void
     const i = listeners.indexOf(fn)
     if (i !== -1) listeners.splice(i, 1)
   }
-  if (mode === 'offline') {
-    const unsubOffline = addLocalListener(fn)
-    return () => { unsubOnline(); unsubOffline() }
-  }
-  return unsubOnline
+  const unsubOffline = addLocalListener(fn)
+  return () => { unsubOnline(); unsubOffline() }
 }
 
 export const socket = {
