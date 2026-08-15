@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import PhaserGame, { onGameReady, phaserGame } from './core/PhaserGame'
-import GemsOverlay from './components/GemsOverlay'
 import StartMenu from './screens/StartMenu'
 import GameHud from './screens/GameHud'
 import UpgradesScreen from './screens/UpgradesScreen'
+import GemsOverlay from './components/GemsOverlay'
+import ConnectingOverlay from './components/ConnectingOverlay'
 import { ServerMessage } from '../../protocol/messages'
 import { socket, addSocketListener, ONLINE_SERVER_URL, setMode, getLocalId } from './network/socket'
 import { loadOfflineGems, saveOfflineGems, loadOfflineUpgrades, saveOfflineUpgrades, loadGuestToken } from './offlineStorage'
@@ -27,7 +28,8 @@ export default function App() {
   const [bodyColor, setBodyColor] = useState(numToHex(initialBody))
   const [borderColor, setBorderColor] = useState(numToHex(initialBorder))
   const pendingPurchases = useRef<Map<string, { resolve: (success: boolean) => void, timeout: ReturnType<typeof setTimeout> }>>(new Map())
-  
+  const [connecting, setConnecting] = useState(false)
+
   useEffect(() => {
     const handler = (event: MessageEvent) => {
       const msg = JSON.parse(event.data) as ServerMessage
@@ -80,6 +82,7 @@ export default function App() {
       clearPendingPurchases()
       if (cancelled) return
 
+      setConnecting(true)
       if (online) socket.connect(ONLINE_SERVER_URL)
       else localSocket.connect()
 
@@ -88,6 +91,7 @@ export default function App() {
         loadGuestToken().then(token => {
           if (!cancelled) socket.send(JSON.stringify({ type: 'guest_login', token }))
         })
+        setConnecting(false)
       })
 
       // internally, socket.onWelcome will handle based on which mode the player chose
@@ -142,6 +146,7 @@ export default function App() {
     <div style={{ position: 'relative', width: '100vw', height: '100vh' }}>
       <PhaserGame />
       <GemsOverlay />
+      <ConnectingOverlay visible={connecting} />
       <GameHud
         screen={screen}
         playerName={playerName}
